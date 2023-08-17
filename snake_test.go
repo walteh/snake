@@ -24,11 +24,13 @@ func TestBind(t *testing.T) {
 
 func TestCallRunMethod(t *testing.T) {
 	ctx := context.Background()
+
+	cmd := &cobra.Command{}
 	f := reflect.ValueOf(func(ctx context.Context) error {
 		return nil
 	})
 
-	err := callRunMethod(ctx, f, f.Type())
+	err := callRunMethod(ctx, cmd, f, f.Type())
 
 	assert.Nil(t, err)
 }
@@ -193,21 +195,6 @@ func (m *SnakeableWithOneInput) ExpectedNewCommandError() error {
 
 ////////////////////////////////////////////////////////////////
 
-type SnakeableWithOneInputInvalid struct {
-	MockSnakeableNoRun
-	RunFunc func(string) error
-}
-
-func (m *SnakeableWithOneInputInvalid) Run(s string) error {
-	return m.RunFunc(s)
-}
-
-func (m *SnakeableWithOneInputInvalid) ExpectedNewCommandError() error {
-	return ErrInvalidRun
-}
-
-////////////////////////////////////////////////////////////////
-
 type SnakeableWithTwoInput struct {
 	MockSnakeableNoRun
 	RunFunc func(context.Context, string) error
@@ -227,20 +214,20 @@ func (m *SnakeableWithTwoInput) Bindings() []any {
 
 ////////////////////////////////////////////////////////////////
 
-type SnakeableWithTwoInputInvalid struct {
+type SnakeableWithTwoInputContextSecond struct {
 	MockSnakeableNoRun
 	RunFunc func(string, context.Context) error
 }
 
-func (m *SnakeableWithTwoInputInvalid) Run(s string, ctx context.Context) error {
+func (m *SnakeableWithTwoInputContextSecond) Run(s string, ctx context.Context) error {
 	return m.RunFunc(s, ctx)
 }
 
-func (m *SnakeableWithTwoInputInvalid) ExpectedNewCommandError() error {
-	return ErrInvalidRun
+func (m *SnakeableWithTwoInputContextSecond) ExpectedNewCommandError() error {
+	return nil
 }
 
-func (m *SnakeableWithTwoInputInvalid) Bindings() []any {
+func (m *SnakeableWithTwoInputContextSecond) Bindings() []any {
 	return []any{"hi"}
 }
 
@@ -267,6 +254,44 @@ func (m *SnakeableWithTwoInputMissingBinding) ExpectedRunCommandError() error {
 	return ErrMissingBinding
 }
 
+////////////////////////////////////////////////////////////////
+
+type SnakeableWithThreeInputCobraPointer struct {
+	MockSnakeableNoRun
+	RunFunc func(context.Context, string, *cobra.Command) error
+}
+
+func (m *SnakeableWithThreeInputCobraPointer) Run(ctx context.Context, s string, cmd *cobra.Command) error {
+	return m.RunFunc(ctx, s, cmd)
+}
+
+func (m *SnakeableWithThreeInputCobraPointer) ExpectedNewCommandError() error {
+	return nil
+}
+
+func (m *SnakeableWithThreeInputCobraPointer) Bindings() []any {
+	return []any{"hi"}
+}
+
+////////////////////////////////////////////////////////////////
+
+type SnakeableWithThreeInputCobraNonPointer struct {
+	MockSnakeableNoRun
+	RunFunc func(context.Context, string, cobra.Command) error
+}
+
+func (m *SnakeableWithThreeInputCobraNonPointer) Run(ctx context.Context, s string, cmd cobra.Command) error {
+	return m.RunFunc(ctx, s, cmd)
+}
+
+func (m *SnakeableWithThreeInputCobraNonPointer) ExpectedNewCommandError() error {
+	return nil
+}
+
+func (m *SnakeableWithThreeInputCobraNonPointer) Bindings() []any {
+	return []any{"hi"}
+}
+
 func TestGetRunMethodNoBindings(t *testing.T) {
 	tests := []MockSnakeableCase{
 		NewMockSnakeableNoRun(),
@@ -282,11 +307,7 @@ func TestGetRunMethodNoBindings(t *testing.T) {
 			MockSnakeableNoRun: *NewMockSnakeableNoRun(),
 			RunFunc:            func(context.Context, string) error { return nil },
 		},
-		&SnakeableWithOneInputInvalid{
-			MockSnakeableNoRun: *NewMockSnakeableNoRun(),
-			RunFunc:            func(string) error { return nil },
-		},
-		&SnakeableWithTwoInputInvalid{
+		&SnakeableWithTwoInputContextSecond{
 			MockSnakeableNoRun: *NewMockSnakeableNoRun(),
 			RunFunc:            func(string, context.Context) error { return nil },
 		},
@@ -297,6 +318,14 @@ func TestGetRunMethodNoBindings(t *testing.T) {
 		&SnakeableWithTwoInputMissingBinding{
 			MockSnakeableNoRun: *NewMockSnakeableNoRun(),
 			RunFunc:            func(context.Context, string) error { return nil },
+		},
+		&SnakeableWithThreeInputCobraPointer{
+			MockSnakeableNoRun: *NewMockSnakeableNoRun(),
+			RunFunc:            func(context.Context, string, *cobra.Command) error { return nil },
+		},
+		&SnakeableWithThreeInputCobraNonPointer{
+			MockSnakeableNoRun: *NewMockSnakeableNoRun(),
+			RunFunc:            func(context.Context, string, cobra.Command) error { return nil },
 		},
 	}
 

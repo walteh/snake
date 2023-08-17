@@ -82,7 +82,7 @@ func NewCommand(ctx context.Context, cbra *cobra.Command, snk Snakeable) error {
 	}
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return callRunMethod(cmd.Context(), method, tpe)
+		return callRunMethod(cmd.Context(), cmd, method, tpe)
 	}
 
 	cbra.AddCommand(cmd)
@@ -113,22 +113,40 @@ type bindingsKeyT struct {
 
 var callbackReturnSignature = reflect.TypeOf((*error)(nil)).Elem()
 
-func callRunMethod(ctx context.Context, f reflect.Value, t reflect.Type) error {
+func callRunMethod(ctx context.Context, cmd *cobra.Command, f reflect.Value, t reflect.Type) error {
 
 	in := []reflect.Value{}
 
+	// we do not check for the existence of the bindings key here
+	// because it might not be needed
+	b, bindingsExist := ctx.Value(&bindingsKeyT{}).(bindings)
+
+	contextOverrideExists := false
+	if bindingsExist {
+		_, ok := b[reflect.TypeOf((*context.Context)(nil)).Elem()]
+		if ok {
+			contextOverrideExists = true
+		}
+	}
+
 	for i := 0; i < t.NumIn(); i++ {
 		pt := t.In(i)
-		if pt.Implements(reflect.TypeOf((*context.Context)(nil)).Elem()) {
+		if !contextOverrideExists && pt.Implements(reflect.TypeOf((*context.Context)(nil)).Elem()) {
 			in = append(in, reflect.ValueOf(ctx))
+		} else if pt == reflect.TypeOf((*cobra.Command)(nil)) {
+			in = append(in, reflect.ValueOf(cmd))
+		} else if pt == reflect.TypeOf(cobra.Command{}) {
+			in = append(in, reflect.ValueOf(*cmd))
 		} else {
-			b, ok := ctx.Value(&bindingsKeyT{}).(bindings)
-			if !ok {
+
+			// if we end up here, we need to validate the bindings exist
+			if !bindingsExist {
 				return errors.WithMessage(ErrMissingBinding, "no snake bindings in context")
 			}
+
 			bv, ok := b[pt]
 			if !ok {
-				return errors.WithMessage(ErrMissingBinding, fmt.Sprintf("no binding for %s", pt))
+				return errors.WithMessagef(ErrMissingBinding, "no snake binding for type %s", pt)
 			}
 			v, err := bv()
 			if err != nil {
@@ -175,11 +193,6 @@ func validateRunMethod(inter any, method reflect.Value) (reflect.Type, error) {
 
 	// only here we know it is safe to call Type()
 	t := method.Type()
-
-	// either no arguments or first argument must be context.Context
-	if t.NumIn() != 0 && !t.In(0).Implements(reflect.TypeOf((*context.Context)(nil)).Elem()) {
-		return nil, errors.WithMessagef(ErrInvalidRun, "first argument of (%s).Run must be of type \"context.Context\"", parentName)
-	}
 
 	// must return only an error to comply with cobra.Command.RunE
 	if t.NumOut() != 1 || !t.Out(0).Implements(callbackReturnSignature) {
