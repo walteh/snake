@@ -82,7 +82,7 @@ func NewCommand(ctx context.Context, cbra *cobra.Command, snk Snakeable) error {
 	}
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return callRunMethod(cmd.Context(), cmd, method, tpe)
+		return callRunMethod(cmd, method, tpe)
 	}
 
 	cbra.AddCommand(cmd)
@@ -97,7 +97,7 @@ func Bind(ctx context.Context, key any, value any) context.Context {
 	}
 
 	tk := reflect.TypeOf(key)
-	if tk.Kind() == reflect.Ptr {
+	if tk.Kind() == reflect.Ptr && tk.Elem().Kind() != reflect.Struct {
 		tk = tk.Elem()
 	}
 
@@ -113,13 +113,13 @@ type bindingsKeyT struct {
 
 var callbackReturnSignature = reflect.TypeOf((*error)(nil)).Elem()
 
-func callRunMethod(ctx context.Context, cmd *cobra.Command, f reflect.Value, t reflect.Type) error {
+func callRunMethod(cmd *cobra.Command, f reflect.Value, t reflect.Type) error {
 
 	in := []reflect.Value{}
 
 	// we do not check for the existence of the bindings key here
 	// because it might not be needed
-	b, bindingsExist := ctx.Value(&bindingsKeyT{}).(bindings)
+	b, bindingsExist := cmd.Context().Value(&bindingsKeyT{}).(bindings)
 
 	contextOverrideExists := false
 	if bindingsExist {
@@ -132,13 +132,12 @@ func callRunMethod(ctx context.Context, cmd *cobra.Command, f reflect.Value, t r
 	for i := 0; i < t.NumIn(); i++ {
 		pt := t.In(i)
 		if !contextOverrideExists && pt.Implements(reflect.TypeOf((*context.Context)(nil)).Elem()) {
-			in = append(in, reflect.ValueOf(ctx))
+			in = append(in, reflect.ValueOf(cmd.Context()))
 		} else if pt == reflect.TypeOf((*cobra.Command)(nil)) {
 			in = append(in, reflect.ValueOf(cmd))
 		} else if pt == reflect.TypeOf(cobra.Command{}) {
 			in = append(in, reflect.ValueOf(*cmd))
 		} else {
-
 			// if we end up here, we need to validate the bindings exist
 			if !bindingsExist {
 				return errors.WithMessage(ErrMissingBinding, "no snake bindings in context")
@@ -148,10 +147,12 @@ func callRunMethod(ctx context.Context, cmd *cobra.Command, f reflect.Value, t r
 			if !ok {
 				return errors.WithMessagef(ErrMissingBinding, "no snake binding for type %s", pt)
 			}
+
 			v, err := bv()
 			if err != nil {
 				return err
 			}
+
 			in = append(in, v)
 		}
 	}

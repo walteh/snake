@@ -30,7 +30,9 @@ func TestCallRunMethod(t *testing.T) {
 		return nil
 	})
 
-	err := callRunMethod(ctx, cmd, f, f.Type())
+	cmd.SetContext(ctx)
+
+	err := callRunMethod(cmd, f, f.Type())
 
 	assert.Nil(t, err)
 }
@@ -102,6 +104,10 @@ type MockSnakeableCase interface {
 	ExpectedRunCommandError() error
 
 	Bindings() []any
+	RootParseArgumentsBindings() []any
+}
+
+type customStruct struct {
 }
 
 // //////////////////////////////////////////////////////////////
@@ -143,6 +149,10 @@ func (m *MockSnakeableNoRun) ExpectedRunCommandError() error {
 }
 
 func (m *MockSnakeableNoRun) Bindings() []any {
+	return []any{}
+}
+
+func (m *MockSnakeableNoRun) RootParseArgumentsBindings() []any {
 	return []any{}
 }
 
@@ -292,6 +302,67 @@ func (m *SnakeableWithThreeInputCobraNonPointer) Bindings() []any {
 	return []any{"hi"}
 }
 
+////////////////////////////////////////////////////////////////
+
+type SnakeableWithCustomStruct struct {
+	MockSnakeableNoRun
+	RunFunc func(customStruct) error
+}
+
+func (m *SnakeableWithCustomStruct) Run(cs customStruct) error {
+	return m.RunFunc(cs)
+}
+
+func (m *SnakeableWithCustomStruct) ExpectedNewCommandError() error {
+	return nil
+}
+
+func (m *SnakeableWithCustomStruct) RootParseArgumentsBindings() []any {
+	return []any{customStruct{}}
+}
+
+////////////////////////////////////////////////////////////////
+
+type SnakeableWithCustomStructPtr struct {
+	MockSnakeableNoRun
+	RunFunc func(*customStruct) error
+}
+
+func (m *SnakeableWithCustomStructPtr) Run(cs *customStruct) error {
+	return m.RunFunc(cs)
+}
+
+func (m *SnakeableWithCustomStructPtr) ExpectedNewCommandError() error {
+	return nil
+}
+
+func (m *SnakeableWithCustomStructPtr) RootParseArgumentsBindings() []any {
+	return []any{&customStruct{}}
+}
+
+////////////////////////////////////////////////////////////////
+
+type SnakeableWithCustomStructPtrInvalidBinding struct {
+	MockSnakeableNoRun
+	RunFunc func(*customStruct) error
+}
+
+func (m *SnakeableWithCustomStructPtrInvalidBinding) Run(cs *customStruct) error {
+	return m.RunFunc(cs)
+}
+
+func (m *SnakeableWithCustomStructPtrInvalidBinding) ExpectedNewCommandError() error {
+	return nil
+}
+
+func (m *SnakeableWithCustomStructPtrInvalidBinding) RootParseArgumentsBindings() []any {
+	return []any{customStruct{}}
+}
+
+func (m *SnakeableWithCustomStructPtrInvalidBinding) ExpectedRunCommandError() error {
+	return ErrMissingBinding
+}
+
 func TestGetRunMethodNoBindings(t *testing.T) {
 	tests := []MockSnakeableCase{
 		NewMockSnakeableNoRun(),
@@ -327,6 +398,14 @@ func TestGetRunMethodNoBindings(t *testing.T) {
 			MockSnakeableNoRun: *NewMockSnakeableNoRun(),
 			RunFunc:            func(context.Context, string, cobra.Command) error { return nil },
 		},
+		&SnakeableWithCustomStruct{
+			MockSnakeableNoRun: *NewMockSnakeableNoRun(),
+			RunFunc:            func(customStruct) error { return nil },
+		},
+		&SnakeableWithCustomStructPtr{
+			MockSnakeableNoRun: *NewMockSnakeableNoRun(),
+			RunFunc:            func(*customStruct) error { return nil },
+		},
 	}
 
 	for _, tt := range tests {
@@ -334,9 +413,19 @@ func TestGetRunMethodNoBindings(t *testing.T) {
 
 			ctx := context.Background()
 
-			cmd := cobra.Command{}
+			rootcmd := NewMockSnakeableNoRun()
 
-			err := NewCommand(ctx, &cmd, tt)
+			rootcmd.ParseArgumentsFunc = func(ctx context.Context, cmd *cobra.Command, args []string) error {
+				for _, b := range tt.RootParseArgumentsBindings() {
+					ctx = Bind(ctx, reflect.ValueOf(b).Interface(), b)
+				}
+				cmd.SetContext(ctx)
+				return nil
+			}
+
+			cmd := NewRootCommand(ctx, rootcmd)
+
+			err := NewCommand(ctx, cmd, tt)
 			assert.ErrorIs(t, err, tt.ExpectedNewCommandError())
 
 			if err != nil {
