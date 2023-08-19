@@ -69,7 +69,7 @@ func TestNewCommandNoRun(t *testing.T) {
 	rootCmd := &cobra.Command{}
 	ctx := context.Background()
 
-	err := NewCommand(ctx, rootCmd, snakeableMock)
+	err := NewCommand(ctx, rootCmd, "hi", snakeableMock)
 
 	assert.ErrorIs(t, err, ErrMissingRun)
 }
@@ -93,7 +93,7 @@ func TestNewCommandValid(t *testing.T) {
 	rootCmd := &cobra.Command{}
 	ctx := context.Background()
 
-	err := NewCommand(ctx, rootCmd, snakeableMock)
+	err := NewCommand(ctx, rootCmd, "hi", snakeableMock)
 
 	assert.Nil(t, err)
 }
@@ -425,7 +425,7 @@ func TestGetRunMethodNoBindings(t *testing.T) {
 
 			cmd := NewRootCommand(ctx, rootcmd)
 
-			err := NewCommand(ctx, cmd, tt)
+			err := NewCommand(ctx, cmd, "hello123", tt)
 			assert.ErrorIs(t, err, tt.ExpectedNewCommandError())
 
 			if err != nil {
@@ -436,7 +436,7 @@ func TestGetRunMethodNoBindings(t *testing.T) {
 				ctx = Bind(ctx, reflect.ValueOf(b).Interface(), b)
 			}
 
-			os.Args = []string{"x", "mock"}
+			os.Args = []string{"x", "hello123"}
 
 			err = cmd.ExecuteContext(ctx)
 			assert.ErrorIs(t, err, tt.ExpectedRunCommandError())
