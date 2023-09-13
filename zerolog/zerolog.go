@@ -83,19 +83,17 @@ func NewVerboseConsoleLogger() *zerolog.Logger {
 		return time.Now().Format("[0000-00-00 | 15:04:05.000000]")
 	}
 
-	callerTrier := 0
-
 	consoleOutput.FormatCaller = func(i interface{}) string {
 		a := i.(string)
 		tot := strings.Split(a, "/")
 		if len(tot) == 3 {
 			num := strings.Split(tot[2], ":")
-			lll := 5 + len(num[0]) + len(num[1]) + len(tot[0]) + len(tot[1])
-			if lll >= callerTrier {
-				callerTrier = lll + 2
-			}
-			padding := strings.Repeat(" ", callerTrier-lll)
-			return fmt.Sprintf("[%s:%s] %s:%s%s", tot[0], tot[1], color.BlueString(num[0]), color.New(color.FgBlue, color.Bold).Sprint(num[1]), padding)
+			// lll := 5 + len(num[0]) + len(num[1]) + len(tot[0]) + len(tot[1])
+			// if lll >= callerTrier {
+			// 	callerTrier = lll + 2
+			// }
+			// padding := strings.Repeat(" ", callerTrier-lll)
+			return fmt.Sprintf("[%s:%s] %s:%s ", tot[0], tot[1], color.BlueString(num[0]), color.New(color.FgBlue, color.Bold).Sprint(num[1]))
 		}
 
 		// return the caller in blue in the console
