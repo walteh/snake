@@ -57,5 +57,5 @@ func FormatError(cmd *cobra.Command, err error) string {
 		return ""
 	})
 
-	return fmt.Sprintf("%s - %s - %s%s%s\n", color.New(color.FgRed, color.Bold).Sprint("ERROR"), n, caller, prev, color.New(color.FgRed).Sprint(str))
+	return fmt.Sprintf("%s - %s - %s%s%s", color.New(color.FgRed, color.Bold).Sprint("ERROR"), n, caller, prev, color.New(color.FgRed).Sprint(str))
 }

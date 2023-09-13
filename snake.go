@@ -23,6 +23,8 @@ func NewRootCommand(ctx context.Context, snk Snakeable) *cobra.Command {
 
 	cmd := snk.BuildCommand(ctx)
 
+	cmd.SilenceErrors = true
+
 	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		if err := cmd.ParseFlags(args); err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
