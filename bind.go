@@ -24,7 +24,9 @@ func Bind(ctx context.Context, key any, value any) context.Context {
 	return context.WithValue(ctx, &bindingsKeyT{}, pre)
 }
 
-type bindings map[reflect.Type]func() (reflect.Value, error)
+type binding func() (reflect.Value, error)
+
+type bindings map[reflect.Type]binding
 
 type bindingsKeyT struct {
 }
@@ -49,6 +51,7 @@ func callRunMethod(cmd *cobra.Command, f reflect.Value, t reflect.Type) error {
 
 	for i := 0; i < t.NumIn(); i++ {
 		pt := t.In(i)
+
 		if !contextOverrideExists && pt.Implements(reflect.TypeOf((*context.Context)(nil)).Elem()) {
 			in = append(in, reflect.ValueOf(cmd.Context()))
 		} else if pt == reflect.TypeOf((*cobra.Command)(nil)) {

@@ -46,32 +46,26 @@ func NewRootCommand(ctx context.Context, snk Snakeable) *cobra.Command {
 		return nil
 	}
 
+	if prov, ok := snk.(BindingResolver); ok {
+		ctx = SetBindingResolver(ctx, prov)
+	}
+
 	cmd.SetContext(ctx)
 
 	return cmd
 
 }
 
-func NewGroup(ctx context.Context, cmd *cobra.Command, name string, description string) *cobra.Command {
-
-	grp := &cobra.Command{
-		Use:   name,
-		Short: description,
-	}
-
-	cmd.AddCommand(grp)
-
-	return grp
-}
-
-func MustNewCommand(ctx context.Context, cbra *cobra.Command, name string, snk Snakeable) {
-	err := NewCommand(ctx, cbra, name, snk)
+func MustNewCommand(cbra *cobra.Command, name string, snk Snakeable) {
+	err := NewCommand(cbra, name, snk)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func NewCommand(ctx context.Context, cbra *cobra.Command, name string, snk Snakeable) error {
+func NewCommand(cbra *cobra.Command, name string, snk Snakeable) error {
+
+	ctx := cbra.Context()
 
 	cmd := snk.BuildCommand(ctx)
 
@@ -92,11 +86,24 @@ func NewCommand(ctx context.Context, cbra *cobra.Command, name string, snk Snake
 		if err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
+
 		return nil
 	}
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		err := callRunMethod(cmd, method, tpe)
+
+		res := GetBindingResolver(ctx)
+
+		if res != nil {
+			wctx, err := ResolveBindingsFromProvider(cmd.Context(), res, method)
+			if err != nil {
+				return HandleErrorByPrintingToConsole(cmd, err)
+			}
+
+			cmd.SetContext(wctx)
+		}
+
+		err = callRunMethod(cmd, method, tpe)
 		if err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
@@ -106,6 +113,14 @@ func NewCommand(ctx context.Context, cbra *cobra.Command, name string, snk Snake
 	if name != "" {
 		cmd.Use = name
 	}
+
+	// if prov, ok := snk.(BindingResolver); ok {
+	// 	tmpctx := cbra.Context()
+	// 	tmpctx = SetBindingResolver(tmpctx, prov)
+	// 	cbra.SetContext(tmpctx)
+	// }
+
+	// cbra.SetContext(ctx)
 
 	cbra.AddCommand(cmd)
 

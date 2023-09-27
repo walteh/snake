@@ -2,6 +2,7 @@ package snake
 
 import (
 	"context"
+	"errors"
 	"os"
 	"reflect"
 	"testing"
@@ -67,9 +68,8 @@ func TestNewCommandNoRun(t *testing.T) {
 	}
 
 	rootCmd := &cobra.Command{}
-	ctx := context.Background()
 
-	err := NewCommand(ctx, rootCmd, "hi", snakeableMock)
+	err := NewCommand(rootCmd, "hi", snakeableMock)
 
 	assert.ErrorIs(t, err, ErrMissingRun)
 }
@@ -91,9 +91,8 @@ func TestNewCommandValid(t *testing.T) {
 	}
 
 	rootCmd := &cobra.Command{}
-	ctx := context.Background()
 
-	err := NewCommand(ctx, rootCmd, "hi", snakeableMock)
+	err := NewCommand(rootCmd, "hi", snakeableMock)
 
 	assert.Nil(t, err)
 }
@@ -117,6 +116,7 @@ var _ MockSnakeableCase = (*MockSnakeableNoRun)(nil)
 type MockSnakeableNoRun struct {
 	ParseArgumentsFunc func(ctx context.Context, cmd *cobra.Command, args []string) error
 	BuildCommandFunc   func(ctx context.Context) *cobra.Command
+	ResolveBindingFunc func(any) (any, error)
 }
 
 func NewMockSnakeableNoRun() *MockSnakeableNoRun {
@@ -129,11 +129,28 @@ func NewMockSnakeableNoRun() *MockSnakeableNoRun {
 				Use: "mock",
 			}
 		},
+		ResolveBindingFunc: nil,
+	}
+}
+
+func NewMockSnakeableResolveBinding(f func(any) (any, error)) *MockSnakeableNoRun {
+	snk := NewMockSnakeableNoRun()
+	return &MockSnakeableNoRun{
+		ParseArgumentsFunc: snk.ParseArgumentsFunc,
+		BuildCommandFunc:   snk.BuildCommandFunc,
+		ResolveBindingFunc: f,
 	}
 }
 
 func (m *MockSnakeableNoRun) ParseArguments(ctx context.Context, cmd *cobra.Command, args []string) error {
 	return m.ParseArgumentsFunc(ctx, cmd, args)
+}
+
+func (m *MockSnakeableNoRun) ResolveBinding(arg any) (any, error) {
+	if m.ResolveBindingFunc == nil {
+		return nil, errors.New("no binding resolver")
+	}
+	return m.ResolveBindingFunc(arg)
 }
 
 func (m *MockSnakeableNoRun) BuildCommand(ctx context.Context) *cobra.Command {
@@ -363,6 +380,41 @@ func (m *SnakeableWithCustomStructPtrInvalidBinding) ExpectedRunCommandError() e
 	return ErrMissingBinding
 }
 
+////////////////////////////////////////////////////////////////
+
+type SnakeableWithBindingFuncNoBindings struct {
+	MockSnakeableNoRun
+	RunFunc func(*customStruct) error
+}
+
+func (m *SnakeableWithBindingFuncNoBindings) Run(cs *customStruct) error {
+	return m.RunFunc(cs)
+}
+
+// var _ BindingResolver = (*SnakeableWithBindingFuncNoBindings)(nil)
+
+// func (m *SnakeableWithBindingFuncNoBindings) ResolveBinding(arg any) (any, error) {
+// 	switch arg.(type) {
+// 	case customStruct:
+// 		cms := &customStruct{}
+// 		return cms, nil
+// 	default:
+// 		return nil, nil
+// 	}
+// }
+
+func (m *SnakeableWithBindingFuncNoBindings) ExpectedNewCommandError() error {
+	return nil
+}
+
+func (m *SnakeableWithBindingFuncNoBindings) RootParseArgumentsBindings() []any {
+	return []any{}
+}
+
+func (m *SnakeableWithBindingFuncNoBindings) ExpectedRunCommandError() error {
+	return nil
+}
+
 func TestGetRunMethodNoBindings(t *testing.T) {
 	tests := []MockSnakeableCase{
 		NewMockSnakeableNoRun(),
@@ -425,7 +477,7 @@ func TestGetRunMethodNoBindings(t *testing.T) {
 
 			cmd := NewRootCommand(ctx, rootcmd)
 
-			err := NewCommand(ctx, cmd, "hello123", tt)
+			err := NewCommand(cmd, "hello123", tt)
 			assert.ErrorIs(t, err, tt.ExpectedNewCommandError())
 
 			if err != nil {
@@ -442,4 +494,53 @@ func TestGetRunMethodNoBindings(t *testing.T) {
 			assert.ErrorIs(t, err, tt.ExpectedRunCommandError())
 		})
 	}
+}
+
+func TestGetRunMethodWithBindings(t *testing.T) {
+
+	tt := &SnakeableWithBindingFuncNoBindings{
+		MockSnakeableNoRun: *NewMockSnakeableNoRun(),
+		RunFunc:            func(*customStruct) error { return nil },
+	}
+
+	t.Run(reflect.ValueOf(tt).String(), func(t *testing.T) {
+
+		ctx := context.Background()
+
+		rootcmd := NewMockSnakeableResolveBinding(func(a any) (any, error) {
+			switch a.(type) {
+			case *customStruct, customStruct:
+				cms := &customStruct{}
+				return cms, nil
+			default:
+				return nil, nil
+			}
+		})
+
+		rootcmd.ParseArgumentsFunc = func(ctx context.Context, cmd *cobra.Command, args []string) error {
+			for _, b := range tt.RootParseArgumentsBindings() {
+				ctx = Bind(ctx, reflect.ValueOf(b).Interface(), b)
+			}
+			cmd.SetContext(ctx)
+			return nil
+		}
+
+		cmd := NewRootCommand(ctx, rootcmd)
+
+		err := NewCommand(cmd, "hello123", tt)
+		assert.ErrorIs(t, err, tt.ExpectedNewCommandError())
+
+		if err != nil {
+			return
+		}
+
+		for _, b := range tt.Bindings() {
+			ctx = Bind(ctx, reflect.ValueOf(b).Interface(), b)
+		}
+
+		os.Args = []string{"x", "hello123"}
+
+		err = cmd.ExecuteContext(ctx)
+		assert.ErrorIs(t, err, tt.ExpectedRunCommandError())
+	})
 }
