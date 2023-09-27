@@ -544,3 +544,49 @@ func TestGetRunMethodWithBindings(t *testing.T) {
 		assert.ErrorIs(t, err, tt.ExpectedRunCommandError())
 	})
 }
+
+func TestGetRunMethodWithBindingResolverRegistered(t *testing.T) {
+
+	tt := &SnakeableWithBindingFuncNoBindings{
+		MockSnakeableNoRun: *NewMockSnakeableNoRun(),
+		RunFunc:            func(*customStruct) error { return nil },
+	}
+
+	t.Run(reflect.ValueOf(tt).String(), func(t *testing.T) {
+
+		ctx := context.Background()
+
+		rootcmd := NewMockSnakeableNoRun()
+
+		rootcmd.ParseArgumentsFunc = func(ctx context.Context, cmd *cobra.Command, args []string) error {
+			for _, b := range tt.RootParseArgumentsBindings() {
+				ctx = Bind(ctx, reflect.ValueOf(b).Interface(), b)
+			}
+			cmd.SetContext(ctx)
+			return nil
+		}
+
+		cmd := NewRootCommand(ctx, rootcmd)
+
+		RegisterBindingResolver(cmd, func() (*customStruct, error) {
+			cms := customStruct{}
+			return &cms, nil
+		})
+
+		err := NewCommand(cmd, "hello123", tt)
+		assert.ErrorIs(t, err, tt.ExpectedNewCommandError())
+
+		if err != nil {
+			return
+		}
+
+		for _, b := range tt.Bindings() {
+			ctx = Bind(ctx, reflect.ValueOf(b).Interface(), b)
+		}
+
+		os.Args = []string{"x", "hello123"}
+
+		err = cmd.ExecuteContext(ctx)
+		assert.ErrorIs(t, err, tt.ExpectedRunCommandError())
+	})
+}

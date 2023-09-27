@@ -92,10 +92,18 @@ func NewCommand(cbra *cobra.Command, name string, snk Snakeable) error {
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 
-		res := GetBindingResolver(ctx)
+		resolvers := []BindingResolver{}
 
-		if res != nil {
-			wctx, err := ResolveBindingsFromProvider(cmd.Context(), res, method)
+		if res := GetBindingResolver(ctx); res != nil {
+			resolvers = append(resolvers, res)
+		}
+
+		if res := getDynamicBindingResolver(ctx); res != nil {
+			resolvers = append(resolvers, res)
+		}
+
+		if len(resolvers) > 0 {
+			wctx, err := ResolveBindingsFromProvider(cmd.Context(), method, resolvers...)
 			if err != nil {
 				return HandleErrorByPrintingToConsole(cmd, err)
 			}
@@ -113,14 +121,6 @@ func NewCommand(cbra *cobra.Command, name string, snk Snakeable) error {
 	if name != "" {
 		cmd.Use = name
 	}
-
-	// if prov, ok := snk.(BindingResolver); ok {
-	// 	tmpctx := cbra.Context()
-	// 	tmpctx = SetBindingResolver(tmpctx, prov)
-	// 	cbra.SetContext(tmpctx)
-	// }
-
-	// cbra.SetContext(ctx)
 
 	cbra.AddCommand(cmd)
 
