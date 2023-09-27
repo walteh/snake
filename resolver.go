@@ -8,7 +8,7 @@ import (
 )
 
 type BindingResolver interface {
-	ResolveBinding(any) (any, error)
+	ResolveBinding(*cobra.Command, any) (any, error)
 }
 
 type bindingResolverKeyT struct {
@@ -26,7 +26,9 @@ func GetBindingResolver(ctx context.Context) BindingResolver {
 	return nil
 }
 
-func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value, providers ...BindingResolver) (context.Context, error) {
+func ResolveBindingsFromProvider(cmd *cobra.Command, rf reflect.Value, providers ...BindingResolver) error {
+
+	ctx := cmd.Context()
 
 	// get the type of the first argument
 	for i := 0; i < rf.Type().NumIn(); i++ {
@@ -37,7 +39,7 @@ func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value, provider
 
 		k := reflect.New(pt).Interface()
 		for _, provider := range providers {
-			p, err := provider.ResolveBinding(k)
+			p, err := provider.ResolveBinding(cmd, k)
 			if err != nil {
 				continue
 			}
@@ -46,19 +48,22 @@ func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value, provider
 				break
 			}
 		}
-
 	}
 
-	return ctx, nil
+	cmd.SetContext(ctx)
+
+	return nil
 }
 
-type RawBindingResolver map[reflect.Type]func() (any, error)
+type ResolverFunc[I any] func(*cobra.Command) (I, error)
 
-func (r RawBindingResolver) ResolveBinding(key any) (any, error) {
+type RawBindingResolver map[reflect.Type]ResolverFunc[any]
+
+func (r RawBindingResolver) ResolveBinding(cmd *cobra.Command, key any) (any, error) {
 	if f1, ok := r[reflect.TypeOf(key)]; ok {
-		return f1()
+		return f1(cmd)
 	} else if f2, ok := r[reflect.TypeOf(key).Elem()]; ok {
-		return f2()
+		return f2(cmd)
 	}
 	return nil, nil
 }
@@ -78,7 +83,7 @@ func getDynamicBindingResolver(ctx context.Context) RawBindingResolver {
 	return nil
 }
 
-func RegisterBindingResolver[I any](cmd *cobra.Command, resolver func() (*I, error)) {
+func RegisterBindingResolver[I any](cmd *cobra.Command, resolver ResolverFunc[*I]) {
 	// check if we have a dynamic binding resolver available
 	ctx := cmd.Context()
 	dy := getDynamicBindingResolver(ctx)
@@ -88,8 +93,8 @@ func RegisterBindingResolver[I any](cmd *cobra.Command, resolver func() (*I, err
 
 	elm := reflect.TypeOf((*I)(nil)).Elem()
 
-	dy[elm] = func() (any, error) {
-		return resolver()
+	dy[elm] = func(cmd *cobra.Command) (any, error) {
+		return resolver(cmd)
 	}
 
 	ctx = setDynamicBindingResolver(ctx, dy)

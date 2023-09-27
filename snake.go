@@ -103,16 +103,12 @@ func NewCommand(cbra *cobra.Command, name string, snk Snakeable) error {
 		}
 
 		if len(resolvers) > 0 {
-			wctx, err := ResolveBindingsFromProvider(cmd.Context(), method, resolvers...)
-			if err != nil {
+			if err := ResolveBindingsFromProvider(cmd, method, resolvers...); err != nil {
 				return HandleErrorByPrintingToConsole(cmd, err)
 			}
-
-			cmd.SetContext(wctx)
 		}
 
-		err = callRunMethod(cmd, method, tpe)
-		if err != nil {
+		if err := callRunMethod(cmd, method, tpe); err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
 		return nil

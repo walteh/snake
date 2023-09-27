@@ -116,7 +116,7 @@ var _ MockSnakeableCase = (*MockSnakeableNoRun)(nil)
 type MockSnakeableNoRun struct {
 	ParseArgumentsFunc func(ctx context.Context, cmd *cobra.Command, args []string) error
 	BuildCommandFunc   func(ctx context.Context) *cobra.Command
-	ResolveBindingFunc func(any) (any, error)
+	ResolveBindingFunc func(*cobra.Command, any) (any, error)
 }
 
 func NewMockSnakeableNoRun() *MockSnakeableNoRun {
@@ -133,7 +133,7 @@ func NewMockSnakeableNoRun() *MockSnakeableNoRun {
 	}
 }
 
-func NewMockSnakeableResolveBinding(f func(any) (any, error)) *MockSnakeableNoRun {
+func NewMockSnakeableResolveBinding(f func(*cobra.Command, any) (any, error)) *MockSnakeableNoRun {
 	snk := NewMockSnakeableNoRun()
 	return &MockSnakeableNoRun{
 		ParseArgumentsFunc: snk.ParseArgumentsFunc,
@@ -146,11 +146,11 @@ func (m *MockSnakeableNoRun) ParseArguments(ctx context.Context, cmd *cobra.Comm
 	return m.ParseArgumentsFunc(ctx, cmd, args)
 }
 
-func (m *MockSnakeableNoRun) ResolveBinding(arg any) (any, error) {
+func (m *MockSnakeableNoRun) ResolveBinding(cmd *cobra.Command, arg any) (any, error) {
 	if m.ResolveBindingFunc == nil {
 		return nil, errors.New("no binding resolver")
 	}
-	return m.ResolveBindingFunc(arg)
+	return m.ResolveBindingFunc(cmd, arg)
 }
 
 func (m *MockSnakeableNoRun) BuildCommand(ctx context.Context) *cobra.Command {
@@ -507,7 +507,7 @@ func TestGetRunMethodWithBindings(t *testing.T) {
 
 		ctx := context.Background()
 
-		rootcmd := NewMockSnakeableResolveBinding(func(a any) (any, error) {
+		rootcmd := NewMockSnakeableResolveBinding(func(cmd *cobra.Command, a any) (any, error) {
 			switch a.(type) {
 			case *customStruct, customStruct:
 				cms := &customStruct{}
@@ -568,7 +568,7 @@ func TestGetRunMethodWithBindingResolverRegistered(t *testing.T) {
 
 		cmd := NewRootCommand(ctx, rootcmd)
 
-		RegisterBindingResolver(cmd, func() (*customStruct, error) {
+		RegisterBindingResolver(cmd, func(*cobra.Command) (*customStruct, error) {
 			cms := customStruct{}
 			return &cms, nil
 		})
