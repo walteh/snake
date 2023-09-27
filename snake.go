@@ -19,7 +19,7 @@ var (
 	ErrInvalidArguments = fmt.Errorf("snake.ErrInvalidArguments")
 )
 
-func NewRootCommand(ctx context.Context, snk Snakeable) *cobra.Command {
+func NewRootCommand(ctx context.Context, snk Snakeable) context.Context {
 
 	cmd := snk.BuildCommand(ctx)
 
@@ -46,26 +46,30 @@ func NewRootCommand(ctx context.Context, snk Snakeable) *cobra.Command {
 		return nil
 	}
 
-	if prov, ok := snk.(BindingResolver); ok {
-		ctx = SetBindingResolver(ctx, prov)
-	}
+	// if prov, ok := snk.(BindingResolver); ok {
+	// 	ctx = SetBindingResolver(ctx, prov)
+	// }
 
-	cmd.SetContext(ctx)
+	ctx = SetRootCommand(ctx, cmd)
 
-	return cmd
+	return ctx
 
 }
 
-func MustNewCommand(cbra *cobra.Command, name string, snk Snakeable) {
-	err := NewCommand(cbra, name, snk)
+func MustNewCommand(ctx context.Context, name string, snk Snakeable) context.Context {
+	ctx, err := NewCommand(ctx, name, snk)
 	if err != nil {
 		panic(err)
 	}
+	return ctx
 }
 
-func NewCommand(cbra *cobra.Command, name string, snk Snakeable) error {
+func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Context, error) {
 
-	ctx := cbra.Context()
+	rootcmd := GetRootCommand(ctx)
+	if rootcmd == nil {
+		return nil, fmt.Errorf("snake.NewCommand: cannot create a new command when a root command has already been created")
+	}
 
 	cmd := snk.BuildCommand(ctx)
 
@@ -73,7 +77,7 @@ func NewCommand(cbra *cobra.Command, name string, snk Snakeable) error {
 
 	tpe, err := validateRunMethod(snk, method)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
@@ -92,21 +96,27 @@ func NewCommand(cbra *cobra.Command, name string, snk Snakeable) error {
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 
+		zctx := cmd.Context()
+
 		resolvers := []BindingResolver{}
 
-		if res := GetBindingResolver(ctx); res != nil {
+		if res := GetBindingResolver(zctx); res != nil {
 			resolvers = append(resolvers, res)
 		}
 
-		if res := getDynamicBindingResolver(ctx); res != nil {
+		if res := getDynamicBindingResolver(zctx); res != nil {
 			resolvers = append(resolvers, res)
 		}
 
 		if len(resolvers) > 0 {
-			if err := ResolveBindingsFromProvider(cmd, method, resolvers...); err != nil {
+			dctx, err := ResolveBindingsFromProvider(zctx, method, resolvers...)
+			if err != nil {
 				return HandleErrorByPrintingToConsole(cmd, err)
 			}
+			zctx = dctx
 		}
+
+		cmd.SetContext(zctx)
 
 		if err := callRunMethod(cmd, method, tpe); err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
@@ -118,7 +128,15 @@ func NewCommand(cbra *cobra.Command, name string, snk Snakeable) error {
 		cmd.Use = name
 	}
 
-	cbra.AddCommand(cmd)
+	rootcmd.AddCommand(cmd)
 
-	return nil
+	return ctx, nil
+}
+
+func UseRootCommand(ctx context.Context, x func(*cobra.Command) error) error {
+	root := GetRootCommand(ctx)
+	if root == nil {
+		return fmt.Errorf("snake.UseRootCommand: no root command found in context")
+	}
+	return x(root)
 }
