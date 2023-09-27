@@ -109,6 +109,14 @@ type MockSnakeableCase interface {
 type customStruct struct {
 }
 
+type customInterface interface {
+	ID() string
+}
+
+func (c *customStruct) ID() string {
+	return "id"
+}
+
 // //////////////////////////////////////////////////////////////
 
 var _ MockSnakeableCase = (*MockSnakeableNoRun)(nil)
@@ -391,18 +399,6 @@ func (m *SnakeableWithBindingFuncNoBindings) Run(cs *customStruct) error {
 	return m.RunFunc(cs)
 }
 
-// var _ BindingResolver = (*SnakeableWithBindingFuncNoBindings)(nil)
-
-// func (m *SnakeableWithBindingFuncNoBindings) ResolveBinding(arg any) (any, error) {
-// 	switch arg.(type) {
-// 	case customStruct:
-// 		cms := &customStruct{}
-// 		return cms, nil
-// 	default:
-// 		return nil, nil
-// 	}
-// }
-
 func (m *SnakeableWithBindingFuncNoBindings) ExpectedNewCommandError() error {
 	return nil
 }
@@ -412,6 +408,29 @@ func (m *SnakeableWithBindingFuncNoBindings) RootParseArgumentsBindings() []any 
 }
 
 func (m *SnakeableWithBindingFuncNoBindings) ExpectedRunCommandError() error {
+	return nil
+}
+
+////////////////////////////////////////////////////////////////
+
+type SnakeableWithCustomInterfaceRunFunc struct {
+	MockSnakeableNoRun
+	RunFunc func(customInterface) error
+}
+
+func (m *SnakeableWithCustomInterfaceRunFunc) Run(cs customInterface) error {
+	return m.RunFunc(cs)
+}
+
+func (m *SnakeableWithCustomInterfaceRunFunc) ExpectedNewCommandError() error {
+	return nil
+}
+
+func (m *SnakeableWithCustomInterfaceRunFunc) RootParseArgumentsBindings() []any {
+	return []any{}
+}
+
+func (m *SnakeableWithCustomInterfaceRunFunc) ExpectedRunCommandError() error {
 	return nil
 }
 
@@ -569,6 +588,52 @@ func TestGetRunMethodWithBindingResolverRegistered(t *testing.T) {
 		cmd := NewRootCommand(ctx, rootcmd)
 
 		RegisterBindingResolver(cmd, func(*cobra.Command) (*customStruct, error) {
+			cms := customStruct{}
+			return &cms, nil
+		})
+
+		err := NewCommand(cmd, "hello123", tt)
+		assert.ErrorIs(t, err, tt.ExpectedNewCommandError())
+
+		if err != nil {
+			return
+		}
+
+		for _, b := range tt.Bindings() {
+			ctx = Bind(ctx, reflect.ValueOf(b).Interface(), b)
+		}
+
+		os.Args = []string{"x", "hello123"}
+
+		err = cmd.ExecuteContext(ctx)
+		assert.ErrorIs(t, err, tt.ExpectedRunCommandError())
+	})
+}
+
+func TestGetRunMethodWithBindingResolverRegisteredInterfacePtr(t *testing.T) {
+
+	tt := &SnakeableWithCustomInterfaceRunFunc{
+		MockSnakeableNoRun: *NewMockSnakeableNoRun(),
+		RunFunc:            func(customInterface) error { return nil },
+	}
+
+	t.Run(reflect.ValueOf(tt).String(), func(t *testing.T) {
+
+		ctx := context.Background()
+
+		rootcmd := NewMockSnakeableNoRun()
+
+		rootcmd.ParseArgumentsFunc = func(ctx context.Context, cmd *cobra.Command, args []string) error {
+			for _, b := range tt.RootParseArgumentsBindings() {
+				ctx = Bind(ctx, reflect.ValueOf(b).Interface(), b)
+			}
+			cmd.SetContext(ctx)
+			return nil
+		}
+
+		cmd := NewRootCommand(ctx, rootcmd)
+
+		RegisterBindingResolver(cmd, func(*cobra.Command) (customInterface, error) {
 			cms := customStruct{}
 			return &cms, nil
 		})

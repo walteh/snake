@@ -83,7 +83,7 @@ func getDynamicBindingResolver(ctx context.Context) RawBindingResolver {
 	return nil
 }
 
-func RegisterBindingResolver[I any](cmd *cobra.Command, resolver ResolverFunc[*I]) {
+func RegisterBindingResolver[I any](cmd *cobra.Command, resolver ResolverFunc[I]) {
 	// check if we have a dynamic binding resolver available
 	ctx := cmd.Context()
 	dy := getDynamicBindingResolver(ctx)
