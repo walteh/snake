@@ -8,7 +8,7 @@ import (
 )
 
 type Snakeable interface {
-	Prepare(ctx context.Context, args []string) error
+	Prepare(ctx context.Context, args []string) (context.Context, error)
 	Create(ctx context.Context) *cobra.Command
 }
 
@@ -37,10 +37,12 @@ func NewRootCommand(ctx context.Context, snk Snakeable) context.Context {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
 
-		err := snk.Prepare(zctx, args)
+		zctx, err := snk.Prepare(zctx, args)
 		if err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
+
+		cmd.SetContext(zctx)
 
 		return nil
 	}
@@ -52,10 +54,13 @@ func NewRootCommand(ctx context.Context, snk Snakeable) context.Context {
 			zctx = ClearActiveCommand(zctx)
 		}()
 
-		err := snk.Prepare(zctx, args)
+		zctx, err := snk.Prepare(zctx, args)
 		if err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
+
+		cmd.SetContext(zctx)
+
 		return nil
 	}
 
@@ -104,10 +109,12 @@ func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Contex
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
 
-		err := snk.Prepare(zctx, args)
+		zctx, err := snk.Prepare(zctx, args)
 		if err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
+
+		cmd.SetContext(zctx)
 
 		return nil
 	}

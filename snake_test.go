@@ -41,8 +41,8 @@ func TestCallRunMethod(t *testing.T) {
 func TestNewRootCommandNoRun(t *testing.T) {
 
 	snakeableMock := &MockSnakeableNoRun{
-		ParseArgumentsFunc: func(ctx context.Context, args []string) error {
-			return nil
+		ParseArgumentsFunc: func(ctx context.Context, args []string) (context.Context, error) {
+			return ctx, nil
 		},
 		BuildCommandFunc: func(ctx context.Context) *cobra.Command {
 			return &cobra.Command{}
@@ -59,8 +59,8 @@ func TestNewRootCommandNoRun(t *testing.T) {
 func TestNewCommandNoRun(t *testing.T) {
 	// Set up your Snakeable mock
 	snakeableMock := &MockSnakeableNoRun{
-		ParseArgumentsFunc: func(ctx context.Context, args []string) error {
-			return nil
+		ParseArgumentsFunc: func(ctx context.Context, args []string) (context.Context, error) {
+			return ctx, nil
 		},
 		BuildCommandFunc: func(ctx context.Context) *cobra.Command {
 			return &cobra.Command{}
@@ -78,8 +78,8 @@ func TestNewCommandValid(t *testing.T) {
 	// Set up your Snakeable mock
 	snakeableMock := &MockSnakeableWithZeroInput{
 		MockSnakeableNoRun: MockSnakeableNoRun{
-			ParseArgumentsFunc: func(ctx context.Context, args []string) error {
-				return nil
+			ParseArgumentsFunc: func(ctx context.Context, args []string) (context.Context, error) {
+				return ctx, nil
 			},
 			BuildCommandFunc: func(ctx context.Context) *cobra.Command {
 				return &cobra.Command{}
@@ -122,15 +122,15 @@ func (c *customStruct) ID() string {
 var _ MockSnakeableCase = (*MockSnakeableNoRun)(nil)
 
 type MockSnakeableNoRun struct {
-	ParseArgumentsFunc func(ctx context.Context, args []string) error
+	ParseArgumentsFunc func(ctx context.Context, args []string) (context.Context, error)
 	BuildCommandFunc   func(ctx context.Context) *cobra.Command
 	ResolveBindingFunc func(context.Context, any) (any, error)
 }
 
 func NewMockSnakeableNoRun() *MockSnakeableNoRun {
 	return &MockSnakeableNoRun{
-		ParseArgumentsFunc: func(ctx context.Context, args []string) error {
-			return nil
+		ParseArgumentsFunc: func(ctx context.Context, args []string) (context.Context, error) {
+			return ctx, nil
 		},
 		BuildCommandFunc: func(ctx context.Context) *cobra.Command {
 			return &cobra.Command{
@@ -150,7 +150,7 @@ func NewMockSnakeableResolveBinding(f func(context.Context, any) (any, error)) *
 	}
 }
 
-func (m *MockSnakeableNoRun) Prepare(ctx context.Context, args []string) error {
+func (m *MockSnakeableNoRun) Prepare(ctx context.Context, args []string) (context.Context, error) {
 	return m.ParseArgumentsFunc(ctx, args)
 }
 
@@ -486,12 +486,12 @@ func TestGetRunMethodNoBindings(t *testing.T) {
 
 			rootcmd := NewMockSnakeableNoRun()
 
-			rootcmd.ParseArgumentsFunc = func(ctx context.Context, args []string) error {
+			rootcmd.ParseArgumentsFunc = func(ctx context.Context, args []string) (context.Context, error) {
 				for _, b := range tt.RootParseArgumentsBindings() {
 					ctx = Bind(ctx, reflect.ValueOf(b).Interface(), b)
 				}
 				// cmd.SetContext(ctx)
-				return nil
+				return ctx, nil
 			}
 
 			cmd := NewRootCommand(ctx, rootcmd)
@@ -530,13 +530,13 @@ func TestGetRunMethodWithBindingResolverRegistered(t *testing.T) {
 
 		rootcmd := NewMockSnakeableNoRun()
 
-		rootcmd.ParseArgumentsFunc = func(ctx context.Context, args []string) error {
+		rootcmd.ParseArgumentsFunc = func(ctx context.Context, args []string) (context.Context, error) {
 			for _, b := range tt.RootParseArgumentsBindings() {
 				ctx = Bind(ctx, reflect.ValueOf(b).Interface(), b)
 			}
 
 			// cmd.SetContext(ctx)
-			return nil
+			return ctx, nil
 		}
 
 		ctx = NewRootCommand(ctx, rootcmd)
@@ -579,12 +579,12 @@ func TestGetRunMethodWithBindingResolverRegisteredInterfacePtr(t *testing.T) {
 
 		rootcmd := NewMockSnakeableNoRun()
 
-		rootcmd.ParseArgumentsFunc = func(ctx context.Context, args []string) error {
+		rootcmd.ParseArgumentsFunc = func(ctx context.Context, args []string) (context.Context, error) {
 			for _, b := range tt.RootParseArgumentsBindings() {
 				ctx = Bind(ctx, reflect.ValueOf(b).Interface(), b)
 			}
 			// cmd.SetContext(ctx)
-			return nil
+			return ctx, nil
 		}
 
 		ctx = NewRootCommand(ctx, rootcmd)
