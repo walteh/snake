@@ -102,7 +102,7 @@ func TestTemplateReplaces(t *testing.T) {
 
 	ctx = SetRootCommand(ctx, rootCmd)
 
-	err := DecorateRootCommand(ctx, cfg)
+	ctx, err := DecorateRootCommand(ctx, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func TestTemplateReplaces(t *testing.T) {
 func makeTemplateTest(t *testing.T, test templateTest, ctx context.Context, rootCmd *cobra.Command, cfg *DecorateOptions) {
 	rootCmd.SetUsageTemplate(test.in)
 	ctx = SetRootCommand(ctx, rootCmd)
-	err := DecorateRootCommand(ctx, cfg)
+	ctx, err := DecorateRootCommand(ctx, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
