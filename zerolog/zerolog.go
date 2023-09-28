@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/k0kubun/pp/v3"
 	"github.com/rs/zerolog"
+	"github.com/walteh/snake"
 )
 
 func Ctx(ctx context.Context) *zerolog.Logger {
@@ -58,14 +59,6 @@ func NewVerboseConsoleLogger() *zerolog.Logger {
 		switch i := i.(type) {
 		case error:
 			return prettyerr.Sprint(i)
-		// case string:
-		// 	return i
-		// case int:
-		// 	return strconv.Itoa(i)
-		// case int64:
-		// 	return strconv.FormatInt(i, 10)
-		// case float64:
-		// 	return strconv.FormatFloat(i, 'f', -1, 64)
 		case []byte:
 			var g interface{}
 			err := json.Unmarshal(i, &g)
@@ -80,25 +73,25 @@ func NewVerboseConsoleLogger() *zerolog.Logger {
 	}
 
 	consoleOutput.FormatTimestamp = func(i interface{}) string {
-		return time.Now().Format("[0000-00-00 | 15:04:05.000000]")
+		return time.Now().Format("[15:04:05.000000]")
 	}
 
 	consoleOutput.FormatCaller = func(i interface{}) string {
-		a := i.(string)
-		tot := strings.Split(a, "/")
-		if len(tot) == 3 {
-			num := strings.Split(tot[2], ":")
-			// lll := 5 + len(num[0]) + len(num[1]) + len(tot[0]) + len(tot[1])
-			// if lll >= callerTrier {
-			// 	callerTrier = lll + 2
-			// }
-			// padding := strings.Repeat(" ", callerTrier-lll)
-			return fmt.Sprintf("[%s:%s] %s:%s ", tot[0], tot[1], color.BlueString(num[0]), color.New(color.FgBlue, color.Bold).Sprint(num[1]))
+		if i == nil {
+			return ""
+		}
+		s := fmt.Sprintf("%s", i)
+		tot := strings.Split(s, ":")
+		if len(tot) != 2 {
+			return snake.FormatCaller(tot[0], 0)
 		}
 
-		// return the caller in blue in the console
-		// make it black
-		return fmt.Sprintf("\x1b[0m\x1b[34;1m%s\x1b[0m", i)
+		in, err := strconv.Atoi(tot[1])
+		if err != nil {
+			return snake.FormatCaller(tot[0], 0)
+		}
+
+		return snake.FormatCaller(tot[0], in)
 	}
 
 	consoleOutput.PartsOrder = []string{"level", "time", "caller", "message"}
@@ -108,5 +101,4 @@ func NewVerboseConsoleLogger() *zerolog.Logger {
 	l := zerolog.New(consoleOutput).With().Caller().Timestamp().Logger()
 
 	return &l
-
 }
