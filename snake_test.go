@@ -624,6 +624,10 @@ func TestGetRunMethodWithBindingResolverRegisteredInterfacePtr(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		ctx = RegisterBindingResolver(ctx, func(c context.Context) (context.Context, error) {
+			return c, nil
+		})
+
 		ctx = RegisterBindingResolver(ctx, func(context.Context) (customInterface, error) {
 			cms := customStruct{}
 			return &cms, nil

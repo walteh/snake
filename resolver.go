@@ -8,13 +8,16 @@ import (
 func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context.Context, error) {
 
 	for _, pt := range listOfArgs(rf.Type()) {
-		// if pt.Kind() == reflect.Ptr {
-		// 	pt = pt.Elem()
-		// }
-
 		rslv, ok := getResolvers(ctx)[pt]
 		if !ok {
-			continue
+			if pt.Kind() == reflect.Ptr {
+				pt = pt.Elem()
+			}
+			// check if we have a flag binding for this type
+			rslv, ok = getResolvers(ctx)[pt]
+			if !ok {
+				continue
+			}
 		}
 
 		p, err := rslv(ctx)
@@ -34,7 +37,6 @@ func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context
 
 		}
 		ctx = bind(ctx, pt, p)
-		break
 
 	}
 
