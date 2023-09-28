@@ -651,9 +651,20 @@ func TestGetRunMethodWithBindingResolverRegisteredInterfacePtr(t *testing.T) {
 }
 func TestGetRunMethodWithBindingResolverRegisteredInterfacePtrContext(t *testing.T) {
 
+	testContextToBeInjected := context.Background()
+
+	testContextToBeInjected = context.WithValue(testContextToBeInjected, "test", "test")
+
 	tt := &SnakeableWithCustomInterfaceRunFuncContext{
 		MockSnakeableNoRun: *NewMockSnakeableNoRun(),
-		RunFunc:            func(context.Context, customInterface) error { return nil },
+		RunFunc: func(ctx context.Context, ci customInterface) error {
+
+			if ctx.Value("test") == nil {
+				return errors.New("context not passed")
+			}
+
+			return nil
+		},
 	}
 
 	t.Run(reflect.ValueOf(tt).String(), func(t *testing.T) {
@@ -676,6 +687,8 @@ func TestGetRunMethodWithBindingResolverRegisteredInterfacePtrContext(t *testing
 		}
 
 		ctx = RegisterBindingResolver(ctx, func(cctx context.Context) (context.Context, error) {
+
+			cctx = testContextToBeInjected
 
 			cctx = RegisterBindingResolver(cctx, func(context.Context) (customInterface, error) {
 				cms := customStruct{}

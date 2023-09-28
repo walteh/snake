@@ -98,6 +98,26 @@ func Assemble(ctx context.Context) *cobra.Command {
 	return rootcmd
 }
 
+func buildAssembleContextLoader(ctx context.Context) (func() context.Context, error) {
+	rootcmd := GetRootCommand(ctx)
+	if rootcmd == nil {
+		return nil, fmt.Errorf("snake.NewCommand: no root command found in context")
+	}
+	return func() context.Context {
+		return rootcmd.Context()
+	}, nil
+}
+
+func buildAssembleTimeDynamicBindingResolver(ctx context.Context) (func() RawBindingResolver, error) {
+	ldr, err := buildAssembleContextLoader(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return func() RawBindingResolver {
+		return getDynamicBindingResolver(ldr())
+	}, nil
+}
+
 func MustNewCommand(ctx context.Context, name string, snk Snakeable) context.Context {
 	ctx, err := NewCommand(ctx, name, snk)
 	if err != nil {
@@ -113,9 +133,9 @@ func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Contex
 		return nil, err
 	}
 
-	rootcmd := GetRootCommand(ctx)
-	if rootcmd == nil {
-		return nil, fmt.Errorf("snake.NewCommand: no root command found in context")
+	loadDBR, err := buildAssembleTimeDynamicBindingResolver(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	method := getRunMethod(snk)
@@ -157,7 +177,7 @@ func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Contex
 			zctx = ClearActiveCommand(zctx)
 		}()
 
-		dctx, err := ResolveBindingsFromProvider(zctx, method, getDynamicBindingResolver(rootcmd.Context()))
+		dctx, err := ResolveBindingsFromProvider(zctx, method, loadDBR())
 		if err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
