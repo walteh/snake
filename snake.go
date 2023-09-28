@@ -113,6 +113,11 @@ func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Contex
 		return nil, err
 	}
 
+	rootcmd := GetRootCommand(ctx)
+	if rootcmd == nil {
+		return nil, fmt.Errorf("snake.NewCommand: no root command found in context")
+	}
+
 	method := getRunMethod(snk)
 
 	tpe, err := validateRunMethod(snk, method)
@@ -152,11 +157,7 @@ func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Contex
 			zctx = ClearActiveCommand(zctx)
 		}()
 
-		// if res := GetBindingResolver(zctx); res != nil {
-		// 	resolvers = append(resolvers, res)
-		// }
-
-		dctx, err := ResolveBindingsFromProvider(zctx, method, getDynamicBindingResolver(zctx))
+		dctx, err := ResolveBindingsFromProvider(zctx, method, getDynamicBindingResolver(rootcmd.Context()))
 		if err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
