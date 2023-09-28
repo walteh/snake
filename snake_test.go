@@ -690,11 +690,7 @@ func TestGetRunMethodWithBindingResolverRegisteredInterfacePtrContext(t *testing
 
 			cctx = testContextToBeInjected
 
-			cctx = RegisterBindingResolver(cctx, func(context.Context) (customInterface, error) {
-				cms := customStruct{}
-
-				return &cms, nil
-			})
+			cctx = Bind(cctx, (*customInterface)(nil), &customStruct{})
 
 			return cctx, nil
 		})
@@ -714,7 +710,7 @@ func TestGetRunMethodWithBindingResolverRegisteredInterfacePtrContext(t *testing
 
 		assm := Assemble(ctx)
 
-		err = assm.ExecuteContext(ctx)
+		err = assm.ExecuteContext(context.TODO())
 
 		assert.ErrorIs(t, err, tt.ExpectedRunCommandError())
 	})

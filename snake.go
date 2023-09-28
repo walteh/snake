@@ -3,6 +3,7 @@ package snake
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/spf13/cobra"
 )
@@ -67,63 +68,25 @@ func NewRootCommand(ctx context.Context, snk Snakeable) (context.Context, error)
 		return nil
 	}
 
-	ctx = SetRootCommand(ctx, cmd)
+	nc := &NamedCommand{
+		cmd:        cmd,
+		method:     reflect.ValueOf(func() {}),
+		methodType: reflect.TypeOf(func() {}),
+		ptr:        nil,
+	}
 
-	ctx = SetNamedCommand(ctx, RootCommandName, cmd)
+	ctx = SetRootCommand(ctx, nc)
+
+	ctx = SetNamedCommand(ctx, RootCommandName, nc)
 
 	return ctx, nil
 }
 
-func Assemble(ctx context.Context) *cobra.Command {
-	rootcmd := GetRootCommand(ctx)
-	if rootcmd == nil {
-		return nil
-	}
-
-	named := GetAllNamedCommands(ctx)
-	if named == nil {
-		return nil
-	}
-
-	for name, cmd := range named {
-		if name == RootCommandName {
-			continue
-		}
-
-		rootcmd.AddCommand(cmd)
-	}
-
-	rootcmd.SetContext(ctx)
-
-	return rootcmd
-}
-
-func buildAssembleContextLoader(ctx context.Context) (func() context.Context, error) {
-	rootcmd := GetRootCommand(ctx)
-	if rootcmd == nil {
-		return nil, fmt.Errorf("snake.NewCommand: no root command found in context")
-	}
-	return func() context.Context {
-		return rootcmd.Context()
-	}, nil
-}
-
-func buildAssembleTimeDynamicBindingResolver(ctx context.Context) (func() RawBindingResolver, error) {
-	ldr, err := buildAssembleContextLoader(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return func() RawBindingResolver {
-		return getDynamicBindingResolver(ldr())
-	}, nil
-}
-
-func MustNewCommand(ctx context.Context, name string, snk Snakeable) context.Context {
-	ctx, err := NewCommand(ctx, name, snk)
-	if err != nil {
-		panic(err)
-	}
-	return ctx
+type NamedCommand struct {
+	cmd        *cobra.Command
+	method     reflect.Value
+	methodType reflect.Type
+	ptr        any
 }
 
 func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Context, error) {
@@ -133,16 +96,23 @@ func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Contex
 		return nil, err
 	}
 
-	loadDBR, err := buildAssembleTimeDynamicBindingResolver(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	method := getRunMethod(snk)
 
 	tpe, err := validateRunMethod(snk, method)
 	if err != nil {
 		return nil, err
+	}
+
+	rootcmd := GetRootCommand(ctx)
+	if rootcmd == nil {
+		return nil, fmt.Errorf("snake.NewCommand: no root command found in context")
+	}
+
+	getRootCommandCtx := func() context.Context {
+		if c, ok := rootcmd.ptr.(context.Context); ok {
+			return c
+		}
+		return ctx
 	}
 
 	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
@@ -177,11 +147,12 @@ func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Contex
 			zctx = ClearActiveCommand(zctx)
 		}()
 
-		dctx, err := ResolveBindingsFromProvider(zctx, method, loadDBR())
+		dctx, err := ResolveBindingsFromProvider(getRootCommandCtx(), method)
 		if err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
-		zctx = dctx
+
+		zctx = mergeBindingKeepingFirst(zctx, dctx)
 
 		cmd.SetContext(zctx)
 
@@ -195,9 +166,55 @@ func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Contex
 		cmd.Use = name
 	}
 
-	ctx = SetNamedCommand(ctx, name, cmd)
+	ctx = SetNamedCommand(ctx, name, &NamedCommand{
+		cmd:        cmd,
+		method:     method,
+		methodType: tpe,
+	})
 
 	return ctx, nil
+}
+
+func Assemble(ctx context.Context) *cobra.Command {
+	rootcmd := GetRootCommand(ctx)
+	if rootcmd == nil {
+		return nil
+	}
+
+	named := GetAllNamedCommands(ctx)
+	if named == nil {
+		return nil
+	}
+
+	flagb := getFlagBindings(ctx)
+
+	for name, cmd := range named {
+		if name == RootCommandName {
+			continue
+		}
+
+		for _, arg := range listOfArgs(cmd.methodType) {
+			if flagb[arg] == nil {
+				continue
+			}
+			flagb[arg](cmd.cmd.Flags())
+		}
+
+		rootcmd.cmd.AddCommand(cmd.cmd)
+	}
+
+	// we keep the context so we can use it to resolve bindings when a command is run
+	rootcmd.ptr = ctx
+
+	return rootcmd.cmd
+}
+
+func MustNewCommand(ctx context.Context, name string, snk Snakeable) context.Context {
+	ctx, err := NewCommand(ctx, name, snk)
+	if err != nil {
+		panic(err)
+	}
+	return ctx
 }
 
 func WithRootCommand(ctx context.Context, x func(*cobra.Command) error) error {
@@ -205,7 +222,7 @@ func WithRootCommand(ctx context.Context, x func(*cobra.Command) error) error {
 	if root == nil {
 		return fmt.Errorf("snake.WithRootCommand: no root command found in context")
 	}
-	return x(root)
+	return x(root.cmd)
 }
 
 func WithNamedCommand(ctx context.Context, name string, x func(*cobra.Command) error) error {
@@ -213,7 +230,7 @@ func WithNamedCommand(ctx context.Context, name string, x func(*cobra.Command) e
 	if cmd == nil {
 		return fmt.Errorf("snake.WithNamedCommand: no named command found in context")
 	}
-	return x(cmd)
+	return x(cmd.cmd)
 }
 
 func WithActiveCommand(ctx context.Context, x func(*cobra.Command) error) error {
@@ -221,5 +238,5 @@ func WithActiveCommand(ctx context.Context, x func(*cobra.Command) error) error 
 	if cmd == nil {
 		return fmt.Errorf("snake.WithActiveCommand: no active command found in context")
 	}
-	return x(cmd)
+	return x(cmd.cmd)
 }

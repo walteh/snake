@@ -5,93 +5,81 @@ import (
 	"reflect"
 )
 
-type BindingResolver interface {
-	ResolveBinding(context.Context, any) (any, error)
-}
+func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context.Context, error) {
 
-type bindingResolverKeyT struct {
-}
+	for _, pt := range listOfArgs(rf.Type()) {
+		// if pt.Kind() == reflect.Ptr {
+		// 	pt = pt.Elem()
+		// }
 
-func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value, providers ...BindingResolver) (context.Context, error) {
-
-	for i := 0; i < rf.Type().NumIn(); i++ {
-		pt := rf.Type().In(i)
-		if pt.Kind() == reflect.Ptr {
-			pt = pt.Elem()
+		rslv, ok := getResolvers(ctx)[pt]
+		if !ok {
+			continue
 		}
 
-		k := reflect.New(pt).Interface()
-		for _, provider := range providers {
-			p, err := provider.ResolveBinding(ctx, k)
-			if err != nil {
-				continue
-			}
-			if p != nil {
-				if reflect.TypeOf(p).Implements(reflect.TypeOf((*context.Context)(nil)).Elem()) {
-
-					d := getDynamicBindingResolver(p.(context.Context))
-					if d != nil {
-						ctx, err = ResolveBindingsFromProvider(ctx, rf, d)
-						if err != nil {
-							return nil, err
-						}
-					}
-
-					// if the provider returns a context - meaning the dyanmic context binding resolver was set
-					// we need to merge any bindings that might have been set
-					ctx = mergeBindingKeepingFirst(ctx, p.(context.Context))
-				}
-				ctx = Bind(ctx, k, p)
-				break
-			}
+		p, err := rslv(ctx)
+		if err != nil {
+			return ctx, err
 		}
+
+		if reflect.TypeOf(p.Interface()).Implements(reflect.TypeOf((*context.Context)(nil)).Elem()) {
+			// if the provider returns a context - meaning the dyanmic context binding resolver was set
+			// we need to merge any bindings that might have been set
+			// ctx = mergeResolversKeepingFirst(ctx, p.(context.Context))
+
+			crb := p.Interface().(context.Context)
+
+			// this is the context resolver binding, we need to process it
+			ctx = mergeBindingKeepingFirst(ctx, crb)
+
+		}
+		ctx = bind(ctx, pt, p)
+		break
+
 	}
 
 	return ctx, nil
 }
 
-type ResolverFunc[I any] func(ctx context.Context) (I, error)
-
-type RawBindingResolver map[reflect.Type]ResolverFunc[any]
-
-func (r RawBindingResolver) ResolveBinding(ctx context.Context, key any) (any, error) {
-	if f1, ok := r[reflect.TypeOf(key)]; ok {
-		return f1(ctx)
-	} else if f2, ok := r[reflect.TypeOf(key).Elem()]; ok {
-		return f2(ctx)
-	}
-	return nil, nil
+func setResolvers(ctx context.Context, provider resolvers) context.Context {
+	return context.WithValue(ctx, &resolverKeyT{}, provider)
 }
 
-type dynamicBindingResolverKeyT struct {
-}
-
-func setDynamicBindingResolver(ctx context.Context, provider RawBindingResolver) context.Context {
-	return context.WithValue(ctx, &dynamicBindingResolverKeyT{}, provider)
-}
-
-func getDynamicBindingResolver(ctx context.Context) RawBindingResolver {
-	p, ok := ctx.Value(&dynamicBindingResolverKeyT{}).(RawBindingResolver)
+func getResolvers(ctx context.Context) resolvers {
+	p, ok := ctx.Value(&resolverKeyT{}).(resolvers)
 	if ok {
 		return p
 	}
-	return nil
+	return resolvers{}
 }
 
-func RegisterBindingResolver[I any](ctx context.Context, resolver ResolverFunc[I]) context.Context {
-	// check if we have a dynamic binding resolver available
-	dy := getDynamicBindingResolver(ctx)
-	if dy == nil {
-		dy = RawBindingResolver{}
+func setFlagBindings(ctx context.Context, provider flagbindings) context.Context {
+	return context.WithValue(ctx, &flagbindingsKeyT{}, provider)
+}
+
+func getFlagBindings(ctx context.Context) flagbindings {
+	p, ok := ctx.Value(&flagbindingsKeyT{}).(flagbindings)
+	if ok {
+		return p
 	}
+	return flagbindings{}
+}
+
+func RegisterBindingResolver[I any](ctx context.Context, res typedResolver[I], f ...flagbinding) context.Context {
+	// check if we have a dynamic binding resolver available
+	dy := getResolvers(ctx)
 
 	elm := reflect.TypeOf((*I)(nil)).Elem()
 
-	dy[elm] = func(ctx context.Context) (any, error) {
-		return resolver(ctx)
-	}
+	dy[elm] = res.asResolver()
 
-	ctx = setDynamicBindingResolver(ctx, dy)
+	ctx = setResolvers(ctx, dy)
+
+	for _, fbb := range f {
+		fb := getFlagBindings(ctx)
+		fb[elm] = fbb
+		ctx = setFlagBindings(ctx, fb)
+	}
 
 	return ctx
 }

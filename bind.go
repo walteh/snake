@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 func Bind(ctx context.Context, key any, value any) context.Context {
@@ -24,6 +25,17 @@ func Bind(ctx context.Context, key any, value any) context.Context {
 	return context.WithValue(ctx, &bindingsKeyT{}, pre)
 }
 
+func bind(ctx context.Context, key reflect.Type, value reflect.Value) context.Context {
+	pre, ok := ctx.Value(&bindingsKeyT{}).(bindings)
+	if !ok {
+		pre = bindings{}
+	}
+
+	pre[key] = func() (reflect.Value, error) { return value, nil }
+
+	return context.WithValue(ctx, &bindingsKeyT{}, pre)
+}
+
 type binding func() (reflect.Value, error)
 
 type bindings map[reflect.Type]binding
@@ -31,15 +43,45 @@ type bindings map[reflect.Type]binding
 type bindingsKeyT struct {
 }
 
+func (me typedResolver[T]) asResolver() resolver {
+	return func(ctx context.Context) (reflect.Value, error) {
+		v, err := me(ctx)
+		return reflect.ValueOf(v), err
+	}
+}
+
+// func flagResolverAsResolver[T any](fr FlagResolver[T]) resolver {
+// 	return func(ctx context.Context) (reflect.Value, error) {
+// 		return reflect.ValueOf(fr), nil
+// 	}
+// }
+
+// type FlagResolver[T any] interface {
+// 	Bind(context.Context) (T, error)
+// 	Flags(*pflag.FlagSet) error
+// }
+
+type typedResolver[T any] func(context.Context) (T, error)
+
+type resolver func(context.Context) (reflect.Value, error)
+type resolvers map[reflect.Type]resolver
+type resolverKeyT struct {
+}
+
+type flagbinding func(*pflag.FlagSet)
+type flagbindings map[reflect.Type]flagbinding
+type flagbindingsKeyT struct {
+}
+
 var callbackReturnSignature = reflect.TypeOf((*error)(nil)).Elem()
 
 func mergeBindingKeepingFirst(to context.Context, from context.Context) context.Context {
-	f, ok := from.Value(&bindingsKeyT{}).(bindings)
+	t, ok := to.Value(&bindingsKeyT{}).(bindings)
 	if !ok {
-		return to
+		t = bindings{}
 	}
 
-	t, ok := to.Value(&bindingsKeyT{}).(bindings)
+	f, ok := from.Value(&bindingsKeyT{}).(bindings)
 	if !ok {
 		return to
 	}
@@ -52,6 +94,37 @@ func mergeBindingKeepingFirst(to context.Context, from context.Context) context.
 	}
 
 	return context.WithValue(to, &bindingsKeyT{}, t)
+}
+
+func mergeResolversKeepingFirst(to context.Context, from context.Context) context.Context {
+	f, ok := from.Value(&resolverKeyT{}).(resolvers)
+	if !ok {
+		return to
+	}
+
+	t, ok := to.Value(&resolverKeyT{}).(resolvers)
+	if !ok {
+		return to
+	}
+
+	for k, v := range f {
+		_, ok := t[k]
+		if !ok {
+			t[k] = v
+		}
+	}
+
+	return context.WithValue(to, &resolverKeyT{}, t)
+}
+
+func listOfArgs(typ reflect.Type) []reflect.Type {
+	var args []reflect.Type
+
+	for i := 0; i < typ.NumIn(); i++ {
+		args = append(args, typ.In(i))
+	}
+
+	return args
 }
 
 func callRunMethod(cmd *cobra.Command, f reflect.Value, t reflect.Type) error {
@@ -70,8 +143,7 @@ func callRunMethod(cmd *cobra.Command, f reflect.Value, t reflect.Type) error {
 		}
 	}
 
-	for i := 0; i < t.NumIn(); i++ {
-		pt := t.In(i)
+	for _, pt := range listOfArgs(t) {
 
 		if !contextOverrideExists && pt.Implements(reflect.TypeOf((*context.Context)(nil)).Elem()) {
 			in = append(in, reflect.ValueOf(cmd.Context()))

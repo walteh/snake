@@ -100,8 +100,6 @@ func TestTemplateReplaces(t *testing.T) {
 
 	ctx := context.Background()
 
-	ctx = SetRootCommand(ctx, rootCmd)
-
 	str, err := DecorateTemplate(ctx, rootCmd, cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -146,7 +144,6 @@ func makeTemplateTest(t *testing.T, test templateTest, ctx context.Context, root
 	t.Helper()
 
 	rootCmd.SetUsageTemplate(test.in)
-	ctx = SetRootCommand(ctx, rootCmd)
 
 	str, err := DecorateTemplate(ctx, rootCmd, cfg)
 	if err != nil {
