@@ -44,14 +44,15 @@ func TestNewRootCommandNoRun(t *testing.T) {
 		ParseArgumentsFunc: func(ctx context.Context, args []string) (context.Context, error) {
 			return ctx, nil
 		},
-		BuildCommandFunc: func(ctx context.Context) *cobra.Command {
-			return &cobra.Command{}
+		BuildCommandFunc: func(ctx context.Context) (*cobra.Command, error) {
+			return &cobra.Command{}, nil
 		},
 	}
 
-	ctx := context.Background()
+	ctx, err := NewRootCommand(context.Background(), snakeableMock)
+	assert.Nil(t, err)
 
-	cmd := NewRootCommand(ctx, snakeableMock)
+	cmd := GetRootCommand(ctx)
 
 	assert.NotNil(t, cmd)
 }
@@ -62,15 +63,15 @@ func TestNewCommandNoRun(t *testing.T) {
 		ParseArgumentsFunc: func(ctx context.Context, args []string) (context.Context, error) {
 			return ctx, nil
 		},
-		BuildCommandFunc: func(ctx context.Context) *cobra.Command {
-			return &cobra.Command{}
+		BuildCommandFunc: func(ctx context.Context) (*cobra.Command, error) {
+			return &cobra.Command{}, nil
 		},
 	}
 
-	ctx := NewRootCommand(context.Background(), snakeableMock)
+	ctx, err := NewRootCommand(context.Background(), snakeableMock)
+	assert.Nil(t, err)
 
-	_, err := NewCommand(ctx, "hi", snakeableMock)
-
+	_, err = NewCommand(ctx, "hi", snakeableMock)
 	assert.ErrorIs(t, err, ErrMissingRun)
 }
 
@@ -81,8 +82,8 @@ func TestNewCommandValid(t *testing.T) {
 			ParseArgumentsFunc: func(ctx context.Context, args []string) (context.Context, error) {
 				return ctx, nil
 			},
-			BuildCommandFunc: func(ctx context.Context) *cobra.Command {
-				return &cobra.Command{}
+			BuildCommandFunc: func(ctx context.Context) (*cobra.Command, error) {
+				return &cobra.Command{}, nil
 			},
 		},
 		RunFunc: func() error {
@@ -90,9 +91,10 @@ func TestNewCommandValid(t *testing.T) {
 		},
 	}
 
-	ctx := NewRootCommand(context.Background(), snakeableMock)
+	ctx, err := NewRootCommand(context.Background(), snakeableMock)
+	assert.Nil(t, err)
 
-	_, err := NewCommand(ctx, "hi", snakeableMock)
+	_, err = NewCommand(ctx, "hi", snakeableMock)
 
 	assert.Nil(t, err)
 }
@@ -123,7 +125,7 @@ var _ MockSnakeableCase = (*MockSnakeableNoRun)(nil)
 
 type MockSnakeableNoRun struct {
 	ParseArgumentsFunc func(ctx context.Context, args []string) (context.Context, error)
-	BuildCommandFunc   func(ctx context.Context) *cobra.Command
+	BuildCommandFunc   func(ctx context.Context) (*cobra.Command, error)
 	ResolveBindingFunc func(context.Context, any) (any, error)
 }
 
@@ -132,10 +134,10 @@ func NewMockSnakeableNoRun() *MockSnakeableNoRun {
 		ParseArgumentsFunc: func(ctx context.Context, args []string) (context.Context, error) {
 			return ctx, nil
 		},
-		BuildCommandFunc: func(ctx context.Context) *cobra.Command {
+		BuildCommandFunc: func(ctx context.Context) (*cobra.Command, error) {
 			return &cobra.Command{
 				Use: "mock",
-			}
+			}, nil
 		},
 		ResolveBindingFunc: nil,
 	}
@@ -150,7 +152,7 @@ func NewMockSnakeableResolveBinding(f func(context.Context, any) (any, error)) *
 	}
 }
 
-func (m *MockSnakeableNoRun) Prepare(ctx context.Context, args []string) (context.Context, error) {
+func (m *MockSnakeableNoRun) PreRun(ctx context.Context, args []string) (context.Context, error) {
 	return m.ParseArgumentsFunc(ctx, args)
 }
 
@@ -161,7 +163,7 @@ func (m *MockSnakeableNoRun) ResolveBinding(ctx context.Context, arg any) (any, 
 	return m.ResolveBindingFunc(ctx, arg)
 }
 
-func (m *MockSnakeableNoRun) Create(ctx context.Context) *cobra.Command {
+func (m *MockSnakeableNoRun) Register(ctx context.Context) (*cobra.Command, error) {
 	return m.BuildCommandFunc(ctx)
 }
 
@@ -494,9 +496,11 @@ func TestGetRunMethodNoBindings(t *testing.T) {
 				return ctx, nil
 			}
 
-			cmd := NewRootCommand(ctx, rootcmd)
+			var err error
 
-			ctx, err := NewCommand(cmd, "hello123", tt)
+			ctx, err = NewRootCommand(ctx, rootcmd)
+
+			ctx, err = NewCommand(ctx, "hello123", tt)
 			assert.ErrorIs(t, err, tt.ExpectedNewCommandError())
 
 			if err != nil {
@@ -509,9 +513,10 @@ func TestGetRunMethodNoBindings(t *testing.T) {
 
 			os.Args = []string{"x", "hello123"}
 
-			err = WithRootCommand(ctx, func(cmd *cobra.Command) error {
-				return cmd.ExecuteContext(ctx)
-			})
+			assm := Assemble(ctx)
+
+			err = assm.ExecuteContext(ctx)
+
 			assert.ErrorIs(t, err, tt.ExpectedRunCommandError())
 		})
 	}
@@ -538,15 +543,18 @@ func TestGetRunMethodWithBindingResolverRegistered(t *testing.T) {
 			// cmd.SetContext(ctx)
 			return ctx, nil
 		}
-
-		ctx = NewRootCommand(ctx, rootcmd)
+		var err error
+		ctx, err = NewRootCommand(ctx, rootcmd)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		ctx = RegisterBindingResolver(ctx, func(context.Context) (*customStruct, error) {
 			cms := customStruct{}
 			return &cms, nil
 		})
 
-		ctx, err := NewCommand(ctx, "hello123", tt)
+		ctx, err = NewCommand(ctx, "hello123", tt)
 		assert.ErrorIs(t, err, tt.ExpectedNewCommandError())
 
 		if err != nil {
@@ -559,9 +567,10 @@ func TestGetRunMethodWithBindingResolverRegistered(t *testing.T) {
 
 		os.Args = []string{"x", "hello123"}
 
-		err = WithRootCommand(ctx, func(cmd *cobra.Command) error {
-			return cmd.ExecuteContext(ctx)
-		})
+		assm := Assemble(ctx)
+
+		err = assm.ExecuteContext(ctx)
+
 		assert.ErrorIs(t, err, tt.ExpectedRunCommandError())
 	})
 }
@@ -586,15 +595,18 @@ func TestGetRunMethodWithBindingResolverRegisteredInterfacePtr(t *testing.T) {
 			// cmd.SetContext(ctx)
 			return ctx, nil
 		}
-
-		ctx = NewRootCommand(ctx, rootcmd)
+		var err error
+		ctx, err = NewRootCommand(ctx, rootcmd)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		ctx = RegisterBindingResolver(ctx, func(context.Context) (customInterface, error) {
 			cms := customStruct{}
 			return &cms, nil
 		})
 
-		ctx, err := NewCommand(ctx, "hello123", tt)
+		ctx, err = NewCommand(ctx, "hello123", tt)
 		assert.ErrorIs(t, err, tt.ExpectedNewCommandError())
 
 		if err != nil {
@@ -607,9 +619,10 @@ func TestGetRunMethodWithBindingResolverRegisteredInterfacePtr(t *testing.T) {
 
 		os.Args = []string{"x", "hello123"}
 
-		err = WithRootCommand(ctx, func(cmd *cobra.Command) error {
-			return cmd.ExecuteContext(ctx)
-		})
+		assm := Assemble(ctx)
+
+		err = assm.ExecuteContext(ctx)
+
 		assert.ErrorIs(t, err, tt.ExpectedRunCommandError())
 	})
 }

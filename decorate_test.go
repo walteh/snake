@@ -102,10 +102,13 @@ func TestTemplateReplaces(t *testing.T) {
 
 	ctx = SetRootCommand(ctx, rootCmd)
 
-	ctx, err := DecorateRootCommand(ctx, cfg)
+	str, err := DecorateTemplate(ctx, rootCmd, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	rootCmd.SetUsageTemplate(str)
+
 	rootCmd.PersistentFlags().StringP("flag", "f", "", "Flag description")
 	rootCmd.UsageString()
 
@@ -139,12 +142,17 @@ func TestTemplateReplaces(t *testing.T) {
 }
 
 func makeTemplateTest(t *testing.T, test templateTest, ctx context.Context, rootCmd *cobra.Command, cfg *DecorateOptions) {
+
+	t.Helper()
+
 	rootCmd.SetUsageTemplate(test.in)
 	ctx = SetRootCommand(ctx, rootCmd)
-	ctx, err := DecorateRootCommand(ctx, cfg)
+
+	str, err := DecorateTemplate(ctx, rootCmd, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
+	rootCmd.SetUsageTemplate(str)
 	res := rootCmd.UsageTemplate()
 	if res != test.out {
 		t.Errorf("got: %v, expected: %v", res, test.out)

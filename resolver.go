@@ -12,18 +12,6 @@ type BindingResolver interface {
 type bindingResolverKeyT struct {
 }
 
-// func SetBindingResolver(ctx context.Context, provider BindingResolver) context.Context {
-// 	return context.WithValue(ctx, &bindingResolverKeyT{}, provider)
-// }
-
-// func GetBindingResolver(ctx context.Context) BindingResolver {
-// 	p, ok := ctx.Value(&bindingResolverKeyT{}).(BindingResolver)
-// 	if ok {
-// 		return p
-// 	}
-// 	return nil
-// }
-
 func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value, providers ...BindingResolver) (context.Context, error) {
 
 	for i := 0; i < rf.Type().NumIn(); i++ {

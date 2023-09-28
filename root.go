@@ -2,9 +2,12 @@ package snake
 
 import (
 	"context"
+	"sync"
 
 	"github.com/spf13/cobra"
 )
+
+const RootCommandName = "______root_____________"
 
 type rootKeyT struct {
 }
@@ -22,16 +25,40 @@ func GetRootCommand(ctx context.Context) *cobra.Command {
 }
 
 type namedCommandKeyT struct {
-	name string
 }
 
+type namedCommandMap map[string]*cobra.Command
+
+var namedCommandMutex = &sync.RWMutex{}
+
 func SetNamedCommand(ctx context.Context, name string, cmd *cobra.Command) context.Context {
-	return context.WithValue(ctx, &namedCommandKeyT{name}, cmd)
+
+	ncm, ok := ctx.Value(&namedCommandKeyT{}).(namedCommandMap)
+	if !ok {
+		ncm = make(namedCommandMap)
+	}
+	namedCommandMutex.Lock()
+	ncm[name] = cmd
+	namedCommandMutex.Unlock()
+
+	return context.WithValue(ctx, &namedCommandKeyT{}, ncm)
 }
 
 func GetNamedCommand(ctx context.Context, name string) *cobra.Command {
-	p, ok := ctx.Value(&namedCommandKeyT{name}).(*cobra.Command)
+	p, ok := ctx.Value(&namedCommandKeyT{}).(namedCommandMap)
 	if ok {
+		namedCommandMutex.RLock()
+		defer namedCommandMutex.RUnlock()
+		return p[name]
+	}
+	return nil
+}
+
+func GetAllNamedCommands(ctx context.Context) namedCommandMap {
+	p, ok := ctx.Value(&namedCommandKeyT{}).(namedCommandMap)
+	if ok {
+		namedCommandMutex.RLock()
+		defer namedCommandMutex.RUnlock()
 		return p
 	}
 	return nil

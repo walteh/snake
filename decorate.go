@@ -37,12 +37,10 @@ type DecorateOptions struct {
 }
 
 // Init patches Cobra's usage template with configuration provided.
-func DecorateRootCommand(ctx context.Context, cfg *DecorateOptions) (context.Context, error) {
-
-	root := GetRootCommand(ctx)
+func DecorateTemplate(ctx context.Context, root *cobra.Command, cfg *DecorateOptions) (string, error) {
 
 	if root == nil || cfg == nil {
-		return nil, ErrInvalidArguments
+		return "", ErrInvalidArguments
 	}
 
 	// Get usage template
@@ -236,12 +234,5 @@ func DecorateRootCommand(ctx context.Context, cfg *DecorateOptions) (context.Con
 		tpl += "\n"
 	}
 
-	// Apply patched template
-	root.SetUsageTemplate(tpl)
-	// Debug line, uncomment when needed
-	// fmt.Println(tpl)
-
-	ctx = SetRootCommand(ctx, root)
-
-	return ctx, nil
+	return tpl, nil
 }

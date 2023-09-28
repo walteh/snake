@@ -8,8 +8,8 @@ import (
 )
 
 type Snakeable interface {
-	Prepare(ctx context.Context, args []string) (context.Context, error)
-	Create(ctx context.Context) *cobra.Command
+	PreRun(ctx context.Context, args []string) (context.Context, error)
+	Register(context.Context) (*cobra.Command, error) // need a way for us to be able to have the full command like we do when the kubectl command is importable
 }
 
 var (
@@ -19,16 +19,19 @@ var (
 	ErrInvalidArguments = fmt.Errorf("snake.ErrInvalidArguments")
 )
 
-func NewRootCommand(ctx context.Context, snk Snakeable) context.Context {
+func NewRootCommand(ctx context.Context, snk Snakeable) (context.Context, error) {
 
-	cmd := snk.Create(ctx)
+	cmd, err := snk.Register(ctx)
+	if err != nil {
+		panic(err)
+	}
 
 	cmd.SilenceErrors = true
 
 	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		zctx := cmd.Context()
 
-		zctx = SetActiveCommand(zctx, "")
+		zctx = SetActiveCommand(zctx, RootCommandName)
 		defer func() {
 			zctx = ClearActiveCommand(zctx)
 		}()
@@ -37,7 +40,7 @@ func NewRootCommand(ctx context.Context, snk Snakeable) context.Context {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
 
-		zctx, err := snk.Prepare(zctx, args)
+		zctx, err := snk.PreRun(zctx, args)
 		if err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
@@ -49,12 +52,12 @@ func NewRootCommand(ctx context.Context, snk Snakeable) context.Context {
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		zctx := cmd.Context()
-		zctx = SetActiveCommand(zctx, "")
+		zctx = SetActiveCommand(zctx, RootCommandName)
 		defer func() {
 			zctx = ClearActiveCommand(zctx)
 		}()
 
-		zctx, err := snk.Prepare(zctx, args)
+		zctx, err := snk.PreRun(zctx, args)
 		if err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
@@ -66,10 +69,31 @@ func NewRootCommand(ctx context.Context, snk Snakeable) context.Context {
 
 	ctx = SetRootCommand(ctx, cmd)
 
-	ctx = SetNamedCommand(ctx, "", cmd)
+	ctx = SetNamedCommand(ctx, RootCommandName, cmd)
 
-	return ctx
+	return ctx, nil
+}
 
+func Assemble(ctx context.Context) *cobra.Command {
+	rootcmd := GetRootCommand(ctx)
+	if rootcmd == nil {
+		return nil
+	}
+
+	named := GetAllNamedCommands(ctx)
+	if named == nil {
+		return nil
+	}
+
+	for name, cmd := range named {
+		if name == RootCommandName {
+			continue
+		}
+
+		rootcmd.AddCommand(cmd)
+	}
+
+	return rootcmd
 }
 
 func MustNewCommand(ctx context.Context, name string, snk Snakeable) context.Context {
@@ -82,12 +106,10 @@ func MustNewCommand(ctx context.Context, name string, snk Snakeable) context.Con
 
 func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Context, error) {
 
-	rootcmd := GetRootCommand(ctx)
-	if rootcmd == nil {
-		return nil, fmt.Errorf("snake.NewCommand: cannot create a new command when a root command has already been created")
+	cmd, err := snk.Register(ctx)
+	if err != nil {
+		return nil, err
 	}
-
-	cmd := snk.Create(ctx)
 
 	method := getRunMethod(snk)
 
@@ -109,7 +131,7 @@ func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Contex
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
 
-		zctx, err := snk.Prepare(zctx, args)
+		zctx, err := snk.PreRun(zctx, args)
 		if err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
@@ -157,8 +179,6 @@ func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Contex
 	if name != "" {
 		cmd.Use = name
 	}
-
-	rootcmd.AddCommand(cmd)
 
 	ctx = SetNamedCommand(ctx, name, cmd)
 
