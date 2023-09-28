@@ -93,6 +93,8 @@ func Assemble(ctx context.Context) *cobra.Command {
 		rootcmd.AddCommand(cmd)
 	}
 
+	rootcmd.SetContext(ctx)
+
 	return rootcmd
 }
 
@@ -150,23 +152,15 @@ func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Contex
 			zctx = ClearActiveCommand(zctx)
 		}()
 
-		resolvers := []BindingResolver{}
-
 		// if res := GetBindingResolver(zctx); res != nil {
 		// 	resolvers = append(resolvers, res)
 		// }
 
-		if res := getDynamicBindingResolver(zctx); res != nil {
-			resolvers = append(resolvers, res)
+		dctx, err := ResolveBindingsFromProvider(zctx, method, getDynamicBindingResolver(zctx))
+		if err != nil {
+			return HandleErrorByPrintingToConsole(cmd, err)
 		}
-
-		if len(resolvers) > 0 {
-			dctx, err := ResolveBindingsFromProvider(zctx, method, resolvers...)
-			if err != nil {
-				return HandleErrorByPrintingToConsole(cmd, err)
-			}
-			zctx = dctx
-		}
+		zctx = dctx
 
 		cmd.SetContext(zctx)
 

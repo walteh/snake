@@ -436,6 +436,29 @@ func (m *SnakeableWithCustomInterfaceRunFunc) ExpectedRunCommandError() error {
 	return nil
 }
 
+////////////////////////////////////////////////////////////////
+
+type SnakeableWithCustomInterfaceRunFuncContext struct {
+	MockSnakeableNoRun
+	RunFunc func(context.Context, customInterface) error
+}
+
+func (m *SnakeableWithCustomInterfaceRunFuncContext) Run(ctx context.Context, cs customInterface) error {
+	return m.RunFunc(ctx, cs)
+}
+
+func (m *SnakeableWithCustomInterfaceRunFuncContext) ExpectedNewCommandError() error {
+	return nil
+}
+
+func (m *SnakeableWithCustomInterfaceRunFuncContext) RootParseArgumentsBindings() []any {
+	return []any{}
+}
+
+func (m *SnakeableWithCustomInterfaceRunFuncContext) ExpectedRunCommandError() error {
+	return nil
+}
+
 func TestGetRunMethodNoBindings(t *testing.T) {
 	tests := []MockSnakeableCase{
 		NewMockSnakeableNoRun(),
@@ -604,6 +627,63 @@ func TestGetRunMethodWithBindingResolverRegisteredInterfacePtr(t *testing.T) {
 		ctx = RegisterBindingResolver(ctx, func(context.Context) (customInterface, error) {
 			cms := customStruct{}
 			return &cms, nil
+		})
+
+		ctx, err = NewCommand(ctx, "hello123", tt)
+		assert.ErrorIs(t, err, tt.ExpectedNewCommandError())
+
+		if err != nil {
+			return
+		}
+
+		for _, b := range tt.Bindings() {
+			ctx = Bind(ctx, reflect.ValueOf(b).Interface(), b)
+		}
+
+		os.Args = []string{"x", "hello123"}
+
+		assm := Assemble(ctx)
+
+		err = assm.ExecuteContext(ctx)
+
+		assert.ErrorIs(t, err, tt.ExpectedRunCommandError())
+	})
+}
+func TestGetRunMethodWithBindingResolverRegisteredInterfacePtrContext(t *testing.T) {
+
+	tt := &SnakeableWithCustomInterfaceRunFuncContext{
+		MockSnakeableNoRun: *NewMockSnakeableNoRun(),
+		RunFunc:            func(context.Context, customInterface) error { return nil },
+	}
+
+	t.Run(reflect.ValueOf(tt).String(), func(t *testing.T) {
+
+		ctx := context.Background()
+
+		rootcmd := NewMockSnakeableNoRun()
+
+		rootcmd.ParseArgumentsFunc = func(ctx context.Context, args []string) (context.Context, error) {
+			for _, b := range tt.RootParseArgumentsBindings() {
+				ctx = Bind(ctx, reflect.ValueOf(b).Interface(), b)
+			}
+			// cmd.SetContext(ctx)
+			return ctx, nil
+		}
+		var err error
+		ctx, err = NewRootCommand(ctx, rootcmd)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		ctx = RegisterBindingResolver(ctx, func(cctx context.Context) (context.Context, error) {
+
+			cctx = RegisterBindingResolver(cctx, func(context.Context) (customInterface, error) {
+				cms := customStruct{}
+
+				return &cms, nil
+			})
+
+			return cctx, nil
 		})
 
 		ctx, err = NewCommand(ctx, "hello123", tt)

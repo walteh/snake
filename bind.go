@@ -33,6 +33,27 @@ type bindingsKeyT struct {
 
 var callbackReturnSignature = reflect.TypeOf((*error)(nil)).Elem()
 
+func mergeBindingKeepingFirst(to context.Context, from context.Context) context.Context {
+	f, ok := from.Value(&bindingsKeyT{}).(bindings)
+	if !ok {
+		return to
+	}
+
+	t, ok := to.Value(&bindingsKeyT{}).(bindings)
+	if !ok {
+		return to
+	}
+
+	for k, v := range f {
+		_, ok := t[k]
+		if !ok {
+			t[k] = v
+		}
+	}
+
+	return context.WithValue(to, &bindingsKeyT{}, t)
+}
+
 func callRunMethod(cmd *cobra.Command, f reflect.Value, t reflect.Type) error {
 
 	in := []reflect.Value{}
@@ -61,12 +82,12 @@ func callRunMethod(cmd *cobra.Command, f reflect.Value, t reflect.Type) error {
 		} else {
 			// if we end up here, we need to validate the bindings exist
 			if !bindingsExist {
-				return errors.WithMessage(ErrMissingBinding, "no snake bindings in context")
+				return errors.WithMessagef(ErrMissingBinding, "no snake bindings in context, looking for type %q", pt)
 			}
 
 			bv, ok := b[pt]
 			if !ok {
-				return errors.WithMessagef(ErrMissingBinding, "no snake binding for type %s", pt)
+				return errors.WithMessagef(ErrMissingBinding, "no snake binding for type %q", pt)
 			}
 
 			v, err := bv()

@@ -27,6 +27,13 @@ func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value, provider
 				continue
 			}
 			if p != nil {
+				if reflect.TypeOf(p).Implements(reflect.TypeOf((*context.Context)(nil)).Elem()) {
+
+					// if the provider returns a context - meaning the dyanmic context binding resolver was set
+					// we need to merge any bindings that might have been set
+					ctx = mergeBindingKeepingFirst(ctx, p.(context.Context))
+					break
+				}
 				ctx = Bind(ctx, k, p)
 				break
 			}
