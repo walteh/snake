@@ -819,83 +819,75 @@ func TestBindGBehavesAsExpected(t *testing.T) {
 
 	// conver to table test
 	tests := []struct {
-		name  string
-		value any
-		typ   any
-		match bool
+		name string
+
+		boundfn func(ctx context.Context) (any, bool)
+		ctxfn   func(context.Context) context.Context
 	}{
 		{
-			name:  "string",
-			typ:   "",
-			value: "string",
-			match: true,
+			name: "string",
+			boundfn: func(ctx context.Context) (any, bool) {
+				return GetAlreadyBound[string](ctx)
+			},
+			ctxfn: func(ctx context.Context) context.Context {
+				return BindG[string](ctx, "string")
+			},
 		},
 		{
-			name:  "int",
-			value: int(1),
-			typ:   int(1),
-			match: true,
+			name: "int",
+			boundfn: func(ctx context.Context) (any, bool) {
+				return GetAlreadyBound[int](ctx)
+			},
+			ctxfn: func(ctx context.Context) context.Context {
+				return BindG[int](ctx, 1)
+			},
 		},
 		{
-			name:  "uint64",
-			value: uint64(1),
-			typ:   uint64(1),
-			match: true,
+			name: "uint64",
+			boundfn: func(ctx context.Context) (any, bool) {
+				return GetAlreadyBound[uint64](ctx)
+			},
+			ctxfn: func(ctx context.Context) context.Context {
+				return BindG[uint64](ctx, 1)
+			},
 		},
 		{
-			name:  "string ptr",
-			typ:   (*string)(nil),
-			value: ptr("string"),
-			match: true,
+			name: "struct",
+			boundfn: func(ctx context.Context) (any, bool) {
+				return GetAlreadyBound[customStruct](ctx)
+			},
+			ctxfn: func(ctx context.Context) context.Context {
+				return BindG[customStruct](ctx, customStruct{})
+			},
 		},
 		{
-			name:  "int ptr",
-			value: ptr(int(1)),
-			typ:   (*int)(nil),
-			match: true,
+			name: "struct ptr",
+			boundfn: func(ctx context.Context) (any, bool) {
+				return GetAlreadyBound[*customStruct](ctx)
+			},
+			ctxfn: func(ctx context.Context) context.Context {
+				return BindG[*customStruct](ctx, &customStruct{})
+			},
 		},
 		{
-			name:  "uint64 ptr",
-			value: ptr(uint64(1)),
-			typ:   (*uint64)(nil),
-			match: true,
-		},
-		{
-			name:  "string + int",
-			typ:   "",
-			value: int(3),
-			match: false,
-		},
-		{
-			name:  "string + int ptr",
-			typ:   (*int)(nil),
-			value: "",
-			match: false,
+			name: "interface",
+			boundfn: func(ctx context.Context) (any, bool) {
+				return GetAlreadyBound[customInterface](ctx)
+			},
+			ctxfn: func(ctx context.Context) context.Context {
+				return BindG[customInterface](ctx, &customStruct{})
+			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
 			gctx := context.Background()
-			gnewCtx := BindG(gctx, tt.value)
-			gb, gok := gnewCtx.Value(&bindingsKeyT{}).(bindings)
+			gctx = tt.ctxfn(gctx)
+			bnd, ok := tt.boundfn(gctx)
+			assert.True(t, ok)
+			require.NotNil(t, bnd)
 
-			assert.True(t, gok)
-			require.NotNil(t, gb)
-
-			gfn := gb[reflect.TypeOf(tt.typ)]
-			if gfn == nil && reflect.TypeOf(tt.typ).Kind() == reflect.Ptr {
-				gfn = gb[reflect.TypeOf(tt.typ).Elem()]
-			}
-
-			if tt.match {
-				require.NotNil(t, gfn)
-				gbz, err := gfn()
-				require.Nil(t, err)
-				assert.Equal(t, tt.value, gbz.Interface())
-			} else {
-				assert.Nil(t, gfn)
-			}
 		})
 	}
 

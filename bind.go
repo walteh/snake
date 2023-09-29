@@ -15,7 +15,7 @@ func bindRaw(ctx context.Context, key reflect.Type, value reflect.Value) context
 		pre = bindings{}
 	}
 
-	pre[key] = func() (reflect.Value, error) { return value, nil }
+	pre[key.String()] = func() (reflect.Value, error) { return value, nil }
 
 	return context.WithValue(ctx, &bindingsKeyT{}, pre)
 }
@@ -30,18 +30,18 @@ func Bind(ctx context.Context, key any, value any) context.Context {
 		tk = tk.Elem()
 	}
 
-	pre[tk] = func() (reflect.Value, error) { return reflect.ValueOf(value), nil }
+	pre[tk.String()] = func() (reflect.Value, error) { return reflect.ValueOf(value), nil }
 
 	return context.WithValue(ctx, &bindingsKeyT{}, pre)
 }
 
 func BindG[T any](ctx context.Context, value T) context.Context {
-	return Bind(ctx, value, value)
+	return bindRaw(ctx, reflect.TypeOf((*T)(nil)).Elem(), reflect.ValueOf(value))
 }
 
 type binding func() (reflect.Value, error)
 
-type bindings map[reflect.Type]binding
+type bindings map[string]binding
 
 type bindingsKeyT struct {
 }
@@ -56,12 +56,12 @@ func (me typedResolver[T]) asResolver() resolver {
 type typedResolver[T any] func(context.Context) (T, error)
 
 type resolver func(context.Context) (reflect.Value, error)
-type resolvers map[reflect.Type]resolver
+type resolvers map[string]resolver
 type resolverKeyT struct {
 }
 
 type flagbinding func(*pflag.FlagSet)
-type flagbindings map[reflect.Type]flagbinding
+type flagbindings map[string]flagbinding
 type flagbindingsKeyT struct {
 }
 
@@ -129,7 +129,7 @@ func callRunMethod(cmd *cobra.Command, f reflect.Value, t reflect.Type) error {
 
 	contextOverrideExists := false
 	if bindingsExist {
-		_, ok := b[reflect.TypeOf((*context.Context)(nil)).Elem()]
+		_, ok := b[reflect.TypeOf((*context.Context)(nil)).Elem().String()]
 		if ok {
 			contextOverrideExists = true
 		}
@@ -149,7 +149,7 @@ func callRunMethod(cmd *cobra.Command, f reflect.Value, t reflect.Type) error {
 				return errors.WithMessagef(ErrMissingBinding, "no snake bindings in context, looking for type %q", pt)
 			}
 
-			bv, ok := b[pt]
+			bv, ok := b[pt.String()]
 			if !ok {
 				return errors.WithMessagef(ErrMissingBinding, "no snake binding for type %q", pt)
 			}

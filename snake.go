@@ -197,10 +197,10 @@ func Assemble(ctx context.Context) *cobra.Command {
 		}
 
 		for _, arg := range listOfArgs(cmd.methodType) {
-			if flagb[arg] == nil {
+			if flagb[arg.String()] == nil {
 				continue
 			}
-			flagb[arg](cmd.cmd.Flags())
+			flagb[arg.String()](cmd.cmd.Flags())
 		}
 
 		rootcmd.cmd.AddCommand(cmd.cmd)
@@ -228,7 +228,12 @@ func GetAlreadyBound[I any](ctx context.Context) (I, bool) {
 	if !ok {
 		return fake, false
 	}
-	br, ok := b[reflect.TypeOf(fake)]
+
+	ft := reflect.TypeOf(fake)
+	if ft == nil {
+		ft = reflect.TypeOf((*I)(nil)).Elem()
+	}
+	br, ok := b[ft.String()]
 	if !ok {
 		return fake, false
 	}

@@ -33,13 +33,13 @@ func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context
 	}
 
 	for _, pt := range loa {
-		rslv, ok := getResolvers(ctx)[pt]
+		rslv, ok := getResolvers(ctx)[pt.String()]
 		if !ok {
 			if pt.Kind() == reflect.Ptr {
 				pt = pt.Elem()
 			}
 			// check if we have a flag binding for this type
-			rslv, ok = getResolvers(ctx)[pt]
+			rslv, ok = getResolvers(ctx)[pt.String()]
 			if !ok {
 				continue
 			}
@@ -55,10 +55,10 @@ func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context
 				if !ok {
 					return ctx, errors.Wrapf(ErrMissingBinding, "no snake bindings in context, looking for type %q", pt)
 				}
-				if _, ok := b[pt]; !ok {
+				if _, ok := b[pt.String()]; !ok {
 					return ctx, errors.Wrapf(ErrMissingBinding, "no snake binding for type %q", pt)
 				}
-				args = append(args, reflect.ValueOf(b[pt]))
+				args = append(args, reflect.ValueOf(b[pt.String()]))
 			}
 		}
 
@@ -121,13 +121,13 @@ func RegisterBindingResolver[I any](ctx context.Context, res typedResolver[I], f
 
 	elm := reflect.TypeOf((*I)(nil)).Elem()
 
-	dy[elm] = res.asResolver()
+	dy[elm.String()] = res.asResolver()
 
 	ctx = setResolvers(ctx, dy)
 
 	for _, fbb := range f {
 		fb := getFlagBindings(ctx)
-		fb[elm] = fbb
+		fb[elm.String()] = fbb
 		ctx = setFlagBindings(ctx, fb)
 	}
 
