@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
@@ -718,4 +719,62 @@ func TestGetRunMethodWithBindingResolverRegisteredInterfacePtrContext(t *testing
 
 		assert.ErrorIs(t, err, tt.ExpectedRunCommandError())
 	})
+}
+
+func TestZeroLogProblemSimple(t *testing.T) {
+	rootcmd := NewMockSnakeableNoRun()
+
+	ctx := context.Background()
+
+	ctx, err := NewRootCommand(ctx, rootcmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	zlWriterToBeInjected := zerolog.New(zerolog.NewTestWriter(nil))
+	zlWriterToBeInjectedPtr := &zlWriterToBeInjected
+
+	ctx = RegisterBindingResolver(ctx, func(cctx context.Context) (context.Context, error) {
+
+		cctx = zlWriterToBeInjectedPtr.WithContext(cctx)
+
+		zlg := zerolog.Ctx(cctx)
+
+		assert.Equal(t, zlg, zlWriterToBeInjectedPtr)
+
+		return cctx, nil
+	})
+
+	ctx = RegisterBindingResolver(ctx, func(cctx context.Context) (customInterface, error) {
+		zlg := zerolog.Ctx(cctx)
+
+		if zlg == nil {
+			return nil, errors.New("zerolog not passed")
+		}
+
+		assert.Equal(t, zlWriterToBeInjectedPtr, zlg)
+
+		cms := customStruct{}
+		return &cms, nil
+	})
+
+	tt := &SnakeableWithCustomInterfaceRunFuncContext{
+		MockSnakeableNoRun: *NewMockSnakeableNoRun(),
+		RunFunc: func(ctx context.Context, ci customInterface) error {
+
+			return nil
+		},
+	}
+
+	ctx, err = NewCommand(ctx, "hello123", tt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Args = []string{"x", "hello123"}
+
+	cmd := Assemble(ctx)
+
+	err = cmd.ExecuteContext(context.TODO())
+	assert.ErrorIs(t, err, tt.ExpectedRunCommandError())
+
 }

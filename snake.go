@@ -217,6 +217,27 @@ func MustNewCommand(ctx context.Context, name string, snk Snakeable) context.Con
 	return ctx
 }
 
+// type funcSnakeable struct {
+// 	fn  func(...any) error
+// 	cmd *cobra.Command
+// }
+
+// func (f *funcSnakeable) PreRun(ctx context.Context, args []string) (context.Context, error) {
+// 	return ctx, nil
+// }
+
+// func (f *funcSnakeable) Register(ctx context.Context) (*cobra.Command, error) {
+// 	return f.cmd, nil
+// }
+
+// func (f *funcSnakeable) Run(ctx context.Context, args []string) error {
+
+// func MustNewCommandFunc(ctx context.Context, name string, cmd *cobra.Command, fn func(...any) error) context.Context {
+// 	return MustNewCommand(ctx, name, &funcSnakeable{
+// 		fn: fn,
+// 	})
+// }
+
 func WithRootCommand(ctx context.Context, x func(*cobra.Command) error) error {
 	root := GetRootCommand(ctx)
 	if root == nil {

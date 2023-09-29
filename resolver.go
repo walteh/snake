@@ -7,7 +7,23 @@ import (
 
 func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context.Context, error) {
 
-	for _, pt := range listOfArgs(rf.Type()) {
+	loa := listOfArgs(rf.Type())
+
+	if len(loa) > 1 {
+		for i, pt := range loa {
+			if i == 0 {
+				continue
+			}
+			if pt.Implements(reflect.TypeOf((*context.Context)(nil)).Elem()) {
+				// move the context to the first position
+				// this is so that subsequent bindings can be resolved with the updated context
+				loa[0], loa[i] = loa[i], loa[0]
+				break
+			}
+		}
+	}
+
+	for _, pt := range loa {
 		rslv, ok := getResolvers(ctx)[pt]
 		if !ok {
 			if pt.Kind() == reflect.Ptr {
@@ -33,7 +49,9 @@ func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context
 			crb := p.Interface().(context.Context)
 
 			// this is the context resolver binding, we need to process it
-			ctx = mergeBindingKeepingFirst(ctx, crb)
+			// we favor the context returned from the resolver, as it also might have been modified
+			// for example, if the resolver returns a context with a zerolog logger, we want to keep that
+			ctx = mergeBindingKeepingFirst(crb, ctx)
 
 		}
 		ctx = bind(ctx, pt, p)
