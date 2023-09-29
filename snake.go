@@ -6,6 +6,8 @@ import (
 	"reflect"
 
 	"github.com/spf13/cobra"
+
+	"github.com/go-faster/errors"
 )
 
 type Snakeable interface {
@@ -14,10 +16,11 @@ type Snakeable interface {
 }
 
 var (
-	ErrMissingBinding   = fmt.Errorf("snake.ErrMissingBinding")
-	ErrMissingRun       = fmt.Errorf("snake.ErrMissingRun")
-	ErrInvalidRun       = fmt.Errorf("snake.ErrInvalidRun")
-	ErrInvalidArguments = fmt.Errorf("snake.ErrInvalidArguments")
+	ErrMissingBinding         = errors.New("snake.ErrMissingBinding")
+	ErrMissingRun             = errors.New("snake.ErrMissingRun")
+	ErrInvalidRun             = errors.New("snake.ErrInvalidRun")
+	ErrInvalidArguments       = errors.New("snake.ErrInvalidArguments")
+	ErrInvalidContextResolver = errors.New("snake.ErrInvalidContextResolver")
 )
 
 func NewRootCommand(ctx context.Context, snk Snakeable) (context.Context, error) {
@@ -217,26 +220,30 @@ func MustNewCommand(ctx context.Context, name string, snk Snakeable) context.Con
 	return ctx
 }
 
-// type funcSnakeable struct {
-// 	fn  func(...any) error
-// 	cmd *cobra.Command
-// }
+func GetAlreadyBound[I any](ctx context.Context) (I, bool) {
+	// allocate a new I
+	fake := *new(I)
 
-// func (f *funcSnakeable) PreRun(ctx context.Context, args []string) (context.Context, error) {
-// 	return ctx, nil
-// }
+	b, ok := ctx.Value(&bindingsKeyT{}).(bindings)
+	if !ok {
+		return fake, false
+	}
+	br, ok := b[reflect.TypeOf(fake)]
+	if !ok {
+		return fake, false
+	}
+	brs, err := br()
+	if err != nil {
+		return fake, false
+	}
 
-// func (f *funcSnakeable) Register(ctx context.Context) (*cobra.Command, error) {
-// 	return f.cmd, nil
-// }
+	brsl, ok := brs.Interface().(I)
+	if !ok {
+		return fake, false
+	}
 
-// func (f *funcSnakeable) Run(ctx context.Context, args []string) error {
-
-// func MustNewCommandFunc(ctx context.Context, name string, cmd *cobra.Command, fn func(...any) error) context.Context {
-// 	return MustNewCommand(ctx, name, &funcSnakeable{
-// 		fn: fn,
-// 	})
-// }
+	return brsl, true
+}
 
 func WithRootCommand(ctx context.Context, x func(*cobra.Command) error) error {
 	root := GetRootCommand(ctx)

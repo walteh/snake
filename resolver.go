@@ -3,11 +3,19 @@ package snake
 import (
 	"context"
 	"reflect"
+
+	"github.com/go-faster/errors"
 )
 
 func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context.Context, error) {
 
 	loa := listOfArgs(rf.Type())
+
+	// add a unique context value to valitate the context resolver is returning a child context
+	// will only be used by this function
+	type contextResolverKeyT struct {
+	}
+	ctx = context.WithValue(ctx, contextResolverKeyT{}, true)
 
 	if len(loa) > 1 {
 		for i, pt := range loa {
@@ -36,17 +44,38 @@ func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context
 			}
 		}
 
+		args := []reflect.Value{}
+		for _, pt := range listOfArgs(reflect.TypeOf(rslv)) {
+			if pt == reflect.TypeOf((*context.Context)(nil)).Elem() {
+				args = append(args, reflect.ValueOf(ctx))
+			} else {
+				// if we end up here, we need to validate the bindings exist
+				b, ok := ctx.Value(&bindingsKeyT{}).(bindings)
+				if !ok {
+					return ctx, errors.Wrapf(ErrMissingBinding, "no snake bindings in context, looking for type %q", pt)
+				}
+				if _, ok := b[pt]; !ok {
+					return ctx, errors.Wrapf(ErrMissingBinding, "no snake binding for type %q", pt)
+				}
+				args = append(args, reflect.ValueOf(b[pt]))
+			}
+		}
+
 		p, err := rslv(ctx)
 		if err != nil {
 			return ctx, err
 		}
 
 		if reflect.TypeOf(p.Interface()).Implements(reflect.TypeOf((*context.Context)(nil)).Elem()) {
+
 			// if the provider returns a context - meaning the dyanmic context binding resolver was set
 			// we need to merge any bindings that might have been set
-			// ctx = mergeResolversKeepingFirst(ctx, p.(context.Context))
-
 			crb := p.Interface().(context.Context)
+
+			// check if the context resolver returned a child context
+			if _, ok := crb.Value(contextResolverKeyT{}).(bool); !ok {
+				return ctx, ErrInvalidContextResolver
+			}
 
 			// this is the context resolver binding, we need to process it
 			// we favor the context returned from the resolver, as it also might have been modified

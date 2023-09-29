@@ -606,55 +606,45 @@ func TestGetRunMethodWithBindingResolverRegisteredInterfacePtr(t *testing.T) {
 		RunFunc:            func(customInterface) error { return nil },
 	}
 
-	t.Run(reflect.ValueOf(tt).String(), func(t *testing.T) {
+	ctx := context.Background()
 
-		ctx := context.Background()
+	rootcmd := NewMockSnakeableNoRun()
 
-		rootcmd := NewMockSnakeableNoRun()
+	var err error
+	ctx, err = NewRootCommand(ctx, rootcmd)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		rootcmd.ParseArgumentsFunc = func(ctx context.Context, args []string) (context.Context, error) {
-			for _, b := range tt.RootParseArgumentsBindings() {
-				ctx = Bind(ctx, reflect.ValueOf(b).Interface(), b)
-			}
-			// cmd.SetContext(ctx)
-			return ctx, nil
-		}
-		var err error
-		ctx, err = NewRootCommand(ctx, rootcmd)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		ctx = RegisterBindingResolver(ctx, func(c context.Context) (context.Context, error) {
-			return c, nil
-		})
-
-		ctx = RegisterBindingResolver(ctx, func(context.Context) (customInterface, error) {
-			cms := customStruct{}
-			return &cms, nil
-		})
-
-		ctx, err = NewCommand(ctx, "hello123", tt)
-		assert.ErrorIs(t, err, tt.ExpectedNewCommandError())
-
-		if err != nil {
-			return
-		}
-
-		for _, b := range tt.Bindings() {
-			ctx = Bind(ctx, reflect.ValueOf(b).Interface(), b)
-		}
-
-		os.Args = []string{"x", "hello123"}
-
-		assm := Assemble(ctx)
-
-		err = assm.ExecuteContext(ctx)
-
-		assert.ErrorIs(t, err, tt.ExpectedRunCommandError())
+	ctx = RegisterBindingResolver(ctx, func(c context.Context) (context.Context, error) {
+		return c, nil
 	})
+
+	ctx = RegisterBindingResolver(ctx, func(context.Context) (customInterface, error) {
+		cms := customStruct{}
+		return &cms, nil
+	})
+
+	ctx, err = NewCommand(ctx, "hello123", tt)
+	assert.ErrorIs(t, err, tt.ExpectedNewCommandError())
+
+	if err != nil {
+		return
+	}
+
+	for _, b := range tt.Bindings() {
+		ctx = Bind(ctx, reflect.ValueOf(b).Interface(), b)
+	}
+
+	os.Args = []string{"x", "hello123"}
+
+	assm := Assemble(ctx)
+
+	err = assm.ExecuteContext(ctx)
+
+	assert.ErrorIs(t, err, tt.ExpectedRunCommandError())
 }
-func TestGetRunMethodWithBindingResolverRegisteredInterfacePtrContext(t *testing.T) {
+func TestExpectInvalidContextResolver(t *testing.T) {
 
 	testContextToBeInjected := context.Background()
 
@@ -672,53 +662,43 @@ func TestGetRunMethodWithBindingResolverRegisteredInterfacePtrContext(t *testing
 		},
 	}
 
-	t.Run(reflect.ValueOf(tt).String(), func(t *testing.T) {
+	ctx := context.Background()
 
-		ctx := context.Background()
+	rootcmd := NewMockSnakeableNoRun()
 
-		rootcmd := NewMockSnakeableNoRun()
+	var err error
+	ctx, err = NewRootCommand(ctx, rootcmd)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		rootcmd.ParseArgumentsFunc = func(ctx context.Context, args []string) (context.Context, error) {
-			for _, b := range tt.RootParseArgumentsBindings() {
-				ctx = Bind(ctx, reflect.ValueOf(b).Interface(), b)
-			}
-			// cmd.SetContext(ctx)
-			return ctx, nil
-		}
-		var err error
-		ctx, err = NewRootCommand(ctx, rootcmd)
-		if err != nil {
-			t.Fatal(err)
-		}
+	ctx = RegisterBindingResolver(ctx, func(cctx context.Context) (context.Context, error) {
 
-		ctx = RegisterBindingResolver(ctx, func(cctx context.Context) (context.Context, error) {
+		cctx = testContextToBeInjected
 
-			cctx = testContextToBeInjected
+		cctx = Bind(cctx, (*customInterface)(nil), &customStruct{})
 
-			cctx = Bind(cctx, (*customInterface)(nil), &customStruct{})
-
-			return cctx, nil
-		})
-
-		ctx, err = NewCommand(ctx, "hello123", tt)
-		assert.ErrorIs(t, err, tt.ExpectedNewCommandError())
-
-		if err != nil {
-			return
-		}
-
-		for _, b := range tt.Bindings() {
-			ctx = Bind(ctx, reflect.ValueOf(b).Interface(), b)
-		}
-
-		os.Args = []string{"x", "hello123"}
-
-		assm := Assemble(ctx)
-
-		err = assm.ExecuteContext(context.TODO())
-
-		assert.ErrorIs(t, err, tt.ExpectedRunCommandError())
+		return cctx, nil
 	})
+
+	ctx, err = NewCommand(ctx, "hello123", tt)
+	assert.ErrorIs(t, err, tt.ExpectedNewCommandError())
+
+	if err != nil {
+		return
+	}
+
+	for _, b := range tt.Bindings() {
+		ctx = Bind(ctx, reflect.ValueOf(b).Interface(), b)
+	}
+
+	os.Args = []string{"x", "hello123"}
+
+	assm := Assemble(ctx)
+
+	err = assm.ExecuteContext(context.TODO())
+
+	assert.ErrorIs(t, err, ErrInvalidContextResolver)
 }
 
 func TestZeroLogProblemSimple(t *testing.T) {
@@ -753,6 +733,57 @@ func TestZeroLogProblemSimple(t *testing.T) {
 		}
 
 		assert.Equal(t, zlWriterToBeInjectedPtr, zlg)
+
+		cms := customStruct{}
+		return &cms, nil
+	})
+
+	tt := &SnakeableWithCustomInterfaceRunFuncContext{
+		MockSnakeableNoRun: *NewMockSnakeableNoRun(),
+		RunFunc: func(ctx context.Context, ci customInterface) error {
+
+			return nil
+		},
+	}
+
+	ctx, err = NewCommand(ctx, "hello123", tt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Args = []string{"x", "hello123"}
+
+	cmd := Assemble(ctx)
+
+	err = cmd.ExecuteContext(context.TODO())
+	assert.ErrorIs(t, err, tt.ExpectedRunCommandError())
+
+}
+
+func TestGetAlreadyBoundSimple(t *testing.T) {
+	rootcmd := NewMockSnakeableNoRun()
+
+	ctx := context.Background()
+
+	ctx, err := NewRootCommand(ctx, rootcmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	type alreadyBound struct {
+	}
+
+	ctx = RegisterBindingResolver(ctx, func(cctx context.Context) (context.Context, error) {
+
+		cctx = Bind(cctx, (*alreadyBound)(nil), &alreadyBound{})
+
+		return cctx, nil
+	})
+
+	ctx = RegisterBindingResolver(ctx, func(cctx context.Context) (customInterface, error) {
+
+		arb, ok := GetAlreadyBound[*alreadyBound](cctx)
+		assert.True(t, ok)
+		assert.NotNil(t, arb)
 
 		cms := customStruct{}
 		return &cms, nil
