@@ -67,6 +67,10 @@ func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context
 			return ctx, err
 		}
 
+		if p.IsZero() {
+			return ctx, errors.Wrapf(ErrInvalidResolver, "resolver for type %q returned a zero value", pt)
+		}
+
 		if reflect.TypeOf(p.Interface()).Implements(reflect.TypeOf((*context.Context)(nil)).Elem()) {
 
 			// if the provider returns a context - meaning the dyanmic context binding resolver was set
@@ -75,7 +79,7 @@ func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context
 
 			// check if the context resolver returned a child context
 			if _, ok := crb.Value(contextResolverKey).(bool); !ok {
-				return ctx, ErrInvalidContextResolver
+				return ctx, ErrInvalidResolver
 			}
 
 			// this is the context resolver binding, we need to process it

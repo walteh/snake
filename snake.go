@@ -16,11 +16,11 @@ type Snakeable interface {
 }
 
 var (
-	ErrMissingBinding         = errors.New("snake.ErrMissingBinding")
-	ErrMissingRun             = errors.New("snake.ErrMissingRun")
-	ErrInvalidRun             = errors.New("snake.ErrInvalidRun")
-	ErrInvalidArguments       = errors.New("snake.ErrInvalidArguments")
-	ErrInvalidContextResolver = errors.New("snake.ErrInvalidContextResolver")
+	ErrMissingBinding   = errors.New("snake.ErrMissingBinding")
+	ErrMissingRun       = errors.New("snake.ErrMissingRun")
+	ErrInvalidRun       = errors.New("snake.ErrInvalidRun")
+	ErrInvalidArguments = errors.New("snake.ErrInvalidArguments")
+	ErrInvalidResolver  = errors.New("snake.ErrInvalidResolver")
 )
 
 func NewRootCommand(ctx context.Context, snk Snakeable) (context.Context, error) {
@@ -30,11 +30,23 @@ func NewRootCommand(ctx context.Context, snk Snakeable) (context.Context, error)
 		panic(err)
 	}
 
+	nc := &NamedCommand{
+		cmd:        cmd,
+		method:     reflect.ValueOf(func() {}),
+		methodType: reflect.TypeOf(func() {}),
+		ptr:        nil,
+	}
+
+	ctx = SetNamedCommand(ctx, RootCommandName, nc)
+
+	ctx = SetRootCommand(ctx, nc)
+
 	cmd.SilenceErrors = true
 
 	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		zctx := cmd.Context()
 
+		zctx = SetRootCommand(zctx, nc)
 		zctx = SetActiveCommand(zctx, RootCommandName)
 		defer func() {
 			zctx = ClearActiveCommand(zctx)
@@ -56,6 +68,7 @@ func NewRootCommand(ctx context.Context, snk Snakeable) (context.Context, error)
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		zctx := cmd.Context()
+		zctx = SetRootCommand(zctx, nc)
 		zctx = SetActiveCommand(zctx, RootCommandName)
 		defer func() {
 			zctx = ClearActiveCommand(zctx)
@@ -70,17 +83,6 @@ func NewRootCommand(ctx context.Context, snk Snakeable) (context.Context, error)
 
 		return nil
 	}
-
-	nc := &NamedCommand{
-		cmd:        cmd,
-		method:     reflect.ValueOf(func() {}),
-		methodType: reflect.TypeOf(func() {}),
-		ptr:        nil,
-	}
-
-	ctx = SetRootCommand(ctx, nc)
-
-	ctx = SetNamedCommand(ctx, RootCommandName, nc)
 
 	return ctx, nil
 }
@@ -122,6 +124,7 @@ func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Contex
 
 		zctx := cmd.Context()
 
+		zctx = SetRootCommand(zctx, rootcmd)
 		zctx = SetActiveCommand(zctx, name)
 		defer func() {
 			zctx = ClearActiveCommand(zctx)
@@ -144,7 +147,7 @@ func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Contex
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 
 		zctx := cmd.Context()
-
+		zctx = SetRootCommand(zctx, rootcmd)
 		zctx = SetActiveCommand(zctx, name)
 		defer func() {
 			zctx = ClearActiveCommand(zctx)
