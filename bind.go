@@ -9,6 +9,16 @@ import (
 	"github.com/spf13/pflag"
 )
 
+func bindRaw(ctx context.Context, key reflect.Type, value reflect.Value) context.Context {
+	pre, ok := ctx.Value(&bindingsKeyT{}).(bindings)
+	if !ok {
+		pre = bindings{}
+	}
+
+	pre[key] = func() (reflect.Value, error) { return value, nil }
+
+	return context.WithValue(ctx, &bindingsKeyT{}, pre)
+}
 func Bind(ctx context.Context, key any, value any) context.Context {
 	pre, ok := ctx.Value(&bindingsKeyT{}).(bindings)
 	if !ok {
@@ -25,15 +35,8 @@ func Bind(ctx context.Context, key any, value any) context.Context {
 	return context.WithValue(ctx, &bindingsKeyT{}, pre)
 }
 
-func bind(ctx context.Context, key reflect.Type, value reflect.Value) context.Context {
-	pre, ok := ctx.Value(&bindingsKeyT{}).(bindings)
-	if !ok {
-		pre = bindings{}
-	}
-
-	pre[key] = func() (reflect.Value, error) { return value, nil }
-
-	return context.WithValue(ctx, &bindingsKeyT{}, pre)
+func BindG[T any](ctx context.Context, value T) context.Context {
+	return Bind(ctx, value, value)
 }
 
 type binding func() (reflect.Value, error)
@@ -49,17 +52,6 @@ func (me typedResolver[T]) asResolver() resolver {
 		return reflect.ValueOf(v), err
 	}
 }
-
-// func flagResolverAsResolver[T any](fr FlagResolver[T]) resolver {
-// 	return func(ctx context.Context) (reflect.Value, error) {
-// 		return reflect.ValueOf(fr), nil
-// 	}
-// }
-
-// type FlagResolver[T any] interface {
-// 	Bind(context.Context) (T, error)
-// 	Flags(*pflag.FlagSet) error
-// }
 
 type typedResolver[T any] func(context.Context) (T, error)
 

@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBind(t *testing.T) {
@@ -807,5 +808,95 @@ func TestGetAlreadyBoundSimple(t *testing.T) {
 
 	err = cmd.ExecuteContext(context.TODO())
 	assert.ErrorIs(t, err, tt.ExpectedRunCommandError())
+
+}
+
+func ptr[T any](t T) *T {
+	return &t
+}
+
+func TestBindGBehavesAsExpected(t *testing.T) {
+
+	// conver to table test
+	tests := []struct {
+		name  string
+		value any
+		typ   any
+		match bool
+	}{
+		{
+			name:  "string",
+			typ:   "",
+			value: "string",
+			match: true,
+		},
+		{
+			name:  "int",
+			value: int(1),
+			typ:   int(1),
+			match: true,
+		},
+		{
+			name:  "uint64",
+			value: uint64(1),
+			typ:   uint64(1),
+			match: true,
+		},
+		{
+			name:  "string ptr",
+			typ:   (*string)(nil),
+			value: ptr("string"),
+			match: true,
+		},
+		{
+			name:  "int ptr",
+			value: ptr(int(1)),
+			typ:   (*int)(nil),
+			match: true,
+		},
+		{
+			name:  "uint64 ptr",
+			value: ptr(uint64(1)),
+			typ:   (*uint64)(nil),
+			match: true,
+		},
+		{
+			name:  "string + int",
+			typ:   "",
+			value: int(3),
+			match: false,
+		},
+		{
+			name:  "string + int ptr",
+			typ:   (*int)(nil),
+			value: "",
+			match: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			gctx := context.Background()
+			gnewCtx := BindG(gctx, tt.value)
+			gb, gok := gnewCtx.Value(&bindingsKeyT{}).(bindings)
+
+			assert.True(t, gok)
+			require.NotNil(t, gb)
+
+			gfn := gb[reflect.TypeOf(tt.typ)]
+			if gfn == nil && reflect.TypeOf(tt.typ).Kind() == reflect.Ptr {
+				gfn = gb[reflect.TypeOf(tt.typ).Elem()]
+			}
+
+			if tt.match {
+				require.NotNil(t, gfn)
+				gbz, err := gfn()
+				require.Nil(t, err)
+				assert.Equal(t, tt.value, gbz.Interface())
+			} else {
+				assert.Nil(t, gfn)
+			}
+		})
+	}
 
 }

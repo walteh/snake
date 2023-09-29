@@ -15,7 +15,8 @@ func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context
 	// will only be used by this function
 	type contextResolverKeyT struct {
 	}
-	ctx = context.WithValue(ctx, contextResolverKeyT{}, true)
+	contextResolverKey := &contextResolverKeyT{}
+	ctx = context.WithValue(ctx, contextResolverKey, true)
 
 	if len(loa) > 1 {
 		for i, pt := range loa {
@@ -73,7 +74,7 @@ func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context
 			crb := p.Interface().(context.Context)
 
 			// check if the context resolver returned a child context
-			if _, ok := crb.Value(contextResolverKeyT{}).(bool); !ok {
+			if _, ok := crb.Value(contextResolverKey).(bool); !ok {
 				return ctx, ErrInvalidContextResolver
 			}
 
@@ -83,7 +84,7 @@ func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context
 			ctx = mergeBindingKeepingFirst(crb, ctx)
 
 		}
-		ctx = bind(ctx, pt, p)
+		ctx = bindRaw(ctx, pt, p)
 
 	}
 
