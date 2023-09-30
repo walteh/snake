@@ -18,6 +18,11 @@ func Apply(ctx context.Context, me *Ctx, root *cobra.Command) error {
 			cmd.Flags().AddFlagSet(flgs)
 		}
 
+		err := exer.ValidateResponse()
+		if err != nil {
+			return err
+		}
+
 		oldRunE := cmd.RunE
 
 		cmd.RunE = func(cmd *cobra.Command, args []string) error {
