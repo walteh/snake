@@ -53,6 +53,15 @@ func (me typedResolver[T]) asResolver() resolver {
 	}
 }
 
+type untypedResolver any
+
+func untypedResolverToResolver(me untypedResolver) resolver {
+	return func(ctx context.Context) (reflect.Value, error) {
+		v, err := me.(typedResolver[any])(ctx)
+		return reflect.ValueOf(v), err
+	}
+}
+
 type typedResolver[T any] func(context.Context) (T, error)
 
 type resolver func(context.Context) (reflect.Value, error)
@@ -182,29 +191,43 @@ func getRunMethod(inter any) reflect.Value {
 	return method
 }
 
-func validateRunMethod(inter any, method reflect.Value) (reflect.Type, error) {
+func commonValidateRunMethod(inter any, method reflect.Value) (reflect.Type, string, error) {
 
 	parentName := reflect.TypeOf(inter).String()
 
 	if method.Kind() == reflect.Invalid || method.IsZero() || method.IsNil() {
-		return nil, errors.WithMessagef(ErrMissingRun, "target ===> %s", parentName)
+		return nil, parentName, errors.WithMessagef(ErrMissingRun, "target ===> %s", parentName)
 	}
 
 	if !method.IsValid() {
-		return nil, errors.WithMessagef(ErrInvalidRun, "target ===> %s", parentName)
+		return nil, parentName, errors.WithMessagef(ErrInvalidRun, "target ===> %s", parentName)
 	}
 
 	if method.Kind() != reflect.Func {
-		return nil, errors.WithMessagef(ErrInvalidRun, "expected function, got %s for (%s).Run", method.Type(), parentName)
+		return nil, parentName, errors.WithMessagef(ErrInvalidRun, "expected function, got %s for (%s).Run", method.Type(), parentName)
 	}
 
 	// only here we know it is safe to call Type()
 	t := method.Type()
 
+	return t, parentName, nil
+}
+
+func validateRunMethod(inter any, method reflect.Value) (reflect.Type, error) {
+
+	t, pname, err := commonValidateRunMethod(inter, method)
+	if err != nil {
+		return nil, err
+	}
+
 	// must return only an error to comply with cobra.Command.RunE
 	if t.NumOut() != 1 || !t.Out(0).Implements(callbackReturnSignature) {
-		return nil, errors.WithMessagef(ErrInvalidRun, "return value of (%s).Run must be of type \"error\"", parentName)
+		return nil, errors.WithMessagef(ErrInvalidRun, "return value of (%s).Run must be of type \"error\"", pname)
 	}
 
 	return t, nil
+}
+
+func untypedResovlerReturnSignature[T any]() reflect.Type {
+	return reflect.TypeOf((*T)(nil)).Elem()
 }
