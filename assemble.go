@@ -12,7 +12,7 @@ func Apply(ctx context.Context, me *Ctx, root *cobra.Command) error {
 
 		exer := me.resolvers[nme]
 
-		if flgs, err := me.getFlags(exer); err != nil {
+		if flgs, err := me.FlagsFor(exer.Name()); err != nil {
 			return err
 		} else {
 			cmd.Flags().AddFlagSet(flgs)

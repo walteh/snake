@@ -34,29 +34,17 @@ func setBindingWithLock[T any](con *Ctx, val T) func() {
 	}
 }
 
-func (me *Ctx) getFlags(cmd Method) (*pflag.FlagSet, error) {
-	args := cmd.RunArgs()
-	mapa := make(map[string]bool)
-	for _, f := range args {
-		if r, ok := me.resolvers[f.String()]; ok {
-			mapa[f.String()] = true
-			for _, arg := range r.RunArgs() {
-				// we don't recurse here, because we don't want to process flags more than once if they are used by multiple commands
-				if _, ok := me.resolvers[arg.String()]; ok {
-					mapa[arg.String()] = true
-				} else {
-					return nil, errors.Wrapf(ErrMissingResolver, "missing resolver for type %q", arg.String())
-				}
-			}
-		} else {
-			return nil, errors.Wrapf(ErrMissingResolver, "missing resolver for type %q", f.String())
-		}
+func (fmap *Ctx) FlagsFor(str string) (*pflag.FlagSet, error) {
+	if _, ok := fmap.resolvers[str]; !ok {
+		return nil, errors.Wrapf(ErrMissingResolver, "missing resolver for %q", str)
 	}
+
+	mapa := findBrothers(str, fmap.resolvers)
 
 	flgs := &pflag.FlagSet{}
 
-	for f := range mapa {
-		me.resolvers[f].Flags(flgs)
+	for _, f := range mapa {
+		fmap.resolvers[f].Flags(flgs)
 	}
 
 	return flgs, nil

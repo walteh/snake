@@ -47,13 +47,17 @@ func NewCmdContext(con *Ctx, name string, cbra *cobra.Command, m Flagged) Method
 	return ec
 }
 
+func methodName(typ reflect.Type) string {
+	return prefix_argument + typ.String()
+}
+
 func NewArgContext[I any](con *Ctx, m Flagged) Method {
 
 	ec := &method{
 		flags:              m.Flags,
 		validationStrategy: validateArgumentResponse[I],
 		responseStrategy:   handleArgumentResponse[I],
-		name:               prefix_argument + reflect.TypeOf((*I)(nil)).Elem().String(),
+		name:               methodName(reflect.TypeOf((*I)(nil)).Elem()),
 		method:             getRunMethod(m),
 	}
 
