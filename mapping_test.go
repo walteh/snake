@@ -21,15 +21,19 @@ func (m MockHasRunArgs) RunArgs() []reflect.Type {
 }
 
 type MockIsRunnable struct {
-	MockHasRunArgs
+	fn reflect.Value
+}
+
+func (m MockIsRunnable) RunArgs() []reflect.Type {
+	return listOfArgs(m.fn.Type())
 }
 
 func (m MockIsRunnable) Run() reflect.Value {
-	return reflect.ValueOf("result")
+	return m.fn
 }
 
-func (m MockIsRunnable) HandleResponse([]reflect.Value) (reflect.Value, error) {
-	return reflect.ValueOf("handled"), nil
+func (m MockIsRunnable) HandleResponse(x []reflect.Value) (reflect.Value, error) {
+	return x[0], nil
 }
 
 func TestFindBrothers(t *testing.T) {
@@ -43,7 +47,7 @@ func TestFindBrothers(t *testing.T) {
 		"string": MockHasRunArgs{
 			args: []any{uint64(1)},
 		},
-		"snake.HasRunArgs": MockHasRunArgs{
+		"snake.MockHasRunArgs": MockHasRunArgs{
 			args: []any{1, uint64(1), "1"},
 		},
 		"key1": MockHasRunArgs{
@@ -56,7 +60,7 @@ func TestFindBrothers(t *testing.T) {
 			args: []any{uint64(1)},
 		},
 		"key4": MockHasRunArgs{
-			args: []any{},
+			args: []any{MockHasRunArgs{}},
 		},
 	}
 
@@ -67,12 +71,13 @@ func TestFindBrothers(t *testing.T) {
 		{"key1", []string{"int"}},
 		{"key2", []string{"int", "uint64", "string"}},
 		{"key3", []string{"int", "uint64"}},
-		{"key4", []string{"int", "uint64", "string", "key2"}},
+		{"key4", []string{"int", "uint64", "string", "snake.MockHasRunArgs"}},
 	}
 
 	for _, tt := range tableTests {
 		t.Run(tt.str, func(t *testing.T) {
 			got := findBrothers(tt.str, fmap)
+			require.NotNil(t, got)
 			assert.ElementsMatch(t, tt.expectMap, got)
 		})
 	}
@@ -80,23 +85,34 @@ func TestFindBrothers(t *testing.T) {
 
 func TestFindArguments(t *testing.T) {
 	fmap := map[string]IsRunnable{
-		"key1": MockIsRunnable{},
-		"key2": MockIsRunnable{},
+		"key1": MockIsRunnable{
+			fn: reflect.ValueOf(func() uint32 {
+				return 2
+			}),
+		},
+		"key2": MockIsRunnable{
+			fn: reflect.ValueOf(func(a uint32) uint16 {
+				return uint16(a + 1)
+			}),
+		},
 	}
 
 	tableTests := []struct {
 		str       string
-		expectMap map[string]reflect.Value
+		expectMap []any
 	}{
-		{"key1", map[string]reflect.Value{"key1": reflect.ValueOf("handled")}},
-		{"key2", map[string]reflect.Value{"key1": reflect.ValueOf("handled"), "key2": reflect.ValueOf("handled")}},
+		{"key2", []any{uint32(2)}},
 	}
 
 	for _, tt := range tableTests {
 		t.Run(tt.str, func(t *testing.T) {
 			got := findArguments(tt.str, fmap)
+			gotres := make([]any, len(got))
+			for i, v := range got {
+				gotres[i] = v.Interface()
+			}
 			require.NotNil(t, got)
-			assert.Equal(t, tt.expectMap, got)
+			assert.ElementsMatch(t, tt.expectMap, gotres)
 		})
 	}
 }

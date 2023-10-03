@@ -44,8 +44,13 @@ func findBrothersRaw[G HasRunArgs](str string, fmap map[string]G, rmap map[strin
 	return rmap
 }
 
-func findArguments[G IsRunnable](str string, fmap map[string]G) map[string]reflect.Value {
-	return findArgumentsRaw(str, fmap, nil)
+func findArguments[G IsRunnable](str string, fmap map[string]G) []reflect.Value {
+	raw := findArgumentsRaw(str, fmap, nil)
+	resp := make([]reflect.Value, 0, len(raw))
+	for _, v := range raw {
+		resp = append(resp, v)
+	}
+	return resp
 }
 
 func findArgumentsRaw[G IsRunnable](str string, fmap map[string]G, wrk map[string]reflect.Value) map[string]reflect.Value {
