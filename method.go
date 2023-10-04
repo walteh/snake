@@ -11,7 +11,7 @@ type method struct {
 	method             reflect.Value
 	flags              func(*pflag.FlagSet)
 	validationStrategy func([]reflect.Type) error
-	responseStrategy   func([]reflect.Value) (reflect.Value, error)
+	responseStrategy   func([]reflect.Value) (*reflect.Value, error)
 }
 
 type Method interface {
@@ -19,7 +19,7 @@ type Method interface {
 	Run() reflect.Value
 	RunArgs() []reflect.Type
 	ValidateResponse() error
-	HandleResponse([]reflect.Value) (reflect.Value, error)
+	HandleResponse([]reflect.Value) (*reflect.Value, error)
 	Name() string
 }
 
@@ -41,7 +41,7 @@ func (me *method) ValidateResponse() error {
 	return me.validationStrategy(me.RunArgs())
 }
 
-func (me *method) HandleResponse(out []reflect.Value) (reflect.Value, error) {
+func (me *method) HandleResponse(out []reflect.Value) (*reflect.Value, error) {
 	return me.responseStrategy(out)
 }
 

@@ -12,7 +12,7 @@ func Apply(ctx context.Context, me *Ctx, root *cobra.Command) error {
 
 		exer := me.resolvers[nme]
 
-		if flgs, err := me.FlagsFor(exer.Name()); err != nil {
+		if flgs, err := me.FlagsFor(exer); err != nil {
 			return err
 		} else {
 			cmd.Flags().AddFlagSet(flgs)
@@ -27,7 +27,7 @@ func Apply(ctx context.Context, me *Ctx, root *cobra.Command) error {
 
 		cmd.RunE = func(cmd *cobra.Command, args []string) error {
 			defer setBindingWithLock(me, cmd)()
-			_, err := me.run(exer)
+			err := me.Run(exer)
 			if err != nil {
 				return err
 			}

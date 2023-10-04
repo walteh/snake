@@ -19,26 +19,26 @@ func commandResponseValidationStrategy(out []reflect.Type) error {
 	return nil
 }
 
-func commandResponseHandleStrategy(out []reflect.Value) (reflect.Value, error) {
+func commandResponseHandleStrategy(out []reflect.Value) (*reflect.Value, error) {
 
 	if !out[0].IsNil() {
-		return reflect.Zero(reflect.TypeOf(reflect.Value{})), out[1].Interface().(error)
+		return end_of_chain_ptr, out[1].Interface().(error)
 	}
 
-	return end_of_chain, nil
+	return end_of_chain_ptr, nil
 }
 
-func handleArgumentResponse[I any](out []reflect.Value) (reflect.Value, error) {
+func handleArgumentResponse[I any](out []reflect.Value) (*reflect.Value, error) {
 
 	if !out[1].IsNil() {
-		return reflect.Zero(reflect.TypeOf((*I)(nil)).Elem()), out[1].Interface().(error)
+		return nil, out[1].Interface().(error)
 	}
 
 	if out[0].Type() != reflect.TypeOf(reflect.TypeOf((*I)(nil)).Elem()) {
 		panic("invalid return type")
 	}
 
-	return out[0], nil
+	return &out[0], nil
 }
 
 func validateArgumentResponse[I any](out []reflect.Type) error {

@@ -6,7 +6,6 @@ import (
 
 	"github.com/go-faster/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 type bindingmap map[string]*reflect.Value
@@ -34,59 +33,43 @@ func setBindingWithLock[T any](con *Ctx, val T) func() {
 	}
 }
 
-func (fmap *Ctx) FlagsFor(str string) (*pflag.FlagSet, error) {
-	if _, ok := fmap.resolvers[str]; !ok {
-		return nil, errors.Wrapf(ErrMissingResolver, "missing resolver for %q", str)
-	}
+// func (me *Ctx) getResolvedRunArgs(cmd Method) ([]reflect.Value, error) {
+// 	args := cmd.RunArgs()
+// 	rargs := make([]reflect.Value, len(args))
+// 	for i, arg := range args {
+// 		// first check if we have a binding for this type
+// 		if bnd, ok := me.bindings[arg.String()]; ok {
+// 			rargs[i] = *bnd
+// 		} else {
+// 			// if not, check if we have a resolver for this type
+// 			if resl, ok := me.resolvers[arg.String()]; ok {
+// 				// if we do, run it, and store the result as a binding
+// 				// its okay to recurse here, because we are saving the result as a binding
+// 				bnd, err := me.run(resl)
+// 				if err != nil {
+// 					return nil, err
+// 				}
+// 				rargs[i] = bnd
+// 				me.bindings[arg.String()] = &bnd
+// 			} else {
+// 				return nil, errors.Wrapf(ErrMissingResolver, "missing resolver for type %q", arg.String())
+// 			}
+// 		}
+// 	}
+// 	return rargs, nil
+// }
 
-	mapa := findBrothers(str, fmap.resolvers)
+// func (me *Ctx) run(cmd Method) (*reflect.Value, error) {
 
-	flgs := &pflag.FlagSet{}
+// 	args, err := me.getResolvedRunArgs(cmd)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	for _, f := range mapa {
-		fmap.resolvers[f].Flags(flgs)
-	}
+// 	out := cmd.Run().Call(args)
 
-	return flgs, nil
-}
-
-func (me *Ctx) getResolvedRunArgs(cmd Method) ([]reflect.Value, error) {
-	args := cmd.RunArgs()
-	rargs := make([]reflect.Value, len(args))
-	for i, arg := range args {
-		// first check if we have a binding for this type
-		if bnd, ok := me.bindings[arg.String()]; ok {
-			rargs[i] = *bnd
-		} else {
-			// if not, check if we have a resolver for this type
-			if resl, ok := me.resolvers[arg.String()]; ok {
-				// if we do, run it, and store the result as a binding
-				// its okay to recurse here, because we are saving the result as a binding
-				bnd, err := me.run(resl)
-				if err != nil {
-					return nil, err
-				}
-				rargs[i] = bnd
-				me.bindings[arg.String()] = &bnd
-			} else {
-				return nil, errors.Wrapf(ErrMissingResolver, "missing resolver for type %q", arg.String())
-			}
-		}
-	}
-	return rargs, nil
-}
-
-func (me *Ctx) run(cmd Method) (reflect.Value, error) {
-
-	args, err := me.getResolvedRunArgs(cmd)
-	if err != nil {
-		return reflect.Value{}, err
-	}
-
-	out := cmd.Run().Call(args)
-
-	return cmd.HandleResponse(out)
-}
+// 	return cmd.HandleResponse(out)
+// }
 
 var (
 	ErrInvalidMethodSignature = errors.New("invalid method signature")
