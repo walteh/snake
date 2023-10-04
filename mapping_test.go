@@ -85,14 +85,14 @@ func TestFindBrothers(t *testing.T) {
 
 func TestFindArguments(t *testing.T) {
 	fmap := map[string]IsRunnable{
-		"key1": MockIsRunnable{
-			fn: reflect.ValueOf(func() uint32 {
-				return 2
+		"uint32": MockIsRunnable{
+			fn: reflect.ValueOf(func() (uint32, error) {
+				return 2, nil
 			}),
 		},
 		"key2": MockIsRunnable{
-			fn: reflect.ValueOf(func(a uint32) uint16 {
-				return uint16(a + 1)
+			fn: reflect.ValueOf(func(a uint32) (uint16, error) {
+				return uint16(a + 1), nil
 			}),
 		},
 	}
