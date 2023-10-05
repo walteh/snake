@@ -8,9 +8,13 @@ import (
 
 func Apply(ctx context.Context, me *Ctx, root *cobra.Command) error {
 
-	for nme, cmd := range me.cmds {
+	for _, exer := range me.resolvers {
 
-		exer := me.resolvers[nme]
+		cmd := exer.Command().Cobra()
+
+		if exer.Command() == nil {
+			continue
+		}
 
 		if flgs, err := me.FlagsFor(exer); err != nil {
 			return err
@@ -51,10 +55,11 @@ func Build(ctx context.Context, me *Ctx) (*cobra.Command, error) {
 	}
 
 	for nme, sub := range me.cmds {
-		cmd.AddCommand(sub)
+		cmdn := sub.Cobra()
+		cmd.AddCommand(cmdn)
 
-		if sub.Use == "" {
-			sub.Use = nme
+		if cmdn.Use == "" {
+			cmdn.Use = nme
 		}
 	}
 

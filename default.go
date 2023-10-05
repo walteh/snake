@@ -2,16 +2,25 @@ package snake
 
 import (
 	"reflect"
+	"sync"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
 
+type Ctx struct {
+	bindings  map[string]*reflect.Value
+	resolvers map[string]Method
+	cmds      map[string]Cobrad
+
+	runlock sync.Mutex
+}
+
 var (
 	root = Ctx{
 		bindings:  make(map[string]*reflect.Value),
 		resolvers: make(map[string]Method),
-		cmds:      make(map[string]*cobra.Command),
+		cmds:      make(map[string]Cobrad),
 	}
 )
 
@@ -19,28 +28,32 @@ type Flagged interface {
 	Flags(*pflag.FlagSet)
 }
 
+type Cobrad interface {
+	Cobra() *cobra.Command
+}
+
 func NewArgument[I any](method Flagged) {
 	_ = NewArgContext[I](&root, method)
 }
 
-func NewCmd(cmd *cobra.Command, method Flagged) {
-	_ = NewCmdContext(&root, cmd.Name(), cmd, method)
+func NewCmd[I Cobrad](cmd I, method Flagged) {
+	_ = NewCmdContext(&root, cmd, method)
 }
 
-func NewCmdContext(con *Ctx, name string, cbra *cobra.Command, m Flagged) Method {
+func NewCmdContext[I Cobrad](con *Ctx, cbra I, m Flagged) Method {
 
 	ec := &method{
 		flags:              m.Flags,
 		validationStrategy: commandResponseValidationStrategy,
 		responseStrategy:   commandResponseHandleStrategy,
-		name:               prefix_command + name,
-		method:             getRunMethod(m),
+		// name:               prefix_command + name,
+		name:   reflect.TypeOf((*I)(nil)).Elem().String(),
+		method: getRunMethod(m),
+		cmd:    cbra,
 	}
 
 	con.runlock.Lock()
 	defer con.runlock.Unlock()
-
-	con.cmds[name] = cbra
 
 	con.resolvers[ec.name] = ec
 
