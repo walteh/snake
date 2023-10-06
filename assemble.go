@@ -6,7 +6,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func Apply(ctx context.Context, me *Ctx, root *cobra.Command) error {
+func Apply(ctx context.Context, r *cobra.Command) error {
+	return ApplyCtx(ctx, &root, r)
+}
+
+func ApplyCtx(ctx context.Context, me *Ctx, root *cobra.Command) error {
 
 	for _, exer := range me.resolvers {
 
@@ -46,11 +50,15 @@ func Apply(ctx context.Context, me *Ctx, root *cobra.Command) error {
 	return nil
 }
 
-func Build(ctx context.Context, me *Ctx) (*cobra.Command, error) {
+func Build(ctx context.Context) (*cobra.Command, error) {
+	return BuildCtx(ctx, &root)
+}
+
+func BuildCtx(ctx context.Context, me *Ctx) (*cobra.Command, error) {
 
 	cmd := &cobra.Command{}
 
-	if err := Apply(ctx, me, cmd); err != nil {
+	if err := ApplyCtx(ctx, me, cmd); err != nil {
 		return nil, err
 	}
 

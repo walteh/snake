@@ -17,14 +17,14 @@ func (me *inlineResolver[I]) Run() (I, error) {
 	return me.runFunc()
 }
 
-func NewInlineFunc[I any](flagFunc func(*pflag.FlagSet), runFunc func() (I, error)) Flagged {
+func NewArgInlineFunc[I any](flagFunc func(*pflag.FlagSet), runFunc func() (I, error)) Flagged {
 	return &inlineResolver[I]{flagFunc: flagFunc, runFunc: runFunc}
 }
 
-func NewInlineFuncSimple[I any](runFunc func() (I, error)) Flagged {
-	return &inlineResolver[I]{flagFunc: func(*pflag.FlagSet) {}, runFunc: runFunc}
-}
+// func NewInlineFuncSimple[I any](runFunc func() (I, error)) Flagged {
+// 	return &inlineResolver[I]{flagFunc: func(*pflag.FlagSet) {}, runFunc: runFunc}
+// }
 
-func NewInlineSimple[I any](value I) Flagged {
-	return &inlineResolver[I]{flagFunc: func(*pflag.FlagSet) {}, runFunc: func() (I, error) { return value, nil }}
-}
+// func NewInlineSimple[I any](value I) Flagged {
+// 	return &inlineResolver[I]{flagFunc: func(*pflag.FlagSet) {}, runFunc: func() (I, error) { return value, nil }}
+// }
