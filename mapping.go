@@ -17,17 +17,17 @@ type IsRunnable interface {
 
 type FMap[G any] func(string) G
 
-func (fmap *Ctx) FlagsFor(str Method) (*pflag.FlagSet, error) {
-	return fmap.FlagsForString(str.Name())
+func (me *Ctx) FlagsFor(str Method) (*pflag.FlagSet, error) {
+	return me.FlagsForString(str.Name())
 }
 
-func (fmap *Ctx) FlagsForString(str string) (*pflag.FlagSet, error) {
-	if _, ok := fmap.resolvers[str]; !ok {
+func (me *Ctx) FlagsForString(str string) (*pflag.FlagSet, error) {
+	if _, ok := me.resolvers[str]; !ok {
 		return nil, errors.Wrapf(ErrMissingResolver, "missing resolver for %q", str)
 	}
 
 	mapa, err := findBrothers(str, func(s string) HasRunArgs {
-		return fmap.resolvers[s]
+		return me.resolvers[s]
 	})
 	if err != nil {
 		return nil, err
@@ -36,19 +36,19 @@ func (fmap *Ctx) FlagsForString(str string) (*pflag.FlagSet, error) {
 	flgs := &pflag.FlagSet{}
 
 	for _, f := range mapa {
-		fmap.resolvers[f].Flags(flgs)
+		me.resolvers[f].Flags(flgs)
 	}
 
 	return flgs, nil
 }
 
-func (fmap *Ctx) Run(str Method) error {
-	return fmap.RunString(str.Name())
+func (me *Ctx) Run(str Method) error {
+	return me.RunString(str.Name())
 }
 
-func (fmap *Ctx) RunString(str string) error {
+func (me *Ctx) RunString(str string) error {
 	args, err := findArgumentsRaw(str, func(s string) IsRunnable {
-		return fmap.resolvers[s]
+		return me.resolvers[s]
 	}, nil)
 	if err != nil {
 		return err
@@ -66,8 +66,8 @@ func (fmap *Ctx) RunString(str string) error {
 
 }
 
-func findBrothers(str string, fmap FMap[HasRunArgs]) ([]string, error) {
-	raw, err := findBrothersRaw(str, fmap, nil)
+func findBrothers(str string, me FMap[HasRunArgs]) ([]string, error) {
+	raw, err := findBrothersRaw(str, me, nil)
 	if err != nil {
 		return nil, err
 	}

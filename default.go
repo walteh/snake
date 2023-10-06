@@ -36,20 +36,23 @@ func NewArgument[I any](method Flagged) {
 	_ = NewArgContext[I](&root, method)
 }
 
-func NewCmd[I Cobrad](cmd I, method Flagged) {
-	_ = NewCmdContext(&root, cmd, method)
+func NewCmd[I Cobrad](cmd I) {
+	_ = NewCmdContext(&root, cmd)
 }
 
-func NewCmdContext[I Cobrad](con *Ctx, cbra I, m Flagged) Method {
+func NewCmdContext[I Cobrad](con *Ctx, cbra I) Method {
 
 	ec := &method{
-		flags:              m.Flags,
+		flags:              func(*pflag.FlagSet) {},
 		validationStrategy: commandResponseValidationStrategy,
 		responseStrategy:   commandResponseHandleStrategy,
-		// name:               prefix_command + name,
-		name:   reflect.TypeOf((*I)(nil)).Elem().String(),
-		method: getRunMethod(m),
-		cmd:    cbra,
+		name:               reflect.TypeOf((*I)(nil)).Elem().String(),
+		method:             getRunMethod(cbra),
+		cmd:                cbra,
+	}
+
+	if flg, ok := any(cbra).(Flagged); ok {
+		ec.flags = flg.Flags
 	}
 
 	con.runlock.Lock()
