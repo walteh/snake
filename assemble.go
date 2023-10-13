@@ -88,16 +88,5 @@ func BuildCtx(ctx context.Context, me *Ctx) (*cobra.Command, error) {
 
 }
 
-func setBindingWithLock[T any](con *Ctx, val T) func() {
-	con.runlock.Lock()
-	ptr := reflect.ValueOf(val)
-	typ := reflect.TypeOf((*T)(nil)).Elem()
-	con.bindings[typ.String()] = &ptr
-	return func() {
-		delete(con.bindings, typ.String())
-		con.runlock.Unlock()
-	}
-}
-
 var end_of_chain = reflect.ValueOf("end_of_chain")
 var end_of_chain_ptr = &end_of_chain
