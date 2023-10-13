@@ -84,6 +84,7 @@ func TestFindBrothers(t *testing.T) {
 			})
 			require.NoError(t, err)
 			require.NotNil(t, got)
+			tt.expectMap = append(tt.expectMap, Defaults...)
 			assert.ElementsMatch(t, tt.expectMap, got)
 		})
 	}
@@ -106,17 +107,17 @@ func TestFindArguments(t *testing.T) {
 			args: args{
 				target: "key1",
 				fmap: map[string]IsRunnable{
-					"reflect.Type(uint32)": MockIsRunnable{
+					"uint32": MockIsRunnable{
 						fn: reflect.ValueOf(func() (uint32, error) {
 							return 2, nil
 						}),
 					},
-					"reflect.Type(uint16)": MockIsRunnable{
+					"uint16": MockIsRunnable{
 						fn: reflect.ValueOf(func(a uint32) (uint16, error) {
 							return uint16(a + 1), nil
 						}),
 					},
-					"reflect.Type(int)": MockIsRunnable{
+					"int": MockIsRunnable{
 						fn: reflect.ValueOf(func(a uint32, b uint16) (int, error) {
 							return int(a + uint32(b)), nil
 						}),

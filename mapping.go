@@ -78,10 +78,14 @@ func findBrothers(str string, me FMap[HasRunArgs]) ([]string, error) {
 	return resp, nil
 }
 
+var Defaults = []string{"context.Context", "*cobra.Command"}
+
 func findBrothersRaw(str string, fmap FMap[HasRunArgs], rmap map[string]bool) (map[string]bool, error) {
 	var err error
 	if rmap == nil {
 		rmap = make(map[string]bool)
+		rmap["context.Context"] = true
+		rmap["*cobra.Command"] = true
 	}
 
 	var curr HasRunArgs
@@ -120,8 +124,30 @@ func findArguments(str string, fmap FMap[IsRunnable]) ([]reflect.Value, error) {
 	return resp, nil
 }
 
-func runResolvingArguments(str string, fmap FMap[IsRunnable]) error {
-	args, err := findArgumentsRaw(str, fmap, nil)
+func valueToIsRunnable(v reflect.Value) IsRunnable {
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	return v.Interface().(IsRunnable)
+}
+
+func runResolvingArguments(str string, fmap FMap[IsRunnable], bmap map[string]*reflect.Value) error {
+	refmap := func(s string) IsRunnable {
+		for k, v := range bmap {
+			if k == s {
+				res := &inlineResolver[any]{
+					flagFunc: func(*pflag.FlagSet) {},
+					runFunc: func() (any, error) {
+						return v, nil
+					},
+				}
+				return res.AsArgumentMethod(k)
+			}
+		}
+		return fmap(s)
+	}
+
+	args, err := findArgumentsRaw(str, refmap, nil)
 	if err != nil {
 		return err
 	}
@@ -139,7 +165,7 @@ func runResolvingArguments(str string, fmap FMap[IsRunnable]) error {
 }
 
 func reflectTypeString(typ reflect.Type) string {
-	return "reflect.Type(" + typ.String() + ")"
+	return typ.String()
 }
 
 func findArgumentsRaw(str string, fmap FMap[IsRunnable], wrk map[string]*reflect.Value) (map[string]*reflect.Value, error) {
@@ -172,7 +198,7 @@ func findArgumentsRaw(str string, fmap FMap[IsRunnable], wrk map[string]*reflect
 	resp := curr.Run().Call(tmp)
 	out, err := curr.HandleResponse(resp)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	wrk[str] = out

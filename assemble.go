@@ -12,13 +12,20 @@ func Apply(ctx context.Context, r *cobra.Command) error {
 
 func ApplyCtx(ctx context.Context, me *Ctx, root *cobra.Command) error {
 
-	for _, exer := range me.resolvers {
+	// me.resolvers["*cobra.Command"] = NewArgInlineFunc(
+	// 	func(*pflag.FlagSet) {},
+	// 	func() (*cobra.Command, error) {
+	// 		return me.bindings["*cobra.Command"].Interface().(*cobra.Command), nil
+	// 	},
+	// )
 
-		cmd := exer.Command().Cobra()
+	for _, exer := range me.resolvers {
 
 		if exer.Command() == nil {
 			continue
 		}
+
+		cmd := exer.Command().Cobra()
 
 		if flgs, err := me.FlagsFor(exer); err != nil {
 			return err
