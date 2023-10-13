@@ -7,12 +7,15 @@ import (
 )
 
 type method struct {
-	name               string
-	method             reflect.Value
+	name   string
+	method reflect.Value
+
 	flags              func(*pflag.FlagSet)
 	validationStrategy func([]reflect.Type) error
 	responseStrategy   func([]reflect.Value) (*reflect.Value, error)
 	cmd                Cobrad
+
+	flagsSet bool
 }
 
 type Method interface {
@@ -28,7 +31,10 @@ type Method interface {
 var _ Method = (*method)(nil)
 
 func (me *method) Flags(flags *pflag.FlagSet) {
-	me.flags(flags)
+	if !me.flagsSet {
+		me.flags(flags)
+		me.flagsSet = true
+	}
 }
 
 func (me *method) Run() reflect.Value {
