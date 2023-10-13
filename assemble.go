@@ -42,6 +42,8 @@ func ApplyCtx(ctx context.Context, me *Ctx, root *cobra.Command) error {
 
 		cmd.RunE = func(cmd *cobra.Command, args []string) error {
 			defer setBindingWithLock(me, cmd)()
+			defer setBindingWithLock(me, args)()
+
 			err := runResolvingArguments(exer.Name(), func(s string) IsRunnable {
 				return me.resolvers[s]
 			}, me.bindings)
