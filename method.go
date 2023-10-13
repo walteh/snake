@@ -14,8 +14,6 @@ type method struct {
 	validationStrategy func([]reflect.Type) error
 	responseStrategy   func([]reflect.Value) (*reflect.Value, error)
 	cmd                Cobrad
-
-	flagsSet bool
 }
 
 type Method interface {
@@ -31,10 +29,7 @@ type Method interface {
 var _ Method = (*method)(nil)
 
 func (me *method) Flags(flags *pflag.FlagSet) {
-	if !me.flagsSet {
-		me.flags(flags)
-		me.flagsSet = true
-	}
+	me.flags(flags)
 }
 
 func (me *method) Run() reflect.Value {
