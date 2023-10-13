@@ -19,7 +19,7 @@ func ApplyCtx(ctx context.Context, me *Ctx, root *cobra.Command) error {
 		}
 	}
 
-	for _, exer := range me.resolvers {
+	for k, exer := range me.resolvers {
 
 		if exer.Command() == nil {
 			continue
@@ -40,11 +40,14 @@ func ApplyCtx(ctx context.Context, me *Ctx, root *cobra.Command) error {
 
 		oldRunE := cmd.RunE
 
+		// hold a reference to the current value of k
+		holdk := k
+
 		cmd.RunE = func(cmd *cobra.Command, args []string) error {
 			defer setBindingWithLock(me, cmd)()
 			defer setBindingWithLock(me, args)()
 
-			err := runResolvingArguments(exer.Name(), func(s string) IsRunnable {
+			err := runResolvingArguments(holdk, func(s string) IsRunnable {
 				return me.resolvers[s]
 			}, me.bindings)
 			if err != nil {

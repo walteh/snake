@@ -26,7 +26,7 @@ func commandResponseValidationStrategy(out []reflect.Type) error {
 func commandResponseHandleStrategy(out []reflect.Value) (*reflect.Value, error) {
 
 	if !out[0].IsNil() {
-		return end_of_chain_ptr, out[1].Interface().(error)
+		return end_of_chain_ptr, out[0].Interface().(error)
 	}
 
 	return end_of_chain_ptr, nil
@@ -38,7 +38,7 @@ func handleArgumentResponse[I any](out []reflect.Value) (*reflect.Value, error) 
 		return nil, out[1].Interface().(error)
 	}
 
-	if !out[0].Type().Implements(reflect.TypeOf((*I)(nil)).Elem()) {
+	if out[0].Type() != reflect.TypeOf((*I)(nil)).Elem() {
 		return nil, errors.Wrapf(ErrInvalidMethodSignature, "invalid return type %q, expected %q", out[0].String(), reflect.TypeOf((*I)(nil)).Elem().String())
 	}
 

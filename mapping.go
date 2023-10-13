@@ -140,22 +140,8 @@ func valueToIsRunnable(v reflect.Value) IsRunnable {
 }
 
 func runResolvingArguments(str string, fmap FMap[IsRunnable], bmap map[string]*reflect.Value) error {
-	refmap := func(s string) IsRunnable {
-		for k, v := range bmap {
-			if k == s {
-				res := &inlineResolver[any]{
-					flagFunc: func(*pflag.FlagSet) {},
-					runFunc: func() (any, error) {
-						return v, nil
-					},
-				}
-				return res.AsArgumentMethod(k)
-			}
-		}
-		return fmap(s)
-	}
 
-	args, err := findArgumentsRaw(str, refmap, nil)
+	args, err := findArgumentsRaw(str, fmap, bmap)
 	if err != nil {
 		return err
 	}
