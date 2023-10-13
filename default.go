@@ -17,12 +17,25 @@ type Ctx struct {
 }
 
 var (
-	root = Ctx{
+	root = *NewCtx()
+)
+
+func NewCtx() *Ctx {
+	def := &Ctx{
 		bindings:  make(map[string]*reflect.Value),
 		resolvers: make(map[string]Method),
 		cmds:      make(map[string]Cobrad),
 	}
-)
+
+	NewArgContext[*cobra.Command](def, &inlineResolver[*cobra.Command]{
+		flagFunc: func(*pflag.FlagSet) {},
+		runFunc: func() (*cobra.Command, error) {
+			return &cobra.Command{}, nil
+		},
+	})
+
+	return def
+}
 
 type Flagged interface {
 	Flags(*pflag.FlagSet)
@@ -64,7 +77,7 @@ func NewCmdContext[I Cobrad](con *Ctx, cbra I) Method {
 }
 
 func methodName(typ reflect.Type) string {
-	return prefix_argument + typ.String()
+	return typ.String()
 }
 
 func NewArgContext[I any](con *Ctx, m Flagged) Method {

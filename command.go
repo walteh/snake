@@ -22,11 +22,11 @@ func setBindingWithLock[T any](con *Ctx, val T) func() {
 }
 
 var (
-	ErrInvalidMethodSignature = errors.New("invalid method signature")
+	ErrInvalidMethodSignature = errors.New("invalid method signatured")
 )
 
 var end_of_chain = reflect.ValueOf("end_of_chain")
 var end_of_chain_ptr = &end_of_chain
 
-var prefix_command = "snake_command_"
-var prefix_argument = "snake_argument_"
+// var prefix_command = "snake_command_"
+// var prefix_argument = "snake_argument_"

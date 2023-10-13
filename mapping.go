@@ -36,7 +36,11 @@ func (me *Ctx) FlagsForString(str string) (*pflag.FlagSet, error) {
 	flgs := &pflag.FlagSet{}
 
 	for _, f := range mapa {
-		me.resolvers[f].Flags(flgs)
+		if z, ok := me.resolvers[f]; !ok {
+			return nil, errors.Wrapf(ErrMissingResolver, "missing resolver for %q", f)
+		} else {
+			z.Flags(flgs)
+		}
 	}
 
 	return flgs, nil
@@ -85,7 +89,7 @@ func findBrothersRaw(str string, fmap FMap[HasRunArgs], rmap map[string]bool) (m
 	if rmap == nil {
 		rmap = make(map[string]bool)
 		rmap["context.Context"] = true
-		rmap["*cobra.Command"] = true
+		// rmap["*cobra.Command"] = true
 	}
 
 	var curr HasRunArgs

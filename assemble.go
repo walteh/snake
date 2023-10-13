@@ -12,13 +12,6 @@ func Apply(ctx context.Context, r *cobra.Command) error {
 
 func ApplyCtx(ctx context.Context, me *Ctx, root *cobra.Command) error {
 
-	// me.resolvers["*cobra.Command"] = NewArgInlineFunc(
-	// 	func(*pflag.FlagSet) {},
-	// 	func() (*cobra.Command, error) {
-	// 		return me.bindings["*cobra.Command"].Interface().(*cobra.Command), nil
-	// 	},
-	// )
-
 	for _, exer := range me.resolvers {
 
 		if exer.Command() == nil {
@@ -42,7 +35,9 @@ func ApplyCtx(ctx context.Context, me *Ctx, root *cobra.Command) error {
 
 		cmd.RunE = func(cmd *cobra.Command, args []string) error {
 			defer setBindingWithLock(me, cmd)()
-			err := me.Run(exer)
+			err := runResolvingArguments(exer.Name(), func(s string) IsRunnable {
+				return me.resolvers[s]
+			}, me.bindings)
 			if err != nil {
 				return err
 			}

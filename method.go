@@ -40,7 +40,7 @@ func (me *method) RunArgs() []reflect.Type {
 }
 
 func (me *method) ValidateResponse() error {
-	return me.validationStrategy(me.RunArgs())
+	return me.validationStrategy(listOfReturns(me.method.Type()))
 }
 
 func (me *method) HandleResponse(out []reflect.Value) (*reflect.Value, error) {
