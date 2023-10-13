@@ -27,10 +27,18 @@ func NewCtx() *Ctx {
 		cmds:      make(map[string]Cobrad),
 	}
 
+	// these will always be overwritten in the RunE function
 	NewArgContext[*cobra.Command](def, &inlineResolver[*cobra.Command]{
 		flagFunc: func(*pflag.FlagSet) {},
 		runFunc: func() (*cobra.Command, error) {
 			return &cobra.Command{}, nil
+		},
+	})
+
+	NewArgContext[[]string](def, &inlineResolver[[]string]{
+		flagFunc: func(*pflag.FlagSet) {},
+		runFunc: func() ([]string, error) {
+			return []string{}, nil
 		},
 	})
 
