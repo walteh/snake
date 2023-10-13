@@ -6,6 +6,10 @@ import (
 	"github.com/go-faster/errors"
 )
 
+var (
+	ErrInvalidMethodSignature = errors.New("invalid method signatured")
+)
+
 func commandResponseValidationStrategy(out []reflect.Type) error {
 
 	if len(out) != 1 {

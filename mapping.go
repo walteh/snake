@@ -7,6 +7,10 @@ import (
 	"github.com/spf13/pflag"
 )
 
+var (
+	ErrMissingResolver = errors.New("missing resolver")
+)
+
 type HasRunArgs interface{ RunArgs() []reflect.Type }
 
 type IsRunnable interface {
