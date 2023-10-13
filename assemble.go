@@ -12,6 +12,12 @@ func Apply(ctx context.Context, r *cobra.Command) error {
 
 func ApplyCtx(ctx context.Context, me *Ctx, root *cobra.Command) error {
 
+	if root.RunE == nil {
+		root.RunE = func(cmd *cobra.Command, args []string) error {
+			return nil
+		}
+	}
+
 	for _, exer := range me.resolvers {
 
 		if exer.Command() == nil {
