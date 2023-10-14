@@ -42,7 +42,7 @@ func FlagsFor(str string, method FMap[Method]) (*pflag.FlagSet, error) {
 		if z, err := FlagsFor(f, method); err != nil {
 			return nil, errors.Wrapf(ErrMissingResolver, "missing resolver for %q", f)
 		} else {
-			z.AddFlagSet(flgs)
+			flgs.AddFlagSet(z)
 		}
 	}
 
