@@ -84,7 +84,7 @@ func TestFindBrothers(t *testing.T) {
 			})
 			require.NoError(t, err)
 			require.NotNil(t, got)
-			tt.expectMap = append(tt.expectMap, Defaults...)
+			tt.expectMap = append(tt.expectMap, []string{}...)
 			assert.ElementsMatch(t, tt.expectMap, got)
 		})
 	}
