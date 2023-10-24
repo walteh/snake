@@ -2,6 +2,7 @@ package root
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -30,12 +31,30 @@ func TestNewCommand(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewCommand(tt.args.ctx)
+
+			cmd, hndl, err := NewCommand(tt.args.ctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewCommand() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			assert.Equal(t, tt.want, got)
+
+			err = os.Setenv("RETAB_COOL", "true")
+			if err != nil {
+				t.Errorf("Setenv() error = %v", err)
+				return
+			}
+
+			os.Args = []string{"retab", "sample", "--value", "test"}
+
+			err = cmd.Execute()
+			if err != nil {
+				t.Errorf("Execute() error = %v", err)
+				return
+			}
+
+			assert.Equal(t, hndl.Cool, true)
+
+			// assert.Equal(t, tt.want, got)
 		})
 	}
 }

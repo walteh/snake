@@ -1,7 +1,9 @@
 package snake
 
 import (
+	"os"
 	"reflect"
+	"strings"
 	"sync"
 
 	"github.com/spf13/cobra"
@@ -11,8 +13,8 @@ import (
 type Snake struct {
 	bindings  map[string]*reflect.Value
 	resolvers map[string]Method
-
-	runlock sync.Mutex
+	root      *cobra.Command
+	runlock   sync.Mutex
 }
 
 type Flagged interface {
@@ -52,6 +54,26 @@ func attachMethod(me *Snake, exer Method) (*cobra.Command, error) {
 
 	oldRunE := cmd.RunE
 
+	// if a flag is not set, we check the environment for "cmd_name_arg_name"
+
+	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+		cmd.Flags().VisitAll(func(f *pflag.Flag) {
+			if f.Changed {
+				return
+			}
+			val := strings.ToUpper(me.root.Name() + "_" + strings.ReplaceAll(f.Name, "-", "_"))
+			envvar := os.Getenv(val)
+			if envvar == "" {
+				return
+			}
+			err := f.Value.Set(envvar)
+			if err != nil {
+				return
+			}
+		})
+		return nil
+	}
+
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		defer setBindingWithLock(me, cmd)()
 		defer setBindingWithLock(me, args)()
@@ -83,6 +105,7 @@ func NewSnake(opts *NewSnakeOpts) (*cobra.Command, error) {
 	snk := &Snake{
 		bindings:  make(map[string]*reflect.Value),
 		resolvers: make(map[string]Method),
+		root:      root,
 	}
 
 	for _, v := range opts.Resolvers {

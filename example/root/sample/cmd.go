@@ -12,13 +12,18 @@ var _ snake.Cobrad = (*Handler)(nil)
 var _ snake.Flagged = (*Handler)(nil)
 
 type Handler struct {
+	Value string
+	Cool  bool
 }
 
-func (*Handler) Flags(*pflag.FlagSet) {
+func (me *Handler) Flags(s *pflag.FlagSet) {
+	s.StringVar(&me.Value, "value", "default", "value to print")
+	s.BoolVar(&me.Cool, "cool", false, "cool value")
 }
 
 func (me *Handler) Cobra() *cobra.Command {
 	cmd := &cobra.Command{
+		Use:   "sample",
 		Short: "run a server for retab code using the Language Server Protocol",
 	}
 
