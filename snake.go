@@ -83,10 +83,13 @@ func attachMethod(me *Snake, exer Method) (*cobra.Command, error) {
 			return me.resolvers[s]
 		}, me.bindings)
 		if err != nil {
-			return err
+			return HandleErrorByPrintingToConsole(cmd, err)
 		}
 		if oldRunE != nil {
-			return oldRunE(cmd, args)
+			err := oldRunE(cmd, args)
+			if err != nil {
+				return HandleErrorByPrintingToConsole(cmd, err)
+			}
 		}
 		return nil
 	}
