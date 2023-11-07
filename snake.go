@@ -26,9 +26,10 @@ type Cobrad interface {
 }
 
 type NewSnakeOpts struct {
-	Root      *cobra.Command
-	Commands  []Method
-	Resolvers []Method
+	Root                       *cobra.Command
+	Commands                   []Method
+	Resolvers                  []Method
+	GlobalContextResolverFlags bool
 }
 
 func attachMethod(me *Snake, exer Method) (*cobra.Command, error) {
@@ -110,6 +111,10 @@ func NewSnake(opts *NewSnakeOpts) (*cobra.Command, error) {
 
 	for _, v := range opts.Resolvers {
 		snk.resolvers[v.Name()] = v
+
+		if opts.GlobalContextResolverFlags && v.IsContextResolver() {
+			v.Flags(root.PersistentFlags())
+		}
 	}
 
 	for _, v := range opts.Commands {
