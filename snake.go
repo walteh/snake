@@ -32,7 +32,7 @@ type NewSnakeOpts struct {
 	GlobalContextResolverFlags bool
 }
 
-func attachMethod(me *Snake, exer Method) (*cobra.Command, error) {
+func attachMethod(me *Snake, exer Method, globalFlags *pflag.FlagSet) (*cobra.Command, error) {
 
 	if exer.Command() == nil {
 		return nil, nil
@@ -45,7 +45,12 @@ func attachMethod(me *Snake, exer Method) (*cobra.Command, error) {
 	}); err != nil {
 		return nil, err
 	} else {
-		cmd.Flags().AddFlagSet(flgs)
+		flgs.VisitAll(func(f *pflag.Flag) {
+			if globalFlags != nil && globalFlags.Lookup(f.Name) != nil {
+				return
+			}
+			cmd.Flags().AddFlag(f)
+		})
 	}
 
 	err := exer.ValidateResponse()
@@ -112,11 +117,13 @@ func NewSnake(opts *NewSnakeOpts) (*cobra.Command, error) {
 		root:      root,
 	}
 
+	var ctxflags *pflag.FlagSet
+
 	for _, v := range opts.Resolvers {
 		snk.resolvers[v.Name()] = v
 
 		if opts.GlobalContextResolverFlags && v.IsContextResolver() {
-			v.Flags(root.PersistentFlags())
+			v.Flags(ctxflags)
 		}
 	}
 
@@ -140,7 +147,7 @@ func NewSnake(opts *NewSnakeOpts) (*cobra.Command, error) {
 	})
 
 	for _, exer := range snk.resolvers {
-		if cmd, err := attachMethod(snk, exer); err != nil {
+		if cmd, err := attachMethod(snk, exer, ctxflags); err != nil {
 			return nil, err
 		} else if cmd != nil {
 			root.AddCommand(cmd)
