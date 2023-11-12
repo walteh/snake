@@ -26,7 +26,6 @@ type Method interface {
 	HandleResponse([]reflect.Value) (*reflect.Value, error)
 	Name() string
 	Command() Cobrad
-
 	IsContextResolver() bool
 }
 

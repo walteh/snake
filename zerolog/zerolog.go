@@ -11,7 +11,7 @@ import (
 
 	"github.com/k0kubun/pp/v3"
 	"github.com/rs/zerolog"
-	"github.com/walteh/snake"
+	"github.com/walteh/terrors"
 )
 
 func Ctx(ctx context.Context) *zerolog.Logger {
@@ -83,15 +83,15 @@ func NewVerboseConsoleLogger() *zerolog.Logger {
 		s := fmt.Sprintf("%s", i)
 		tot := strings.Split(s, ":")
 		if len(tot) != 2 {
-			return snake.FormatCaller(tot[0], 0)
+			return terrors.FormatCaller(tot[0], 0)
 		}
 
 		in, err := strconv.Atoi(tot[1])
 		if err != nil {
-			return snake.FormatCaller(tot[0], 0)
+			return terrors.FormatCaller(tot[0], 0)
 		}
 
-		return snake.FormatCaller(tot[0], in)
+		return terrors.FormatCaller(tot[0], in)
 	}
 
 	consoleOutput.PartsOrder = []string{"level", "time", "caller", "message"}
