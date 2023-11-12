@@ -1,0 +1,44 @@
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  {
+    id-token: write,
+    contents: write,
+    packages: read,
+    actions: read,
+    deployments: read,
+    pull-requests: read,
+    issues: read,
+    statuses: read,
+    checks: read,
+  }
+on:
+  workflow_dispatch:
+  workflow_call:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "README.md"
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "README.md"
+
+jobs:
+  simver:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+      - name: setup golang
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.21.4
+      - name: install simver
+        run: go install github.com/walteh/simver/cmd/simver_github_actions@latest
+      - name: run simver
+        id: simver
+        env: { SIMVER_READ_ONLY: true }
+        run: simver_github_actions
