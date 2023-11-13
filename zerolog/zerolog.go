@@ -98,6 +98,10 @@ func NewVerboseConsoleLogger() *zerolog.Logger {
 
 	consoleOutput.FieldsExclude = []string{"handler", "tags"}
 
+	consoleOutput.FormatErrFieldValue = func(i any) string {
+		return fmt.Sprintf("%v", i)
+	}
+
 	l := zerolog.New(consoleOutput).With().Caller().Timestamp().Logger()
 
 	return &l
