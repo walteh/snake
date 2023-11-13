@@ -58,7 +58,7 @@ func NewVerboseConsoleLogger() *zerolog.Logger {
 
 		switch i := i.(type) {
 		case error:
-			return prettyerr.Sprint(i)
+			return fmt.Sprintf("%v", i)
 		case []byte:
 			var g interface{}
 			err := json.Unmarshal(i, &g)
