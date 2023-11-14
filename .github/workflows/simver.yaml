@@ -24,7 +24,6 @@ on:
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 jobs:
   simver:
     runs-on: ubuntu-latest
