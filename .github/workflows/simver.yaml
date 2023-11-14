@@ -20,7 +20,8 @@ on:
   push:
     branches: [main]
   pull_request:
-    types: [edited, closed, opened]
+    # OPENED, MERGED, AND ON EVERY UPDATE
+    types: [opened, synchronize, reopened, closed]
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
