@@ -14,7 +14,6 @@ permissions:
     statuses: read,
     checks: read,
   }
-
 on:
   workflow_dispatch:
   workflow_call:
