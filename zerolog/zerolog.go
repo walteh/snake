@@ -58,7 +58,7 @@ func NewVerboseConsoleLogger() *zerolog.Logger {
 
 		switch i := i.(type) {
 		case error:
-			return prettyerr.Sprint(i)
+			return fmt.Sprintf("%v", i)
 		case []byte:
 			var g interface{}
 			err := json.Unmarshal(i, &g)
@@ -97,6 +97,10 @@ func NewVerboseConsoleLogger() *zerolog.Logger {
 	consoleOutput.PartsOrder = []string{"level", "time", "caller", "message"}
 
 	consoleOutput.FieldsExclude = []string{"handler", "tags"}
+
+	consoleOutput.FormatErrFieldValue = func(i any) string {
+		return fmt.Sprintf("%v", i)
+	}
 
 	l := zerolog.New(consoleOutput).With().Caller().Timestamp().Logger()
 
