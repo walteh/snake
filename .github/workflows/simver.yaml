@@ -2,6 +2,7 @@ name: simver
 concurrency:
   group: simver
   cancel-in-progress: false
+
 permissions:
   {
     id-token: write,
@@ -14,6 +15,7 @@ permissions:
     statuses: read,
     checks: read,
   }
+
 on:
   workflow_dispatch:
   workflow_call:
@@ -21,6 +23,7 @@ on:
     branches: [main]
   pull_request:
     types: [opened, synchronize, reopened, closed]
+
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 jobs:
@@ -36,7 +39,7 @@ jobs:
         with:
           go-version: 1.21.4
       - name: install simver
-        run: go install github.com/walteh/simver/cmd/simver_github_actions@v0.1.38
+        run: go install github.com/walteh/simver/cmd/simver_github_actions@v0.1.39
       - name: run simver
         id: simverq
         env: { SIMVER_READ_ONLY: false }
