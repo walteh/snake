@@ -198,8 +198,8 @@ func findArgumentsRaw(str string, fmap FMap[IsRunnable], wrk map[string]*reflect
 		// otherwise we would be naming it "error"
 		wrk[str] = out[0]
 	} else {
-		for i, v := range out {
-			if i != len(out)-1 {
+		for _, v := range out {
+			if v.Type().String() != "error" {
 				wrk[v.Type().String()] = v
 			}
 		}

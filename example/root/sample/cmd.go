@@ -2,6 +2,8 @@ package sample
 
 import (
 	"context"
+	"errors"
+	"io"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -38,7 +40,13 @@ func (me *Handler) ParseArguments(_ context.Context, _ *cobra.Command, _ []strin
 
 }
 
-func (me *Handler) Run(ctx context.Context) error {
+func (me *Handler) Run(ctx context.Context, cmd *cobra.Command, arr []string, read io.Reader, write io.Writer) error {
+	arrs := []any{ctx, cmd, arr, read, write}
+	for _, a := range arrs {
+		if a == nil {
+			return errors.New("something is nil")
+		}
+	}
 	return nil
 	// return NewServe().Run(debug.WithInstance(ctx, "./de.bug", "serve"), nil)
 }
