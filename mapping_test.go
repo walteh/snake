@@ -32,8 +32,8 @@ func (m MockIsRunnable) Run() reflect.Value {
 	return m.fn
 }
 
-func (m MockIsRunnable) HandleResponse(x []reflect.Value) (*reflect.Value, error) {
-	return &x[0], nil
+func (m MockIsRunnable) HandleResponse(x []reflect.Value) ([]*reflect.Value, error) {
+	return []*reflect.Value{&x[0]}, nil
 }
 
 func TestFindBrothers(t *testing.T) {
