@@ -212,13 +212,26 @@ func NewArgumentMethod[A any](m Flagged) Method {
 	return ec
 }
 
-func New2ArgumentsMethod[A any, B any](m Flagged) Method {
+func New2ArgumentMethod[A any, B any](m Flagged) Method {
 
 	ec := &method{
 		flags:              m.Flags,
 		validationStrategy: validate2ArgumentResponse[A, B],
 		responseStrategy:   handle2ArgumentResponse[A, B],
 		names:              namesBuilder((*A)(nil), (*B)(nil)),
+		method:             getRunMethod(m),
+	}
+
+	return ec
+}
+
+func New3ArgumentMethod[A any, B any, C any](m Flagged) Method {
+
+	ec := &method{
+		flags:              m.Flags,
+		validationStrategy: validate3ArgumentResponse[A, B, C],
+		responseStrategy:   handle3ArgumentResponse[A, B, C],
+		names:              namesBuilder((*A)(nil), (*B)(nil), (*C)(nil)),
 		method:             getRunMethod(m),
 	}
 
