@@ -39,7 +39,8 @@ func handleArgumentResponse(out []reflect.Value, inter ...any) ([]*reflect.Value
 	res := make([]*reflect.Value, len(inter))
 
 	if !out[len(out)-1].IsNil() {
-		return nil, out[1].Interface().(error)
+		// need to fix this TODO
+		return nil, out[len(out)-1].Interface().(error)
 	}
 
 	for i, v := range inter {

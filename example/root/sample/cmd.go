@@ -40,8 +40,15 @@ func (me *Handler) ParseArguments(_ context.Context, _ *cobra.Command, _ []strin
 
 }
 
-func (me *Handler) Run(ctx context.Context, cmd *cobra.Command, arr []string, read io.Reader, write io.Writer) error {
-	arrs := []any{ctx, cmd, arr, read, write}
+func (me *Handler) Run(
+	ctx context.Context,
+	cmd *cobra.Command,
+	arr []string,
+	read io.Reader,
+	write io.Writer,
+	br io.ByteReader, bw io.ByteWriter, bs io.ByteScanner,
+) error {
+	arrs := []any{ctx, cmd, arr, read, write, br, bw, bs}
 	for _, a := range arrs {
 		if a == nil {
 			return errors.New("something is nil")

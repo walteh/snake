@@ -27,6 +27,7 @@ func NewCommand(ctx context.Context) (*cobra.Command, *sample.Handler, error) {
 			snake.NewArgumentMethod[context.Context](&ContextResolver{}),
 			snake.NewArgumentMethod[CustomInterface](&CustomResolver{}),
 			snake.New2ArgumentMethod[io.Reader, io.Writer](&DoubleResolver{}),
+			snake.New3ArgumentMethod[io.ByteReader, io.ByteWriter, io.ByteScanner](&TripleResolver{}),
 		},
 	})
 
