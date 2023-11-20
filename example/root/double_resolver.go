@@ -12,9 +12,13 @@ import (
 var _ snake.Flagged = (*ContextResolver)(nil)
 
 type DoubleResolver struct {
+	A bool
+	B bool
 }
 
-func (me *DoubleResolver) Flags(_ *pflag.FlagSet) {
+func (me *DoubleResolver) Flags(a *pflag.FlagSet) {
+	a.BoolVarP(&me.A, "a", "a", false, "")
+	a.BoolVarP(&me.B, "b", "b", false, "")
 }
 
 func (me *DoubleResolver) Run(cmd *cobra.Command) (io.Reader, io.Writer, error) {

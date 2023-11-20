@@ -35,11 +35,14 @@ func FlagsFor(str string, m FMap[Method]) (*pflag.FlagSet, error) {
 
 	flgs := &pflag.FlagSet{}
 
+	procd := make(map[Flagged]bool, 0)
+
 	for _, f := range mapa {
 		if z := m(f); z == nil {
 			return nil, errors.Wrapf(ErrMissingResolver, "missing resolver for %q", f)
 		} else {
-			if z, ok := z.(Flagged); ok {
+			if z, ok := z.(Flagged); ok && !procd[z] {
+				procd[z] = true
 				z.Flags(flgs)
 			}
 		}
