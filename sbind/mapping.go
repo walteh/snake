@@ -1,10 +1,9 @@
-package snake
+package sbind
 
 import (
 	"reflect"
 
 	"github.com/go-faster/errors"
-	"github.com/spf13/pflag"
 )
 
 var (
@@ -19,29 +18,33 @@ type IsRunnable interface {
 	HandleResponse([]reflect.Value) ([]*reflect.Value, error)
 }
 
+type Flagged[F any] interface {
+	Flags(*F)
+}
+
 type FMap[G any] func(string) G
 
-func FlagsFor(str string, m FMap[Method]) (*pflag.FlagSet, error) {
-	if ok := m(str); ok == nil {
+func FlagsFor[F any, G HasRunArgs](str string, m FMap[G]) (*F, error) {
+	if ok := m(str); reflect.ValueOf(ok).IsNil() {
 		return nil, errors.Wrapf(ErrMissingResolver, "missing resolver for %q", str)
 	}
 
-	mapa, err := findBrothers(str, func(s string) HasRunArgs {
+	mapa, err := FindBrothers(str, func(s string) HasRunArgs {
 		return m(s)
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	flgs := &pflag.FlagSet{}
+	flgs := new(F)
 
-	procd := make(map[Flagged]bool, 0)
+	procd := make(map[Flagged[F]]bool, 0)
 
 	for _, f := range mapa {
-		if z := m(f); z == nil {
+		if z := m(f); reflect.ValueOf(z).IsNil() {
 			return nil, errors.Wrapf(ErrMissingResolver, "missing resolver for %q", f)
 		} else {
-			if z, ok := z.(Flagged); ok && !procd[z] {
+			if z, ok := any(z).(Flagged[F]); ok && !procd[z] {
 				procd[z] = true
 				z.Flags(flgs)
 			}
@@ -55,8 +58,14 @@ func FlagsFor(str string, m FMap[Method]) (*pflag.FlagSet, error) {
 // 	return me.RunString(str.Name())
 // }
 
-var end_of_chain = reflect.ValueOf("end_of_chain")
-var end_of_chain_ptr = &end_of_chain
+func EndOfChain() reflect.Value {
+	return reflect.ValueOf("end_of_chain")
+}
+
+func EndOfChainPtr() *reflect.Value {
+	v := EndOfChain()
+	return &v
+}
 
 // func (me *Snake) RunString(str string) error {
 // 	args, err := findArgumentsRaw(str, func(s string) IsRunnable {
@@ -78,7 +87,7 @@ var end_of_chain_ptr = &end_of_chain
 
 // }
 
-func findBrothers(str string, me FMap[HasRunArgs]) ([]string, error) {
+func FindBrothers(str string, me FMap[HasRunArgs]) ([]string, error) {
 	raw, err := findBrothersRaw(str, me, nil)
 	if err != nil {
 		return nil, err
@@ -120,7 +129,7 @@ func findBrothersRaw(str string, fmap FMap[HasRunArgs], rmap map[string]bool) (m
 	return rmap, nil
 }
 
-func findArguments(str string, fmap FMap[IsRunnable]) ([]reflect.Value, error) {
+func FindArguments(str string, fmap FMap[IsRunnable]) ([]reflect.Value, error) {
 	raw, err := findArgumentsRaw(str, fmap, nil)
 	if err != nil {
 		return nil, err
@@ -139,7 +148,7 @@ func valueToIsRunnable(v reflect.Value) IsRunnable {
 	return v.Interface().(IsRunnable)
 }
 
-func runResolvingArguments(str string, fmap FMap[IsRunnable], bmap map[string]*reflect.Value) error {
+func RunResolvingArguments(str string, fmap FMap[IsRunnable], bmap map[string]*reflect.Value) error {
 
 	args, err := findArgumentsRaw(str, fmap, bmap)
 	if err != nil {
@@ -149,7 +158,7 @@ func runResolvingArguments(str string, fmap FMap[IsRunnable], bmap map[string]*r
 	if resp, ok := args[str]; !ok {
 		return errors.Wrapf(ErrMissingResolver, "missing resolver for %q", str)
 	} else {
-		if resp == end_of_chain_ptr {
+		if reflect.DeepEqual(resp, EndOfChainPtr()) {
 			return nil
 		} else {
 			return errors.Errorf("expected end of chain, got %v", resp)

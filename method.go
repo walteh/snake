@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/spf13/pflag"
+	"github.com/walteh/snake/sbind"
 )
 
 type method struct {
@@ -40,11 +41,11 @@ func (me *method) Run() reflect.Value {
 }
 
 func (me *method) RunArgs() []reflect.Type {
-	return listOfArgs(me.method.Type())
+	return sbind.ListOfArgs(me.method.Type())
 }
 
 func (me *method) ReturnArgs() []reflect.Type {
-	return listOfReturns(me.method.Type())
+	return sbind.ListOfReturns(me.method.Type())
 }
 
 func (me *method) ValidateResponse() error {

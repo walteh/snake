@@ -10,6 +10,7 @@ import (
 	"github.com/go-faster/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"github.com/walteh/snake/sbind"
 )
 
 type Snake struct {
@@ -40,7 +41,7 @@ func attachMethod(me *Snake, cmd *cobra.Command, name string, globalFlags *pflag
 		return nil, nil
 	}
 
-	if flgs, err := FlagsFor(name, func(s string) Method {
+	if flgs, err := sbind.FlagsFor[pflag.FlagSet, Method](name, func(s string) Method {
 		return me.resolvers[s]
 	}); err != nil {
 		return nil, err
@@ -79,7 +80,7 @@ func attachMethod(me *Snake, cmd *cobra.Command, name string, globalFlags *pflag
 		defer setBindingWithLock(me, cmd)()
 		defer setBindingWithLock(me, args)()
 
-		err := runResolvingArguments(name, func(s string) IsRunnable {
+		err := sbind.RunResolvingArguments(name, func(s string) sbind.IsRunnable {
 			return me.resolvers[s]
 		}, me.bindings)
 		if err != nil {
@@ -167,7 +168,7 @@ func NewSnake(opts *NewSnakeOpts) (*cobra.Command, error) {
 	}
 
 	root.RunE = func(cmd *cobra.Command, args []string) error {
-		err := runResolvingArguments("root", func(s string) IsRunnable {
+		err := sbind.RunResolvingArguments("root", func(s string) sbind.IsRunnable {
 			return snk.resolvers[s]
 		}, snk.bindings)
 		if err != nil {
@@ -188,7 +189,7 @@ func NewCommandMethod[I Cobrad](cbra I) Method {
 		validationStrategy: commandResponseValidationStrategy,
 		responseStrategy:   commandResponseHandleStrategy,
 		names:              []string{reflect.TypeOf((*I)(nil)).Elem().String()},
-		method:             getRunMethod(cbra),
+		method:             sbind.GetRunMethod(cbra),
 		cmd:                cbra,
 	}
 
@@ -206,7 +207,7 @@ func NewArgumentMethod[A any](m Flagged) Method {
 		validationStrategy: validate1ArgumentResponse[A],
 		responseStrategy:   handle1ArgumentResponse[A],
 		names:              namesBuilder((*A)(nil)),
-		method:             getRunMethod(m),
+		method:             sbind.GetRunMethod(m),
 	}
 
 	return ec
@@ -219,7 +220,7 @@ func New2ArgumentMethod[A any, B any](m Flagged) Method {
 		validationStrategy: validate2ArgumentResponse[A, B],
 		responseStrategy:   handle2ArgumentResponse[A, B],
 		names:              namesBuilder((*A)(nil), (*B)(nil)),
-		method:             getRunMethod(m),
+		method:             sbind.GetRunMethod(m),
 	}
 
 	return ec
@@ -232,7 +233,7 @@ func New3ArgumentMethod[A any, B any, C any](m Flagged) Method {
 		validationStrategy: validate3ArgumentResponse[A, B, C],
 		responseStrategy:   handle3ArgumentResponse[A, B, C],
 		names:              namesBuilder((*A)(nil), (*B)(nil), (*C)(nil)),
-		method:             getRunMethod(m),
+		method:             sbind.GetRunMethod(m),
 	}
 
 	return ec

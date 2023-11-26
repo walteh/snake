@@ -4,6 +4,7 @@ import (
 	"reflect"
 
 	"github.com/go-faster/errors"
+	"github.com/walteh/snake/sbind"
 )
 
 var (
@@ -25,7 +26,9 @@ func commandResponseValidationStrategy(out []reflect.Type) error {
 
 func commandResponseHandleStrategy(out []reflect.Value) ([]*reflect.Value, error) {
 
-	resp := []*reflect.Value{end_of_chain_ptr}
+	eoc := sbind.EndOfChain()
+
+	resp := []*reflect.Value{&eoc}
 
 	if !out[0].IsNil() {
 		return resp, out[0].Interface().(error)
