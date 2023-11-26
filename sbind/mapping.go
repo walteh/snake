@@ -5,50 +5,37 @@ import (
 	"reflect"
 
 	"github.com/go-faster/errors"
+	"github.com/spf13/pflag"
 )
 
 // type HasRunArgs interface{ RunArgs() []reflect.Type }
 
-type IsRunnable interface {
+type Method interface {
 	// HasRunArgs
 	Run() reflect.Value
+	Names() []string
 	// HandleResponse([]reflect.Value) ([]*reflect.Value, error)
 }
 
-type Flagged[F any] interface {
-	ManipulateFlags(*F) *F
+type Flagged interface {
+	Flags() *pflag.FlagSet
 }
 
 type FMap[G any] func(string) G
 
-func FlagsFor[F any, G IsRunnable](str string, m FMap[G]) (*F, error) {
+func FlagsFor[G Method](str string, m FMap[G]) ([]string, error) {
 	if ok := m(str); reflect.ValueOf(ok).IsNil() {
 		return nil, errors.Errorf("missing resolver for %q", str)
 	}
 
-	mapa, err := FindBrothers(str, func(s string) IsRunnable {
+	mapa, err := FindBrothers(str, func(s string) Method {
 		return m(s)
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	flgs := new(F)
-
-	procd := make(map[Flagged[F]]bool, 0)
-
-	for _, f := range mapa {
-		if z := m(f); reflect.ValueOf(z).IsNil() {
-			return nil, errors.Errorf("missing resolver for %q", f)
-		} else {
-			if z, ok := any(z).(Flagged[F]); ok && !procd[z] {
-				procd[z] = true
-				flgs = z.ManipulateFlags(flgs)
-			}
-		}
-	}
-
-	return flgs, nil
+	return mapa, nil
 }
 
 // func (me *Snake) Run(str Method) error {
@@ -65,7 +52,7 @@ func EndOfChainPtr() *reflect.Value {
 }
 
 // func (me *Snake) RunString(str string) error {
-// 	args, err := findArgumentsRaw(str, func(s string) IsRunnable {
+// 	args, err := findArgumentsRaw(str, func(s string) Method {
 // 		return me.resolvers[s]
 // 	}, nil)
 // 	if err != nil {
@@ -84,7 +71,7 @@ func EndOfChainPtr() *reflect.Value {
 
 // }
 
-func FindBrothers(str string, me FMap[IsRunnable]) ([]string, error) {
+func FindBrothers(str string, me FMap[Method]) ([]string, error) {
 	raw, err := findBrothersRaw(str, me, nil)
 	if err != nil {
 		return nil, err
@@ -96,13 +83,13 @@ func FindBrothers(str string, me FMap[IsRunnable]) ([]string, error) {
 	return resp, nil
 }
 
-func findBrothersRaw(str string, fmap FMap[IsRunnable], rmap map[string]bool) (map[string]bool, error) {
+func findBrothersRaw(str string, fmap FMap[Method], rmap map[string]bool) (map[string]bool, error) {
 	var err error
 	if rmap == nil {
 		rmap = make(map[string]bool)
 	}
 
-	var curr IsRunnable
+	var curr Method
 
 	if ok := fmap(str); ok == nil {
 		return nil, errors.Errorf("missing resolver for %q", str)
@@ -126,33 +113,33 @@ func findBrothersRaw(str string, fmap FMap[IsRunnable], rmap map[string]bool) (m
 	return rmap, nil
 }
 
-func FindArguments(str string, fmap FMap[IsRunnable]) ([]reflect.Value, error) {
+func FindArguments(str string, fmap FMap[Method]) ([]reflect.Value, error) {
 	raw, err := findArgumentsRaw(str, fmap, nil)
 	if err != nil {
 		return nil, err
 	}
 	resp := make([]reflect.Value, 0)
-	for _, v := range raw {
+	for _, v := range raw.bindings {
 		resp = append(resp, *v)
 	}
 	return resp, nil
 }
 
-func valueToIsRunnable(v reflect.Value) IsRunnable {
+func valueToMethod(v reflect.Value) Method {
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
-	return v.Interface().(IsRunnable)
+	return v.Interface().(Method)
 }
 
-func RunResolvingArguments(str string, fmap FMap[IsRunnable], bmap map[string]*reflect.Value) error {
+func RunResolvingArguments(str string, fmap FMap[Method]) error {
 
-	args, err := findArgumentsRaw(str, fmap, bmap)
+	args, err := findArgumentsRaw(str, fmap, NewBinder())
 	if err != nil {
 		return err
 	}
 
-	if resp, ok := args[str]; !ok {
+	if resp, ok := args.bindings[str]; !ok {
 		return errors.Errorf("missing resolver for %q", str)
 	} else {
 		if reflect.DeepEqual(resp, EndOfChainPtr()) {
@@ -168,8 +155,8 @@ func reflectTypeString(typ reflect.Type) string {
 	return typ.String()
 }
 
-func findArgumentsRaw(str string, fmap FMap[IsRunnable], wrk map[string]*reflect.Value) (map[string]*reflect.Value, error) {
-	var curr IsRunnable
+func findArgumentsRaw(str string, fmap FMap[Method], wrk *Binder) (*Binder, error) {
+	var curr Method
 	var err error
 	if ok := fmap(str); ok == nil {
 		return nil, errors.Errorf("missing resolver for %q", str)
@@ -178,10 +165,10 @@ func findArgumentsRaw(str string, fmap FMap[IsRunnable], wrk map[string]*reflect
 	}
 
 	if wrk == nil {
-		wrk = make(map[string]*reflect.Value)
+		wrk = NewBinder()
 	}
 
-	if _, ok := wrk[str]; ok {
+	if _, ok := wrk.bindings[str]; ok {
 		return wrk, nil
 	}
 
@@ -192,7 +179,7 @@ func findArgumentsRaw(str string, fmap FMap[IsRunnable], wrk map[string]*reflect
 		if err != nil {
 			return nil, err
 		}
-		tmp = append(tmp, *wrk[name])
+		tmp = append(tmp, *wrk.bindings[name])
 	}
 
 	out := curr.Run().Call(tmp)
@@ -205,14 +192,14 @@ func findArgumentsRaw(str string, fmap FMap[IsRunnable], wrk map[string]*reflect
 		// only commands can have one response value, which is always an error
 		// so here we know we can name it str
 		// otherwise we would be naming it "error"
-		wrk[str] = &out[0]
+		wrk.bindings[str] = &out[0]
 	} else {
 		for _, v := range out {
 			in := v
 			fmt.Println(v.Type().String())
 			strd := v.Type().String()
 			if strd != "error" {
-				wrk[strd] = &in
+				wrk.bindings[strd] = &in
 			}
 		}
 	}

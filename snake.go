@@ -10,25 +10,30 @@ import (
 	"github.com/walteh/snake/sbind"
 )
 
-type Snake struct {
+type SnakeS struct {
 	bindings  map[string]*reflect.Value
-	resolvers map[string]Method
+	resolvers map[string]sbind.Method
 	root      *cobra.Command
 	runlock   sync.Mutex
+}
+
+type Snake interface {
+	Resolve(string) sbind.Method
+	Bound(string) *reflect.Value
 }
 
 type Cobrad interface {
 	Cobra() *cobra.Command
 }
 
-type NewSnakeOpts[F any] struct {
+type NewSnakeOpts struct {
 	Root                       *cobra.Command
-	Commands                   []Method
-	Resolvers                  []Method
+	Commands                   []sbind.Method
+	Resolvers                  []sbind.Method
 	GlobalContextResolverFlags bool
 }
 
-func NewCommandMethod[I Cobrad](cbra I) Method {
+func NewCommandMethod[I Cobrad](cbra I) sbind.Method {
 
 	ec := &method{
 		// flags:              func(*pflag.FlagSet) {},

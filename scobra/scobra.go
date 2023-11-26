@@ -5,30 +5,62 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/walteh/snake"
 	"github.com/walteh/snake/sbind"
 )
 
-func attachMethod(me *snake.Snake, cmd *cobra.Command, name string, globalFlags *pflag.FlagSet) (*cobra.Command, error) {
+type CobraMethod interface {
+	Command() *cobra.Command
+	Flags(*pflag.FlagSet)
+}
+
+type cobraSnake struct {
+	bindings *sbind.Binder
+	internal sbind.Snake
+}
+
+func (c *cobraSnake) attachMethod(me snake.Snake, cmd *cobra.Command, name string, globalFlags *pflag.FlagSet) (*cobra.Command, error) {
 
 	if cmd == nil {
 		return nil, nil
 	}
 
-	if flgs, err := sbind.FlagsFor[pflag.FlagSet, Method](name, func(s string) Method {
-		return me.resolvers[s]
-	}); err != nil {
+	if flgs, err := sbind.FlagsFor(name, me.Resolve); err != nil {
 		return nil, err
 	} else {
-		flgs.VisitAll(func(f *pflag.Flag) {
+		fs := pflag.NewFlagSet(name, pflag.ContinueOnError)
+
+		procd := make(map[any]bool, 0)
+
+		for _, f := range flgs {
+			if z := me.Resolve(f); reflect.ValueOf(z).IsNil() {
+				return nil, errors.Errorf("missing resolver for %q", f)
+			} else {
+				if z, ok := any(z).(CobraMethod); ok && !procd[z] {
+					procd[z] = true
+					z.Flags(fs)
+				}
+			}
+		}
+
+		fs.VisitAll(func(f *pflag.Flag) {
 			if globalFlags != nil && globalFlags.Lookup(f.Name) != nil {
 				return
 			}
 			cmd.Flags().AddFlag(f)
 		})
 	}
+
+	return cmd, nil
+
+}
+
+func (c *cobraSnake) Decorate(cmd *cobra.Command) error {
+
+	name := cmd.Name()
 
 	oldRunE := cmd.RunE
 
@@ -39,7 +71,7 @@ func attachMethod(me *snake.Snake, cmd *cobra.Command, name string, globalFlags 
 			if f.Changed {
 				return
 			}
-			val := strings.ToUpper(me.root.Name() + "_" + strings.ReplaceAll(f.Name, "-", "_"))
+			val := strings.ToUpper(cmd.CommandPath() + "_" + strings.ReplaceAll(f.Name, "-", "_"))
 			envvar := os.Getenv(val)
 			if envvar == "" {
 				return
@@ -53,12 +85,10 @@ func attachMethod(me *snake.Snake, cmd *cobra.Command, name string, globalFlags 
 	}
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		defer setBindingWithLock(me, cmd)()
-		defer setBindingWithLock(me, args)()
+		defer sbind.SetBindingWithLock(c.bindings, cmd)()
+		defer sbind.SetBindingWithLock(c.bindings, args)()
 
-		err := sbind.RunResolvingArguments(name, func(s string) sbind.IsRunnable {
-			return me.resolvers[s]
-		}, me.bindings)
+		err := sbind.RunResolvingArguments(name, c.internal.Resolve)
 		if err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
@@ -71,38 +101,18 @@ func attachMethod(me *snake.Snake, cmd *cobra.Command, name string, globalFlags 
 		return nil
 	}
 
-	return cmd, nil
-
+	return nil
 }
 
-func NewSnake(opts *NewSnakeOpts) (*cobra.Command, error) {
-
-	root := opts.Root
+func NewCobraSnake(root *cobra.Command, opts *sbind.NewSnakeOpts) (*cobra.Command, error) {
 
 	if root == nil {
 		root = &cobra.Command{}
 	}
 
-	snk := &Snake{
-		bindings:  make(map[string]*reflect.Value),
-		resolvers: make(map[string]Method),
-		root:      root,
-	}
-
-	for _, v := range opts.Resolvers {
-		for _, n := range v.Names() {
-			snk.resolvers[n] = v
-		}
-
-		if opts.GlobalContextResolverFlags && v.IsContextResolver() {
-			v.Flags(root.PersistentFlags())
-		}
-	}
-
-	for _, v := range opts.Commands {
-		for _, n := range v.Names() {
-			snk.resolvers[n] = v
-		}
+	snk, err := sbind.NewSnake(opts)
+	if err != nil {
+		return nil, err
 	}
 
 	// these will always be overwritten in the RunE function
