@@ -6,10 +6,6 @@ import (
 	"github.com/go-faster/errors"
 )
 
-var (
-	ErrMissingResolver = errors.New("missing resolver")
-)
-
 type HasRunArgs interface{ RunArgs() []reflect.Type }
 
 type IsRunnable interface {
@@ -26,7 +22,7 @@ type FMap[G any] func(string) G
 
 func FlagsFor[F any, G HasRunArgs](str string, m FMap[G]) (*F, error) {
 	if ok := m(str); reflect.ValueOf(ok).IsNil() {
-		return nil, errors.Wrapf(ErrMissingResolver, "missing resolver for %q", str)
+		return nil, errors.Errorf("missing resolver for %q", str)
 	}
 
 	mapa, err := FindBrothers(str, func(s string) HasRunArgs {
@@ -42,7 +38,7 @@ func FlagsFor[F any, G HasRunArgs](str string, m FMap[G]) (*F, error) {
 
 	for _, f := range mapa {
 		if z := m(f); reflect.ValueOf(z).IsNil() {
-			return nil, errors.Wrapf(ErrMissingResolver, "missing resolver for %q", f)
+			return nil, errors.Errorf("missing resolver for %q", f)
 		} else {
 			if z, ok := any(z).(Flagged[F]); ok && !procd[z] {
 				procd[z] = true
@@ -108,7 +104,7 @@ func findBrothersRaw(str string, fmap FMap[HasRunArgs], rmap map[string]bool) (m
 	var curr HasRunArgs
 
 	if ok := fmap(str); ok == nil {
-		return nil, errors.Wrapf(ErrMissingResolver, "missing resolver for %q", str)
+		return nil, errors.Errorf("missing resolver for %q", str)
 	} else {
 		curr = ok
 	}
@@ -156,7 +152,7 @@ func RunResolvingArguments(str string, fmap FMap[IsRunnable], bmap map[string]*r
 	}
 
 	if resp, ok := args[str]; !ok {
-		return errors.Wrapf(ErrMissingResolver, "missing resolver for %q", str)
+		return errors.Errorf("missing resolver for %q", str)
 	} else {
 		if reflect.DeepEqual(resp, EndOfChainPtr()) {
 			return nil
@@ -175,7 +171,7 @@ func findArgumentsRaw(str string, fmap FMap[IsRunnable], wrk map[string]*reflect
 	var curr IsRunnable
 	var err error
 	if ok := fmap(str); ok == nil {
-		return nil, errors.Wrapf(ErrMissingResolver, "missing resolver for %q", str)
+		return nil, errors.Errorf("missing resolver for %q", str)
 	} else {
 		curr = ok
 	}
