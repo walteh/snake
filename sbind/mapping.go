@@ -1,31 +1,32 @@
 package sbind
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/go-faster/errors"
 )
 
-type HasRunArgs interface{ RunArgs() []reflect.Type }
+// type HasRunArgs interface{ RunArgs() []reflect.Type }
 
 type IsRunnable interface {
-	HasRunArgs
+	// HasRunArgs
 	Run() reflect.Value
-	HandleResponse([]reflect.Value) ([]*reflect.Value, error)
+	// HandleResponse([]reflect.Value) ([]*reflect.Value, error)
 }
 
 type Flagged[F any] interface {
-	Flags(*F)
+	ManipulateFlags(*F) *F
 }
 
 type FMap[G any] func(string) G
 
-func FlagsFor[F any, G HasRunArgs](str string, m FMap[G]) (*F, error) {
+func FlagsFor[F any, G IsRunnable](str string, m FMap[G]) (*F, error) {
 	if ok := m(str); reflect.ValueOf(ok).IsNil() {
 		return nil, errors.Errorf("missing resolver for %q", str)
 	}
 
-	mapa, err := FindBrothers(str, func(s string) HasRunArgs {
+	mapa, err := FindBrothers(str, func(s string) IsRunnable {
 		return m(s)
 	})
 	if err != nil {
@@ -42,7 +43,7 @@ func FlagsFor[F any, G HasRunArgs](str string, m FMap[G]) (*F, error) {
 		} else {
 			if z, ok := any(z).(Flagged[F]); ok && !procd[z] {
 				procd[z] = true
-				z.Flags(flgs)
+				flgs = z.ManipulateFlags(flgs)
 			}
 		}
 	}
@@ -83,7 +84,7 @@ func EndOfChainPtr() *reflect.Value {
 
 // }
 
-func FindBrothers(str string, me FMap[HasRunArgs]) ([]string, error) {
+func FindBrothers(str string, me FMap[IsRunnable]) ([]string, error) {
 	raw, err := findBrothersRaw(str, me, nil)
 	if err != nil {
 		return nil, err
@@ -95,13 +96,13 @@ func FindBrothers(str string, me FMap[HasRunArgs]) ([]string, error) {
 	return resp, nil
 }
 
-func findBrothersRaw(str string, fmap FMap[HasRunArgs], rmap map[string]bool) (map[string]bool, error) {
+func findBrothersRaw(str string, fmap FMap[IsRunnable], rmap map[string]bool) (map[string]bool, error) {
 	var err error
 	if rmap == nil {
 		rmap = make(map[string]bool)
 	}
 
-	var curr HasRunArgs
+	var curr IsRunnable
 
 	if ok := fmap(str); ok == nil {
 		return nil, errors.Errorf("missing resolver for %q", str)
@@ -115,7 +116,7 @@ func findBrothersRaw(str string, fmap FMap[HasRunArgs], rmap map[string]bool) (m
 
 	rmap[str] = true
 
-	for _, f := range curr.RunArgs() {
+	for _, f := range RunArgs(curr) {
 		rmap, err = findBrothersRaw(f.String(), fmap, rmap)
 		if err != nil {
 			return nil, err
@@ -185,7 +186,7 @@ func findArgumentsRaw(str string, fmap FMap[IsRunnable], wrk map[string]*reflect
 	}
 
 	tmp := make([]reflect.Value, 0)
-	for _, f := range curr.RunArgs() {
+	for _, f := range RunArgs(curr) {
 		name := reflectTypeString(f)
 		wrk, err = findArgumentsRaw(name, fmap, wrk)
 		if err != nil {
@@ -194,21 +195,24 @@ func findArgumentsRaw(str string, fmap FMap[IsRunnable], wrk map[string]*reflect
 		tmp = append(tmp, *wrk[name])
 	}
 
-	resp := curr.Run().Call(tmp)
-	out, err := curr.HandleResponse(resp)
-	if err != nil {
-		return nil, err
-	}
+	out := curr.Run().Call(tmp)
+	// out, err := curr.HandleResponse(resp)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	if len(out) == 1 {
 		// only commands can have one response value, which is always an error
 		// so here we know we can name it str
 		// otherwise we would be naming it "error"
-		wrk[str] = out[0]
+		wrk[str] = &out[0]
 	} else {
 		for _, v := range out {
-			if v.Type().String() != "error" {
-				wrk[v.Type().String()] = v
+			in := v
+			fmt.Println(v.Type().String())
+			strd := v.Type().String()
+			if strd != "error" {
+				wrk[strd] = &in
 			}
 		}
 	}

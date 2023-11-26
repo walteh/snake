@@ -9,16 +9,10 @@ import (
 	"github.com/walteh/snake/sbind"
 )
 
-type MockHasRunArgs struct {
-	args []any
-}
-
-func (m MockHasRunArgs) RunArgs() []reflect.Type {
-	wrk := make([]reflect.Type, len(m.args))
-	for i, v := range m.args {
-		wrk[i] = reflect.TypeOf(v)
+func NewMockIsRunnable(fn any) sbind.IsRunnable {
+	return MockIsRunnable{
+		fn: reflect.ValueOf(fn),
 	}
-	return wrk
 }
 
 type MockIsRunnable struct {
@@ -38,31 +32,15 @@ func (m MockIsRunnable) HandleResponse(x []reflect.Value) ([]*reflect.Value, err
 }
 
 func TestFindBrothers(t *testing.T) {
-	fmap := map[string]sbind.HasRunArgs{
-		"int": MockHasRunArgs{
-			args: []any{},
-		},
-		"uint64": MockHasRunArgs{
-			args: []any{1},
-		},
-		"string": MockHasRunArgs{
-			args: []any{uint64(1)},
-		},
-		"sbind_test.MockHasRunArgs": MockHasRunArgs{
-			args: []any{1, uint64(1), "1"},
-		},
-		"key1": MockHasRunArgs{
-			args: []any{1},
-		},
-		"key2": MockHasRunArgs{
-			args: []any{1, uint64(1), "1"},
-		},
-		"key3": MockHasRunArgs{
-			args: []any{uint64(1)},
-		},
-		"key4": MockHasRunArgs{
-			args: []any{MockHasRunArgs{}},
-		},
+	fmap := map[string]sbind.IsRunnable{
+		"int":                       NewMockIsRunnable(func() {}),
+		"uint64":                    NewMockIsRunnable(func(int) {}),
+		"string":                    NewMockIsRunnable(func(uint64) {}),
+		"sbind_test.MockIsRunnable": NewMockIsRunnable(func(int, uint64, string) {}),
+		"key1":                      NewMockIsRunnable(func(int) {}),
+		"key2":                      NewMockIsRunnable(func(int, uint64, string) {}),
+		"key3":                      NewMockIsRunnable(func(uint64) {}),
+		"key4":                      NewMockIsRunnable(func(MockIsRunnable) {}),
 	}
 
 	tableTests := []struct {
@@ -72,12 +50,12 @@ func TestFindBrothers(t *testing.T) {
 		{"key1", []string{"key1", "int"}},
 		{"key2", []string{"key2", "int", "uint64", "string"}},
 		{"key3", []string{"key3", "int", "uint64"}},
-		{"key4", []string{"key4", "int", "uint64", "string", "sbind_test.MockHasRunArgs"}},
+		{"key4", []string{"key4", "int", "uint64", "string", "sbind_test.MockIsRunnable"}},
 	}
 
 	for _, tt := range tableTests {
 		t.Run(tt.str, func(t *testing.T) {
-			got, err := sbind.FindBrothers(tt.str, func(s string) sbind.HasRunArgs {
+			got, err := sbind.FindBrothers(tt.str, func(s string) sbind.IsRunnable {
 				if r, ok := fmap[s]; ok {
 					return r
 				}

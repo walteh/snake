@@ -2,14 +2,11 @@ package snake
 
 import (
 	"context"
-	"os"
 	"reflect"
-	"strings"
 	"sync"
 
 	"github.com/go-faster/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"github.com/walteh/snake/sbind"
 )
 
@@ -20,181 +17,31 @@ type Snake struct {
 	runlock   sync.Mutex
 }
 
-type Flagged interface {
-	Flags(*pflag.FlagSet)
-}
-
 type Cobrad interface {
 	Cobra() *cobra.Command
 }
 
-type NewSnakeOpts struct {
+type NewSnakeOpts[F any] struct {
 	Root                       *cobra.Command
 	Commands                   []Method
 	Resolvers                  []Method
 	GlobalContextResolverFlags bool
 }
 
-func attachMethod(me *Snake, cmd *cobra.Command, name string, globalFlags *pflag.FlagSet) (*cobra.Command, error) {
-
-	if cmd == nil {
-		return nil, nil
-	}
-
-	if flgs, err := sbind.FlagsFor[pflag.FlagSet, Method](name, func(s string) Method {
-		return me.resolvers[s]
-	}); err != nil {
-		return nil, err
-	} else {
-		flgs.VisitAll(func(f *pflag.Flag) {
-			if globalFlags != nil && globalFlags.Lookup(f.Name) != nil {
-				return
-			}
-			cmd.Flags().AddFlag(f)
-		})
-	}
-
-	oldRunE := cmd.RunE
-
-	// if a flag is not set, we check the environment for "cmd_name_arg_name"
-
-	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
-		cmd.Flags().VisitAll(func(f *pflag.Flag) {
-			if f.Changed {
-				return
-			}
-			val := strings.ToUpper(me.root.Name() + "_" + strings.ReplaceAll(f.Name, "-", "_"))
-			envvar := os.Getenv(val)
-			if envvar == "" {
-				return
-			}
-			err := f.Value.Set(envvar)
-			if err != nil {
-				return
-			}
-		})
-		return nil
-	}
-
-	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		defer setBindingWithLock(me, cmd)()
-		defer setBindingWithLock(me, args)()
-
-		err := sbind.RunResolvingArguments(name, func(s string) sbind.IsRunnable {
-			return me.resolvers[s]
-		}, me.bindings)
-		if err != nil {
-			return HandleErrorByPrintingToConsole(cmd, err)
-		}
-		if oldRunE != nil {
-			err := oldRunE(cmd, args)
-			if err != nil {
-				return HandleErrorByPrintingToConsole(cmd, err)
-			}
-		}
-		return nil
-	}
-
-	return cmd, nil
-
-}
-
-func NewSnake(opts *NewSnakeOpts) (*cobra.Command, error) {
-
-	root := opts.Root
-
-	if root == nil {
-		root = &cobra.Command{}
-	}
-
-	snk := &Snake{
-		bindings:  make(map[string]*reflect.Value),
-		resolvers: make(map[string]Method),
-		root:      root,
-	}
-
-	for _, v := range opts.Resolvers {
-		for _, n := range v.Names() {
-			snk.resolvers[n] = v
-		}
-
-		if opts.GlobalContextResolverFlags && v.IsContextResolver() {
-			v.Flags(root.PersistentFlags())
-		}
-	}
-
-	for _, v := range opts.Commands {
-		for _, n := range v.Names() {
-			snk.resolvers[n] = v
-		}
-	}
-
-	// these will always be overwritten in the RunE function
-	snk.resolvers["*cobra.Command"] = NewArgumentMethod[*cobra.Command](&inlineResolver[*cobra.Command]{
-		flagFunc: func(*pflag.FlagSet) {},
-		runFunc: func() (*cobra.Command, error) {
-			return &cobra.Command{}, nil
-		},
-	})
-
-	snk.resolvers["[]string"] = NewArgumentMethod[[]string](&inlineResolver[[]string]{
-		flagFunc: func(*pflag.FlagSet) {},
-		runFunc: func() ([]string, error) {
-			return []string{}, nil
-		},
-	})
-
-	for _, exer := range snk.resolvers {
-		if exer.Command() == nil {
-			continue
-		}
-		name := exer.Names()[0]
-		if cmd, err := attachMethod(snk, exer.Command().Cobra(), name, root.PersistentFlags()); err != nil {
-			return nil, err
-		} else if cmd != nil {
-			err := exer.ValidateResponse()
-			if err != nil {
-				return nil, err
-			}
-			root.AddCommand(cmd)
-		}
-	}
-
-	if opts.GlobalContextResolverFlags {
-		// this will force the context to be resolved before any command is run
-		snk.resolvers["root"] = NewCommandMethod(&fakeCobraWithContext{})
-	} else {
-		snk.resolvers["root"] = NewCommandMethod(&fakeCobra{})
-	}
-
-	root.RunE = func(cmd *cobra.Command, args []string) error {
-		err := sbind.RunResolvingArguments("root", func(s string) sbind.IsRunnable {
-			return snk.resolvers[s]
-		}, snk.bindings)
-		if err != nil {
-			return HandleErrorByPrintingToConsole(cmd, err)
-		}
-		return nil
-	}
-
-	root.SilenceUsage = true
-
-	return root, nil
-}
-
 func NewCommandMethod[I Cobrad](cbra I) Method {
 
 	ec := &method{
-		flags:              func(*pflag.FlagSet) {},
+		// flags:              func(*pflag.FlagSet) {},
 		validationStrategy: commandResponseValidationStrategy,
 		responseStrategy:   commandResponseHandleStrategy,
 		names:              []string{reflect.TypeOf((*I)(nil)).Elem().String()},
 		method:             sbind.GetRunMethod(cbra),
-		cmd:                cbra,
+		// cmd:                cbra,
 	}
 
 	if flg, ok := any(cbra).(Flagged); ok {
-		ec.flags = flg.Flags
+		ec.setFlag = flg.SetFlag
+		ec.getFlag = flg.GetFlag
 	}
 
 	return ec
@@ -203,7 +50,8 @@ func NewCommandMethod[I Cobrad](cbra I) Method {
 func NewArgumentMethod[A any](m Flagged) Method {
 
 	ec := &method{
-		flags:              m.Flags,
+		setFlag:            m.SetFlag,
+		getFlag:            m.GetFlag,
 		validationStrategy: validate1ArgumentResponse[A],
 		responseStrategy:   handle1ArgumentResponse[A],
 		names:              namesBuilder((*A)(nil)),
@@ -216,7 +64,8 @@ func NewArgumentMethod[A any](m Flagged) Method {
 func New2ArgumentMethod[A any, B any](m Flagged) Method {
 
 	ec := &method{
-		flags:              m.Flags,
+		setFlag:            m.SetFlag,
+		getFlag:            m.GetFlag,
 		validationStrategy: validate2ArgumentResponse[A, B],
 		responseStrategy:   handle2ArgumentResponse[A, B],
 		names:              namesBuilder((*A)(nil), (*B)(nil)),
@@ -229,7 +78,8 @@ func New2ArgumentMethod[A any, B any](m Flagged) Method {
 func New3ArgumentMethod[A any, B any, C any](m Flagged) Method {
 
 	ec := &method{
-		flags:              m.Flags,
+		setFlag:            m.SetFlag,
+		getFlag:            m.GetFlag,
 		validationStrategy: validate3ArgumentResponse[A, B, C],
 		responseStrategy:   handle3ArgumentResponse[A, B, C],
 		names:              namesBuilder((*A)(nil), (*B)(nil), (*C)(nil)),

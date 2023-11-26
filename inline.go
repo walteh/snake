@@ -11,8 +11,19 @@ type inlineResolver[I any] struct {
 	runFunc  func() (I, error)
 }
 
-func (me *inlineResolver[I]) Flags(flgs *pflag.FlagSet) {
-	me.flagFunc(flgs)
+func (me *inlineResolver[I]) GetFlag(str string) any {
+	g := &pflag.FlagSet{}
+	me.flagFunc(g)
+	return g.Lookup(str).Value.(any)
+}
+
+func (me *inlineResolver[I]) SetFlag(str string, val any) {
+	g := &pflag.FlagSet{}
+	g.AddFlag(&pflag.Flag{
+		Name:  str,
+		Value: val.(pflag.Value),
+	})
+	me.flagFunc(g)
 }
 
 func (me *inlineResolver[I]) Run() (I, error) {
