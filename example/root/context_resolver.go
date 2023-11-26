@@ -6,10 +6,10 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/walteh/snake"
+	"github.com/walteh/snake/scobra"
 )
 
-var _ snake.Flagged = (*ContextResolver)(nil)
+var _ scobra.Flagged = (*ContextResolver)(nil)
 
 type ContextResolver struct {
 	Quiet   bool

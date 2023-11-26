@@ -2,12 +2,11 @@ package root
 
 import (
 	"context"
-	"io"
 
 	"github.com/spf13/cobra"
 
-	"github.com/walteh/snake"
 	"github.com/walteh/snake/example/root/sample"
+	"github.com/walteh/snake/scobra"
 )
 
 func NewCommand(ctx context.Context) (*cobra.Command, *sample.Handler, error) {
@@ -18,16 +17,15 @@ func NewCommand(ctx context.Context) (*cobra.Command, *sample.Handler, error) {
 
 	handler := &sample.Handler{}
 
-	out, err := snake.NewSnake(&snake.NewSnakeOpts{
-		Root: cmd,
-		Commands: []snake.Method{
-			snake.NewCommandMethod(handler),
+	out, err := scobra.NewCobraSnake(cmd, &scobra.NewSCobraOpts{
+		Commands: []scobra.SCobra{
+			handler,
 		},
-		Resolvers: []snake.Method{
-			snake.NewArgumentMethod[context.Context](&ContextResolver{}),
-			snake.NewArgumentMethod[CustomInterface](&CustomResolver{}),
-			snake.New2ArgumentMethod[io.Reader, io.Writer](&DoubleResolver{}),
-			snake.New3ArgumentMethod[io.ByteReader, io.ByteWriter, io.ByteScanner](&TripleResolver{}),
+		Resolvers: []scobra.Flagged{
+			&ContextResolver{},
+			&CustomResolver{},
+			&DoubleResolver{},
+			&TripleResolver{},
 		},
 	})
 

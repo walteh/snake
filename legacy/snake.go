@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/spf13/cobra"
-	"github.com/walteh/snake"
+	"github.com/walteh/snake/scobra"
 
 	"github.com/go-faster/errors"
 )
@@ -55,12 +55,12 @@ func NewRootCommand(ctx context.Context, snk Snakeable) (context.Context, error)
 		}()
 
 		if err := cmd.ParseFlags(args); err != nil {
-			return snake.HandleErrorByPrintingToConsole(cmd, err)
+			return scobra.HandleErrorByPrintingToConsole(cmd, err)
 		}
 
 		zctx, err := snk.PreRun(zctx, args)
 		if err != nil {
-			return snake.HandleErrorByPrintingToConsole(cmd, err)
+			return scobra.HandleErrorByPrintingToConsole(cmd, err)
 		}
 
 		cmd.SetContext(zctx)
@@ -78,7 +78,7 @@ func NewRootCommand(ctx context.Context, snk Snakeable) (context.Context, error)
 
 		zctx, err := snk.PreRun(zctx, args)
 		if err != nil {
-			return snake.HandleErrorByPrintingToConsole(cmd, err)
+			return scobra.HandleErrorByPrintingToConsole(cmd, err)
 		}
 
 		cmd.SetContext(zctx)
@@ -133,12 +133,12 @@ func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Contex
 		}()
 
 		if err := cmd.ParseFlags(args); err != nil {
-			return snake.HandleErrorByPrintingToConsole(cmd, err)
+			return scobra.HandleErrorByPrintingToConsole(cmd, err)
 		}
 
 		zctx, err := snk.PreRun(zctx, args)
 		if err != nil {
-			return snake.HandleErrorByPrintingToConsole(cmd, err)
+			return scobra.HandleErrorByPrintingToConsole(cmd, err)
 		}
 
 		cmd.SetContext(zctx)
@@ -157,7 +157,7 @@ func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Contex
 
 		dctx, err := ResolveBindingsFromProvider(getRootCommandCtx(), method)
 		if err != nil {
-			return snake.HandleErrorByPrintingToConsole(cmd, err)
+			return scobra.HandleErrorByPrintingToConsole(cmd, err)
 		}
 
 		zctx = mergeBindingKeepingFirst(zctx, dctx)
@@ -165,7 +165,7 @@ func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Contex
 		cmd.SetContext(zctx)
 
 		if err := callRunMethod(cmd, method, tpe); err != nil {
-			return snake.HandleErrorByPrintingToConsole(cmd, err)
+			return scobra.HandleErrorByPrintingToConsole(cmd, err)
 		}
 		return nil
 	}

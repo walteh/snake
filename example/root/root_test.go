@@ -52,7 +52,7 @@ func TestNewCommand(t *testing.T) {
 				return
 			}
 
-			assert.Equal(t, hndl.Cool, true)
+			assert.True(t, hndl.Cool)
 
 			// assert.Equal(t, tt.want, got)
 		})

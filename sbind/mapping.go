@@ -1,7 +1,6 @@
 package sbind
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/go-faster/errors"
@@ -12,8 +11,8 @@ import (
 
 type Method interface {
 	// HasRunArgs
-	Run() reflect.Value
-	Names() []string
+	// Run() reflect.Value
+	// Names() []string
 	// HandleResponse([]reflect.Value) ([]*reflect.Value, error)
 }
 
@@ -24,7 +23,7 @@ type Flagged interface {
 type FMap[G any] func(string) G
 
 func FlagsFor[G Method](str string, m FMap[G]) ([]string, error) {
-	if ok := m(str); reflect.ValueOf(ok).IsNil() {
+	if ok := m(str); !reflect.ValueOf(ok).IsValid() || reflect.ValueOf(ok).IsNil() {
 		return nil, errors.Errorf("missing resolver for %q", str)
 	}
 
@@ -142,11 +141,31 @@ func RunResolvingArguments(str string, fmap FMap[Method]) error {
 	if resp, ok := args.bindings[str]; !ok {
 		return errors.Errorf("missing resolver for %q", str)
 	} else {
-		if reflect.DeepEqual(resp, EndOfChainPtr()) {
-			return nil
+
+		// var r reflect.Value
+
+		// if resp.Kind() == reflect.Ptr {
+		// 	r = resp.Elem()
+		// } else {
+
+		if resp.Interface() != nil {
+			// r = resp
+			return resp.Interface().(error)
 		} else {
-			return errors.Errorf("expected end of chain, got %v", resp)
+			return nil
 		}
+
+		// }
+		// return resp.Interface().(error)
+		// if resp.IsZero() {
+		// 	return nil
+		// }
+		// isError := r.Type().Implements(reflect.TypeOf((*error)(nil)).Elem())
+		// if !isError {
+		// 	return nil
+		// } else {
+		// 	return r.Interface().(error)
+		// }
 	}
 
 }
@@ -182,7 +201,7 @@ func findArgumentsRaw(str string, fmap FMap[Method], wrk *Binder) (*Binder, erro
 		tmp = append(tmp, *wrk.bindings[name])
 	}
 
-	out := curr.Run().Call(tmp)
+	out := GetRunMethod(curr).Call(tmp)
 	// out, err := curr.HandleResponse(resp)
 	// if err != nil {
 	// 	return nil, err
@@ -196,7 +215,6 @@ func findArgumentsRaw(str string, fmap FMap[Method], wrk *Binder) (*Binder, erro
 	} else {
 		for _, v := range out {
 			in := v
-			fmt.Println(v.Type().String())
 			strd := v.Type().String()
 			if strd != "error" {
 				wrk.bindings[strd] = &in
