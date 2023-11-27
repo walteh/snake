@@ -44,7 +44,7 @@ func TestNewCommand(t *testing.T) {
 				return
 			}
 
-			os.Args = []string{"retab", "sample", "--value", "test"}
+			os.Args = []string{"retab", "sample", "--value", "test123"}
 
 			err = cmd.Execute()
 			if err != nil {
@@ -53,6 +53,7 @@ func TestNewCommand(t *testing.T) {
 			}
 
 			assert.True(t, hndl.Cool)
+			assert.Equal(t, "test123", hndl.Value)
 
 			// assert.Equal(t, tt.want, got)
 		})

@@ -76,7 +76,7 @@ func InputsFor[M Method](m M) ([]Input, error) {
 	for _, f := range flds {
 
 		if f.Type.Kind() == reflect.Ptr {
-			return nil, errors.Errorf("field %q in %q is a pointer type", f.Name, m)
+			return nil, errors.Errorf("field %q in %v is a pointer type", f.Name, m)
 		}
 
 		switch f.Type.Kind() {
@@ -87,7 +87,7 @@ func InputsFor[M Method](m M) ([]Input, error) {
 		case reflect.Bool:
 			resp = append(resp, NewGenericInput[M, bool](f, m, shared))
 		default:
-			return nil, errors.Errorf("field %q in %q is not a string or int", f.Name, m)
+			return nil, errors.Errorf("field %q in %v is not a string or int", f.Name, m)
 		}
 
 	}
