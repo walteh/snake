@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/walteh/snake/example/root/sample"
+	"github.com/walteh/snake/sbind"
 	"github.com/walteh/snake/scobra"
 )
 
@@ -21,7 +22,7 @@ func NewCommand(ctx context.Context) (*cobra.Command, *sample.Handler, error) {
 		Commands: []scobra.SCobra{
 			handler,
 		},
-		Resolvers: []scobra.Flagged{
+		Resolvers: []sbind.Method{
 			&ContextResolver{},
 			&CustomResolver{},
 			&DoubleResolver{},

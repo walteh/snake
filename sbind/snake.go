@@ -44,8 +44,47 @@ type MethodProvider interface {
 }
 
 type SnakeImplementation[X any] interface {
-	Decorate(X, Snake) error
+	Decorate(X, Snake, []Input) error
+	// ProcessInputs(X, Snake) error
 }
+
+// func flagResolver[F any](snk Snake, name string) ([]F, error) {
+
+// 	if flgs, err := DependanciesOf(name, snk.Resolve); err != nil {
+// 		return nil, err
+// 	} else {
+// 		procd := make(map[any]*F, 0)
+
+// 		for _, f := range flgs {
+// 			if z := snk.Resolve(f); reflect.ValueOf(z).IsNil() {
+// 				return nil, errors.Errorf("missing resolver for %q", f)
+// 			} else {
+// 				if z, ok := z.(F); ok && procd[z] == nil {
+// 					procd[z] = &z
+// 				}
+// 			}
+// 		}
+// 		resp := make([]F, 0)
+// 		for _, v := range procd {
+// 			resp = append(resp, *v)
+// 		}
+
+// 		return resp, nil
+// 		// fs.VisitAll(func(f *pflag.Flag) {
+// 		// 	// if globalFlags != nil && globalFlags.Lookup(f.Name) != nil {
+// 		// 	// 	return
+// 		// 	// }
+// 		// 	cmd.Flags().AddFlag(f)
+// 		// })
+// 	}
+
+// }
+
+// func ForEachResolvedMethod(snk Snake, fn func(Method)) {
+// 	for _, v := range snk.ResolverNames() {
+// 		fn(snk.Resolve(v))
+// 	}
+// }
 
 func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake, error) {
 
@@ -77,10 +116,20 @@ func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake,
 		exer := snk.Resolve(sexer)
 
 		if cmd, ok := exer.(M); ok {
-			err := impl.Decorate(cmd, snk)
+			inpts, err := InputsFor(cmd)
 			if err != nil {
 				return nil, err
 			}
+
+			err = impl.Decorate(cmd, snk, inpts)
+			if err != nil {
+				return nil, err
+			}
+
+			// err = impl.ProcessInputs(cmd, snk)
+			// if err != nil {
+			// 	return nil, err
+			// }
 
 			// err = sbind.NewCommandStrategy().ValidateResponseTypes(sbind.ReturnArgs(exer))
 			// if err != nil {

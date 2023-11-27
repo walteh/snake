@@ -22,7 +22,7 @@ type Flagged interface {
 
 type FMap[G any] func(string) G
 
-func FlagsFor[G Method](str string, m FMap[G]) ([]string, error) {
+func DependanciesOf[G Method](str string, m FMap[G]) ([]string, error) {
 	if ok := m(str); !reflect.ValueOf(ok).IsValid() || reflect.ValueOf(ok).IsNil() {
 		return nil, errors.Errorf("missing resolver for %q", str)
 	}

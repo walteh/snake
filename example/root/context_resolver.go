@@ -5,23 +5,21 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	"github.com/walteh/snake/scobra"
 )
 
-var _ scobra.Flagged = (*ContextResolver)(nil)
+// var _ scobra.Flagged = (*ContextResolver)(nil)
 
 type ContextResolver struct {
-	Quiet   bool
-	Debug   bool
-	Version bool
+	Quiet   bool `usage:"Do not print any output" default:"false"`
+	Debug   bool `usage:"Print debug output" default:"false"`
+	Version bool `usage:"Print version and exit" default:"false"`
 }
 
-func (me *ContextResolver) Flags(flgs *pflag.FlagSet) {
-	flgs.BoolVarP(&me.Quiet, "quiet", "q", false, "Do not print any output")
-	flgs.BoolVarP(&me.Debug, "debug", "d", false, "Print debug output")
-	flgs.BoolVarP(&me.Version, "version", "v", false, "Print version and exit")
-}
+// func (me *ContextResolver) Flags(flgs *pflag.FlagSet) {
+// 	flgs.BoolVarP(&me.Quiet, "quiet", "q", false, "Do not print any output")
+// 	flgs.BoolVarP(&me.Debug, "debug", "d", false, "Print debug output")
+// 	flgs.BoolVarP(&me.Version, "version", "v", false, "Print version and exit")
+// }
 
 func (me *ContextResolver) Run(cmd *cobra.Command) (context.Context, error) {
 

@@ -5,21 +5,17 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	"github.com/walteh/snake/scobra"
 )
 
-var _ scobra.Flagged = (*ContextResolver)(nil)
-
 type DoubleResolver struct {
-	A bool
-	B bool
+	A bool `usage:"A" default:"true"`
+	B bool `usage:"B" default:"true"`
 }
 
-func (me *DoubleResolver) Flags(a *pflag.FlagSet) {
-	a.BoolVarP(&me.A, "a", "a", false, "")
-	a.BoolVarP(&me.B, "b", "b", false, "")
-}
+// func (me *DoubleResolver) Flags(a *pflag.FlagSet) {
+// 	a.BoolVarP(&me.A, "a", "a", false, "")
+// 	a.BoolVarP(&me.B, "b", "b", false, "")
+// }
 
 func (me *DoubleResolver) Run(cmd *cobra.Command) (io.Reader, io.Writer, error) {
 

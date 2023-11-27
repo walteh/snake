@@ -18,22 +18,15 @@ type Handler struct {
 
 func (me *Handler) Command() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "sample",
-		Short: "run a server for retab code using the Language Server Protocol",
+		Use: "sample",
 	}
 
 	cmd.Args = cobra.ExactArgs(0)
 
 	cmd.Flags().StringVar(&me.Value, "value", "default", "value to print")
-	cmd.Flags().BoolVar(&me.Cool, "cool", false, "cool value")
+	// cmd.Flags().BoolVar(&me.Cool, "cool", false, "cool value")
 
 	return cmd
-}
-
-func (me *Handler) ParseArguments(_ context.Context, _ *cobra.Command, _ []string) error {
-
-	return nil
-
 }
 
 func (me *Handler) Run(
@@ -51,5 +44,4 @@ func (me *Handler) Run(
 		}
 	}
 	return nil
-	// return NewServe().Run(debug.WithInstance(ctx, "./de.bug", "serve"), nil)
 }

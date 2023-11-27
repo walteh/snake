@@ -2,10 +2,8 @@ package scobra
 
 import (
 	"os"
-	"reflect"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/walteh/snake/sbind"
@@ -15,13 +13,36 @@ type CS struct {
 	*cobra.Command
 }
 
-func (me *CS) Decorate(self SCobra, snk sbind.Snake) error {
+type SCobra interface {
+	Command() *cobra.Command
+}
+
+type Flagged interface {
+	Flags(*pflag.FlagSet)
+}
+
+type NewSCobraOpts struct {
+	Commands  []SCobra
+	Resolvers []sbind.Method
+}
+
+func (me *CS) Decorate(self SCobra, snk sbind.Snake, inputs []sbind.Input) error {
 
 	cmd := self.Command()
 
 	name := cmd.Name()
 
 	oldRunE := cmd.RunE
+
+	for _, v := range inputs {
+		switch t := v.(type) {
+		case *sbind.StringInput:
+			cmd.Flags().StringVar(t.Value(), v.Name(), t.Default(), v.Usage())
+		case *sbind.BoolInput:
+			cmd.Flags().BoolVar(t.Value(), v.Name(), t.Default(), v.Usage())
+		}
+
+	}
 
 	// if a flag is not set, we check the environment for "cmd_name_arg_name"
 	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
@@ -64,19 +85,6 @@ func (me *CS) Decorate(self SCobra, snk sbind.Snake) error {
 	return nil
 }
 
-type SCobra interface {
-	Command() *cobra.Command
-}
-
-type Flagged interface {
-	Flags(*pflag.FlagSet)
-}
-
-type NewSCobraOpts struct {
-	Commands  []SCobra
-	Resolvers []Flagged
-}
-
 func NewCobraSnake(root *cobra.Command, opts *NewSCobraOpts) (*cobra.Command, error) {
 
 	if root == nil {
@@ -107,37 +115,11 @@ func NewCobraSnake(root *cobra.Command, opts *NewSCobraOpts) (*cobra.Command, er
 		return nil, err
 	}
 
-	root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		name := cmd.Name()
+	// root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+	// 	name := cmd.Name()
 
-		if flgs, err := sbind.FlagsFor(name, snk.Resolve); err != nil {
-			return err
-		} else {
-			fs := pflag.NewFlagSet(name, pflag.ContinueOnError)
-
-			procd := make(map[any]bool, 0)
-
-			for _, f := range flgs {
-				if z := snk.Resolve(f); reflect.ValueOf(z).IsNil() {
-					return errors.Errorf("missing resolver for %q", f)
-				} else {
-					if z, ok := z.(Flagged); ok && !procd[z] {
-						procd[z] = true
-						z.Flags(fs)
-					}
-				}
-			}
-
-			fs.VisitAll(func(f *pflag.Flag) {
-				// if globalFlags != nil && globalFlags.Lookup(f.Name) != nil {
-				// 	return
-				// }
-				cmd.Flags().AddFlag(f)
-			})
-		}
-
-		return nil
-	}
+	// 	return nil
+	// }
 
 	root.RunE = func(cmd *cobra.Command, args []string) error {
 		err := sbind.RunResolvingArguments("root", snk.Resolve)
