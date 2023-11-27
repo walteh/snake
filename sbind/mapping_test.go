@@ -15,6 +15,10 @@ func NewMockIsRunnable(fn any) sbind.Method {
 	}
 }
 
+func (m MockIsRunnable) Method() reflect.Value {
+	return m.fn
+}
+
 type MockIsRunnable struct {
 	fn reflect.Value
 }

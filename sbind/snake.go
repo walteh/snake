@@ -2,14 +2,10 @@ package sbind
 
 import (
 	"context"
+	"reflect"
 )
 
-// type Provider[M any] interface {
-// 	Provide() M
-// }
-
 type NewSnakeOpts struct {
-	// Commands                   []Method
 	Resolvers                  []Method
 	NamedResolvers             map[string]Method
 	GlobalContextResolverFlags bool
@@ -36,36 +32,22 @@ func (me *defaultSnake) ResolverNames() []string {
 }
 
 func (me *defaultSnake) Resolve(name string) Method {
-
 	return me.resolvers[name]
-
-	// if reflect.TypeOf(res).Kind() == reflect.Ptr {
-	// 	if reflect.ValueOf(res).Elem().Kind().String() == "namedMethod" {
-	// 		res = reflect.ValueOf(res).Elem().Interface().(MethodWrapper).Method()
-	// 	}
-	// }
-
-	// for {
-	// 	if resd, ok := res.(MethodWrapper); ok {
-	// 		maybe := resd.Method()
-	// 		if maybed, ok := maybe.(Method); ok {
-	// 			res = maybed
-	// 		} else {
-	// 			break
-	// 		}
-	// 	} else {
-	// 		break
-	// 	}
-	// }
-
-	// return res
 }
 
 func (me *defaultSnake) Binder() *Binder {
 	return me.bindings
 }
 
-func NewSnake(opts *NewSnakeOpts) (Snake, error) {
+type MethodProvider interface {
+	Method() reflect.Value
+}
+
+type SnakeImplementation[X any] interface {
+	Decorate(X, Snake) error
+}
+
+func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake, error) {
 
 	snk := &defaultSnake{
 		bindings:  NewBinder(),
@@ -85,29 +67,33 @@ func NewSnake(opts *NewSnakeOpts) (Snake, error) {
 			}
 			snk.resolvers[reflectTypeString(r)] = v
 		}
-
 	}
 
 	for k, v := range opts.NamedResolvers {
 		snk.resolvers[k] = v
 	}
 
+	for _, sexer := range snk.ResolverNames() {
+		exer := snk.Resolve(sexer)
+
+		if cmd, ok := exer.(M); ok {
+			err := impl.Decorate(cmd, snk)
+			if err != nil {
+				return nil, err
+			}
+
+			// err = sbind.NewCommandStrategy().ValidateResponseTypes(sbind.ReturnArgs(exer))
+			// if err != nil {
+			// 	return nil, err
+			// }
+
+			// root.AddCommand(cmd)
+
+			continue
+		}
+
+	}
+
 	return snk, nil
 
-}
-
-type fakeMethodNeedingCongtext struct {
-	name string
-}
-
-func (me *fakeMethodNeedingCongtext) Run(context.Context) error {
-	return nil
-}
-
-func (me *fakeMethodNeedingCongtext) Names() []string {
-	return []string{me.name}
-}
-
-func NewFakeMethodNeedingContext(name string) Method {
-	return &fakeMethodNeedingCongtext{name: name}
 }

@@ -11,32 +11,25 @@ import (
 	"github.com/walteh/snake/sbind"
 )
 
-type CobraMethod interface {
-	Command() *cobra.Command
-	Flags(*pflag.FlagSet)
-
-	Names() []string
+type CS struct {
+	*cobra.Command
 }
 
-type cobraSnake struct {
-	root     *cobra.Command
-	internal sbind.Snake
-}
+func (me *CS) Decorate(self SCobra, snk sbind.Snake) error {
 
-func Decorate(rname string, cmd *cobra.Command, snk sbind.Snake) (*cobra.Command, error) {
+	cmd := self.Command()
 
 	name := cmd.Name()
 
 	oldRunE := cmd.RunE
 
 	// if a flag is not set, we check the environment for "cmd_name_arg_name"
-
 	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
 		cmd.Flags().VisitAll(func(f *pflag.Flag) {
 			if f.Changed {
 				return
 			}
-			val := strings.ToUpper(rname + "_" + strings.ReplaceAll(f.Name, "-", "_"))
+			val := strings.ToUpper(me.Name() + "_" + strings.ReplaceAll(f.Name, "-", "_"))
 			envvar := os.Getenv(val)
 			if envvar == "" {
 				return
@@ -66,12 +59,13 @@ func Decorate(rname string, cmd *cobra.Command, snk sbind.Snake) (*cobra.Command
 		return nil
 	}
 
-	return cmd, nil
+	me.AddCommand(cmd)
+
+	return nil
 }
 
 type SCobra interface {
 	Command() *cobra.Command
-	// Names() []string
 }
 
 type Flagged interface {
@@ -79,7 +73,6 @@ type Flagged interface {
 }
 
 type NewSCobraOpts struct {
-	Root      *cobra.Command
 	Commands  []SCobra
 	Resolvers []Flagged
 }
@@ -90,6 +83,8 @@ func NewCobraSnake(root *cobra.Command, opts *NewSCobraOpts) (*cobra.Command, er
 		root = &cobra.Command{}
 	}
 
+	me := &CS{root}
+
 	opts2 := &sbind.NewSnakeOpts{
 		Resolvers:      make([]sbind.Method, 0),
 		NamedResolvers: map[string]sbind.Method{},
@@ -97,7 +92,6 @@ func NewCobraSnake(root *cobra.Command, opts *NewSCobraOpts) (*cobra.Command, er
 
 	for _, v := range opts.Commands {
 		opts2.NamedResolvers[v.Command().Name()] = v
-
 	}
 
 	for _, v := range opts.Resolvers {
@@ -108,30 +102,9 @@ func NewCobraSnake(root *cobra.Command, opts *NewSCobraOpts) (*cobra.Command, er
 	opts2.Resolvers = append(opts2.Resolvers, sbind.NewNoopMethod[*cobra.Command]())
 	opts2.Resolvers = append(opts2.Resolvers, sbind.NewNoopMethod[[]string]())
 
-	snk, err := sbind.NewSnake(opts2)
+	snk, err := sbind.NewSnake(opts2, me)
 	if err != nil {
 		return nil, err
-	}
-
-	for _, sexer := range snk.ResolverNames() {
-		exer := snk.Resolve(sexer)
-
-		if cmd, ok := exer.(SCobra); ok {
-			cmd, err := Decorate(root.Name(), cmd.Command(), snk)
-			if err != nil {
-				return nil, err
-			}
-
-			// err = sbind.NewCommandStrategy().ValidateResponseTypes(sbind.ReturnArgs(exer))
-			// if err != nil {
-			// 	return nil, err
-			// }
-
-			root.AddCommand(cmd)
-
-			continue
-		}
-
 	}
 
 	root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
@@ -177,8 +150,4 @@ func NewCobraSnake(root *cobra.Command, opts *NewSCobraOpts) (*cobra.Command, er
 	root.SilenceUsage = true
 
 	return root, nil
-}
-
-type CommandProvider interface {
-	Command() *cobra.Command
 }

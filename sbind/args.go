@@ -23,7 +23,13 @@ func ListOfReturns(typ reflect.Type) []reflect.Type {
 }
 
 func GetRunMethod(inter any) reflect.Value {
+	prov, ok := inter.(MethodProvider)
+	if ok {
+		return prov.Method()
+	}
+
 	value := reflect.ValueOf(inter)
+
 	method := value.MethodByName("Run")
 	if !method.IsValid() {
 		if value.CanAddr() {
