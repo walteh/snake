@@ -1,4 +1,4 @@
-package snake
+package scobra
 
 import (
 	"strings"
