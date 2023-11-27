@@ -1,6 +1,10 @@
 package sbind
 
-import "reflect"
+import (
+	"reflect"
+
+	"github.com/go-faster/errors"
+)
 
 func ListOfArgs(typ reflect.Type) []reflect.Type {
 	var args []reflect.Type
@@ -22,10 +26,10 @@ func ListOfReturns(typ reflect.Type) []reflect.Type {
 	return args
 }
 
-func GetRunMethod(inter any) reflect.Value {
+func GetRunMethod(inter any) (reflect.Value, error) {
 	prov, ok := inter.(MethodProvider)
 	if ok {
-		return prov.Method()
+		return prov.Method(), nil
 	}
 
 	value := reflect.ValueOf(inter)
@@ -37,5 +41,9 @@ func GetRunMethod(inter any) reflect.Value {
 		}
 	}
 
-	return method
+	if !method.IsValid() {
+		return reflect.Value{}, errors.Errorf("missing Run method on %q", value.Type())
+	}
+
+	return method, nil
 }

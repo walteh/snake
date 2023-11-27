@@ -7,19 +7,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// var _ scobra.Flagged = (*ContextResolver)(nil)
-
 type ContextResolver struct {
 	Quiet   bool `usage:"Do not print any output" default:"false"`
 	Debug   bool `usage:"Print debug output" default:"false"`
 	Version bool `usage:"Print version and exit" default:"false"`
+	Cool    string
 }
-
-// func (me *ContextResolver) Flags(flgs *pflag.FlagSet) {
-// 	flgs.BoolVarP(&me.Quiet, "quiet", "q", false, "Do not print any output")
-// 	flgs.BoolVarP(&me.Debug, "debug", "d", false, "Print debug output")
-// 	flgs.BoolVarP(&me.Version, "version", "v", false, "Print version and exit")
-// }
 
 func (me *ContextResolver) Run(cmd *cobra.Command) (context.Context, error) {
 

@@ -12,8 +12,8 @@ import (
 var _ scobra.SCobra = (*Handler)(nil)
 
 type Handler struct {
-	Value string
-	Cool  bool
+	Value string `default:"default"`
+	Cool  bool   `default:"false"`
 }
 
 func (me *Handler) Command() *cobra.Command {
@@ -23,8 +23,8 @@ func (me *Handler) Command() *cobra.Command {
 
 	cmd.Args = cobra.ExactArgs(0)
 
-	cmd.Flags().StringVar(&me.Value, "value", "default", "value to print")
-	// cmd.Flags().BoolVar(&me.Cool, "cool", false, "cool value")
+	// cmd.Flags().StringVar(&me.Value, "value", "default", "value to print")
+	cmd.Flags().BoolVar(&me.Cool, "cool", false, "cool value")
 
 	return cmd
 }

@@ -2,7 +2,6 @@ package root
 
 import (
 	"github.com/spf13/pflag"
-	"github.com/walteh/snake/scobra"
 )
 
 type CustomInterface interface {
@@ -10,8 +9,6 @@ type CustomInterface interface {
 
 type CustomInterfaceStruct struct {
 }
-
-var _ scobra.Flagged = (*CustomResolver)(nil)
 
 type CustomResolver struct {
 }

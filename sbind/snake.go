@@ -48,44 +48,6 @@ type SnakeImplementation[X any] interface {
 	// ProcessInputs(X, Snake) error
 }
 
-// func flagResolver[F any](snk Snake, name string) ([]F, error) {
-
-// 	if flgs, err := DependanciesOf(name, snk.Resolve); err != nil {
-// 		return nil, err
-// 	} else {
-// 		procd := make(map[any]*F, 0)
-
-// 		for _, f := range flgs {
-// 			if z := snk.Resolve(f); reflect.ValueOf(z).IsNil() {
-// 				return nil, errors.Errorf("missing resolver for %q", f)
-// 			} else {
-// 				if z, ok := z.(F); ok && procd[z] == nil {
-// 					procd[z] = &z
-// 				}
-// 			}
-// 		}
-// 		resp := make([]F, 0)
-// 		for _, v := range procd {
-// 			resp = append(resp, *v)
-// 		}
-
-// 		return resp, nil
-// 		// fs.VisitAll(func(f *pflag.Flag) {
-// 		// 	// if globalFlags != nil && globalFlags.Lookup(f.Name) != nil {
-// 		// 	// 	return
-// 		// 	// }
-// 		// 	cmd.Flags().AddFlag(f)
-// 		// })
-// 	}
-
-// }
-
-// func ForEachResolvedMethod(snk Snake, fn func(Method)) {
-// 	for _, v := range snk.ResolverNames() {
-// 		fn(snk.Resolve(v))
-// 	}
-// }
-
 func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake, error) {
 
 	snk := &defaultSnake{
@@ -98,7 +60,10 @@ func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake,
 
 	for _, v := range opts.Resolvers {
 
-		retrn := ReturnArgs(v)
+		retrn, err := ReturnArgs(v)
+		if err != nil {
+			return nil, err
+		}
 
 		for _, r := range retrn {
 			if r.Kind().String() == "error" {
@@ -116,7 +81,7 @@ func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake,
 		exer := snk.Resolve(sexer)
 
 		if cmd, ok := exer.(M); ok {
-			inpts, err := InputsFor(cmd)
+			inpts, err := DependancyInputs(sexer, snk.Resolve)
 			if err != nil {
 				return nil, err
 			}
@@ -125,18 +90,6 @@ func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake,
 			if err != nil {
 				return nil, err
 			}
-
-			// err = impl.ProcessInputs(cmd, snk)
-			// if err != nil {
-			// 	return nil, err
-			// }
-
-			// err = sbind.NewCommandStrategy().ValidateResponseTypes(sbind.ReturnArgs(exer))
-			// if err != nil {
-			// 	return nil, err
-			// }
-
-			// root.AddCommand(cmd)
 
 			continue
 		}

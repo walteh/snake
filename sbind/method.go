@@ -1,7 +1,6 @@
 package sbind
 
 import (
-	"context"
 	"reflect"
 )
 
@@ -40,12 +39,16 @@ import (
 // 	return &namedMethod{name: reflectTypeString(reflect.TypeOf(method)), method: method}
 // }
 
-func RunArgs(me Method) []reflect.Type {
-	return ListOfArgs(GetRunMethod(me).Type())
-}
+// func RunArgs(me Method) []reflect.Type {
+// 	return ListOfArgs(GetRunMethod(me).Type())
+// }
 
-func ReturnArgs(me Method) []reflect.Type {
-	return ListOfReturns(GetRunMethod(me).Type())
+func ReturnArgs(me Method) ([]reflect.Type, error) {
+	run, err := GetRunMethod(me)
+	if err != nil {
+		return nil, err
+	}
+	return ListOfReturns(run.Type()), nil
 }
 
 // func (me *method) ValidateResponse() error {
@@ -64,10 +67,10 @@ func ReturnArgs(me Method) []reflect.Type {
 // 	return me.names
 // }
 
-func IsContextResolver(me Method) bool {
-	returns := ReturnArgs(me)
-	return len(returns) == 2 && returns[0] == reflect.TypeOf((*context.Context)(nil)).Elem()
-}
+// func IsContextResolver(me Method) bool {
+// 	returns := ReturnArgs(me)
+// 	return len(returns) == 2 && returns[0] == reflect.TypeOf((*context.Context)(nil)).Elem()
+// }
 
 // type method struct {
 // 	names  []string

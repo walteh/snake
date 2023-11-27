@@ -1,9 +1,9 @@
 package sbind
 
 import (
-	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/go-faster/errors"
 )
@@ -14,6 +14,7 @@ type Input interface {
 	Shared() bool
 	M() Method
 	Usage() string
+	Ptr() any
 }
 
 type genericInput[T any] struct {
@@ -27,13 +28,18 @@ type StringInput = genericInput[string]
 type IntInput = genericInput[int]
 type BoolInput = genericInput[bool]
 
+func MethodName(m Method) string {
+	return reflect.ValueOf(m).Elem().Type().String()
+}
+
 func DependancyInputs[G Method](str string, m FMap[G]) ([]Input, error) {
 	deps, err := DependanciesOf(str, m)
 	if err != nil {
 		return nil, err
 	}
 
-	procd := make([]Input, 0)
+	procd := make(map[any]Input, 0)
+	nameReserved := make(map[string]string, 0)
 	for _, f := range deps {
 		if z := m(f); reflect.ValueOf(z).IsNil() {
 			return nil, errors.Errorf("missing resolver for %q", f)
@@ -43,35 +49,37 @@ func DependancyInputs[G Method](str string, m FMap[G]) ([]Input, error) {
 				return nil, err
 			}
 			for _, v := range inp {
-				procd = append(procd, v)
+				// if they are references to same value, then no need to worry about potential conflicts
+				if _, ok := procd[v.Ptr()]; ok {
+					continue
+				}
+				procd[v.Ptr()] = v
+				if z, ok := nameReserved[v.Name()]; ok {
+					return nil, errors.Errorf("multiple inputs named %q [%q, %q]", v.Name(), z, MethodName(v.M()))
+				}
+				nameReserved[v.Name()] = MethodName(v.M())
 			}
 		}
 	}
 
-	return procd, nil
-}
+	resp := make([]Input, 0)
+	for _, v := range procd {
+		resp = append(resp, v)
+	}
 
-// func InputsFor(m Method) (map[string]reflect.Type, error) {
-// 	flds := reflect.VisibleFields(reflect.TypeOf(m))
-// 	mname := reflect.TypeOf(m).String()
-// 	resp := make(map[string]reflect.Type, 0)
-// 	for _, f := range flds {
-// 		if resp[f.Name] != nil {
-// 			return nil, errors.Errorf("duplicate field %q in %q", f.Name, mname)
-// 		}
-// 		resp[f.Name] = f.Type
-// 	}
-// 	return resp, nil
-// }
+	return resp, nil
+}
 
 func InputsFor[M Method](m M) ([]Input, error) {
 	typ := reflect.TypeOf(m)
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
 	}
-	fmt.Println("InputsFor", typ)
 	flds := reflect.VisibleFields(typ)
-	shared := MethodIsShared(m)
+	shared, err := MethodIsShared(m)
+	if err != nil {
+		return nil, err
+	}
 	resp := make([]Input, 0)
 	for _, f := range flds {
 
@@ -104,12 +112,11 @@ func NewGenericInput[M Method, T any](f reflect.StructField, m M, shared bool) *
 }
 
 func (me *genericInput[T]) Value() *T {
-
 	return me.val
 }
 
 func (me *genericInput[T]) Name() string {
-	return me.field.Name
+	return strings.ToLower(me.field.Name)
 }
 
 func (me *genericInput[T]) Type() reflect.Type {
@@ -126,6 +133,10 @@ func (me *genericInput[T]) M() Method {
 
 func (me *genericInput[T]) Usage() string {
 	return me.field.Tag.Get("usage")
+}
+
+func (me *genericInput[T]) Ptr() any {
+	return me.val
 }
 
 func (me *genericInput[T]) Default() T {
@@ -156,18 +167,18 @@ func (me *genericInput[T]) Default() T {
 	}
 }
 
-// func InputValueAs[T any](me Input[T]) *T {
-// 	return me.Value()
-// }
+func MethodIsShared(m Method) (bool, error) {
+	run, err := GetRunMethod(m)
+	if err != nil {
+		return false, err
+	}
 
-func MethodIsShared(m Method) bool {
-	run := GetRunMethod(m)
 	rets := ListOfReturns(run.Type())
 	// right now this logic relys on the fact that commands only return one value (the error)
 	// and shared methods return two or more (the error and the values)
 	if len(rets) == 1 {
-		return false
+		return false, nil
 	} else {
-		return true
+		return true, nil
 	}
 }

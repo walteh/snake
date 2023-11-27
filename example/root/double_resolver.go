@@ -12,11 +12,6 @@ type DoubleResolver struct {
 	B bool `usage:"B" default:"true"`
 }
 
-// func (me *DoubleResolver) Flags(a *pflag.FlagSet) {
-// 	a.BoolVarP(&me.A, "a", "a", false, "")
-// 	a.BoolVarP(&me.B, "b", "b", false, "")
-// }
-
 func (me *DoubleResolver) Run(cmd *cobra.Command) (io.Reader, io.Writer, error) {
 
 	return strings.NewReader("hello"), &strings.Builder{}, nil

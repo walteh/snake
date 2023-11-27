@@ -69,7 +69,10 @@ func findBrothersRaw(str string, fmap FMap[Method], rmap map[string]bool) (map[s
 	if meth := fmap(str); meth == nil {
 		return nil, errors.Errorf("missing resolver for %q", str)
 	} else {
-		curr = GetRunMethod(meth)
+		curr, err = GetRunMethod(meth)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if rmap[str] {
@@ -158,7 +161,10 @@ func findArgumentsRaw(str string, fmap FMap[Method], wrk *Binder) (*Binder, erro
 	if meth := fmap(str); meth == nil {
 		return nil, errors.Errorf("missing resolver for %q", str)
 	} else {
-		curr = GetRunMethod(meth)
+		curr, err = GetRunMethod(meth)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if wrk == nil {

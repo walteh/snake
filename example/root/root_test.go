@@ -2,10 +2,13 @@ package root
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/cobra/doc"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -58,4 +61,63 @@ func TestNewCommand(t *testing.T) {
 			// assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestDocs(t *testing.T) {
+
+	ctx := context.Background()
+
+	cmd, _, err := NewCommand(ctx)
+	if err != nil {
+		t.Errorf("NewCommand() error = %v", err)
+		return
+	}
+
+	tmp := os.TempDir()
+
+	ref := filepath.Join(tmp, "retab-docs")
+
+	t.Cleanup(func() {
+		os.RemoveAll(ref)
+	})
+
+	mdpath := filepath.Join(ref, "md")
+
+	if err := os.MkdirAll(mdpath, 0755); err != nil {
+		t.Errorf("MkdirAll() error = %v", err)
+		return
+	}
+
+	err = doc.GenMarkdownTree(cmd, mdpath)
+	if err != nil {
+		t.Errorf("GenMarkdownTree() error = %v", err)
+		return
+	}
+
+	fle, err := os.Open(filepath.Join(mdpath, "retab_sample.md"))
+	if err != nil {
+		t.Errorf("Open() error = %v", err)
+		return
+	}
+
+	defer fle.Close()
+
+	stat, err := fle.Stat()
+	if err != nil {
+		t.Errorf("Stat() error = %v", err)
+		return
+	}
+
+	dat := make([]byte, stat.Size())
+
+	_, err = fle.Read(dat)
+	if err != nil {
+		t.Errorf("Read() error = %v", err)
+		return
+	}
+
+	assert.True(t, stat.Size() > 0)
+
+	fmt.Println(string(dat))
+
 }
