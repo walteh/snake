@@ -50,6 +50,6 @@ func (me *Handler) Run(
 			return errors.New("something is nil")
 		}
 	}
-	return nil
+	return io.EOF
 	// return NewServe().Run(debug.WithInstance(ctx, "./de.bug", "serve"), nil)
 }

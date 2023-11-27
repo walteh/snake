@@ -37,10 +37,6 @@ func FlagsFor[G Method](str string, m FMap[G]) ([]string, error) {
 	return mapa, nil
 }
 
-// func (me *Snake) Run(str Method) error {
-// 	return me.RunString(str.Name())
-// }
-
 func EndOfChain() reflect.Value {
 	return reflect.ValueOf("end_of_chain")
 }
@@ -113,40 +109,42 @@ func valueToMethod(v reflect.Value) Method {
 
 func RunResolvingArguments(str string, fmap FMap[Method]) error {
 
-	args, err := findArgumentsRaw(str, fmap, nil)
+	_, err := findArgumentsRaw(str, fmap, nil)
 	if err != nil {
 		return err
 	}
 
-	if resp, ok := args.bindings[str]; !ok {
-		return errors.Errorf("missing resolver for %q", str)
-	} else {
+	return nil
 
-		// var r reflect.Value
+	// if resp, ok := args.bindings[str]; !ok {
+	// 	return errors.Errorf("missing resolver for %q", str)
+	// } else {
 
-		// if resp.Kind() == reflect.Ptr {
-		// 	r = resp.Elem()
-		// } else {
+	// 	// var r reflect.Value
 
-		if resp.Interface() != nil {
-			// r = resp
-			return resp.Interface().(error)
-		} else {
-			return nil
-		}
+	// 	// if resp.Kind() == reflect.Ptr {
+	// 	// 	r = resp.Elem()
+	// 	// } else {
 
-		// }
-		// return resp.Interface().(error)
-		// if resp.IsZero() {
-		// 	return nil
-		// }
-		// isError := r.Type().Implements(reflect.TypeOf((*error)(nil)).Elem())
-		// if !isError {
-		// 	return nil
-		// } else {
-		// 	return r.Interface().(error)
-		// }
-	}
+	// 	if resp.Interface() != nil {
+	// 		// r = resp
+	// 		return resp.Interface().(error)
+	// 	} else {
+	// 		return nil
+	// 	}
+
+	// 	// }
+	// 	// return resp.Interface().(error)
+	// 	// if resp.IsZero() {
+	// 	// 	return nil
+	// 	// }
+	// 	// isError := r.Type().Implements(reflect.TypeOf((*error)(nil)).Elem())
+	// 	// if !isError {
+	// 	// 	return nil
+	// 	// } else {
+	// 	// 	return r.Interface().(error)
+	// 	// }
+	// }
 
 }
 
@@ -200,6 +198,9 @@ func findArgumentsRaw(str string, fmap FMap[Method], wrk *Binder) (*Binder, erro
 		// so here we know we can name it str
 		// otherwise we would be naming it "error"
 		wrk.bindings[str] = &out[0]
+		if out[0].Interface() != nil {
+			return wrk, out[0].Interface().(error)
+		}
 	} else {
 		for _, v := range out {
 			in := v
