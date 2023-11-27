@@ -10,10 +10,9 @@ import (
 
 type Input interface {
 	Name() string
-	Type() reflect.Type
+	// Type() reflect.Type
 	Shared() bool
 	M() Method
-	Usage() string
 	Ptr() any
 }
 

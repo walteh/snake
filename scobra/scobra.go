@@ -33,11 +33,6 @@ func (me *CS) Decorate(self SCobra, snk sbind.Snake, inputs []sbind.Input) error
 	for _, v := range inputs {
 		flgs := cmd.Flags()
 
-		// a := cmd.Flags().Lookup(strings.ToLower(v.Name()))
-		// if a == nil {
-		// 	a = cmd.PersistentFlags().Lookup(strings.ToLower(v.Name()))
-		// }
-
 		if v.Shared() {
 			flgs = me.PersistentFlags()
 		} else {
@@ -47,28 +42,13 @@ func (me *CS) Decorate(self SCobra, snk sbind.Snake, inputs []sbind.Input) error
 			}
 		}
 
-		// pp.Println("looking up flag", v.Name(), v.Usage(), v.M(), self, a)
-
-		// if a != nil {
-
-		// this was working and would be cool, but it's not predictable enough
-		// 	if v.M() == self {
-		// 		// if this is the same object, then the user is trying to override the flag, so we let them
-		// 		continue
-		// 	}
-
-		// 	return errors.Errorf("multiple flags named %q resolved for %q", a.Name, reflect.ValueOf(v.M()).Elem().Type().String())
-		// }
-
-		// pp.Println("adding flag", v.Name(), v.Usage(), v.M(), self)
-
 		switch t := v.(type) {
 		case *sbind.StringInput:
-			flgs.StringVar(t.Value(), strings.ToLower(v.Name()), t.Default(), v.Usage())
+			flgs.StringVar(t.Value(), strings.ToLower(v.Name()), t.Default(), t.Usage())
 		case *sbind.BoolInput:
-			flgs.BoolVar(t.Value(), strings.ToLower(v.Name()), t.Default(), v.Usage())
+			flgs.BoolVar(t.Value(), strings.ToLower(v.Name()), t.Default(), t.Usage())
 		case *sbind.IntInput:
-			flgs.IntVar(t.Value(), strings.ToLower(v.Name()), t.Default(), v.Usage())
+			flgs.IntVar(t.Value(), strings.ToLower(v.Name()), t.Default(), t.Usage())
 		}
 	}
 

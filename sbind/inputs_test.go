@@ -1,7 +1,6 @@
 package sbind
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -70,29 +69,23 @@ func TestDependancyInputs(t *testing.T) {
 
 	expectedR1 := &MockInput{
 		name:   "abc",
-		typ:    reflect.TypeOf(r1.ABC),
 		shared: true,
 		m:      r1,
 		val:    &r1.ABC,
-		usage:  "",
 	}
 
 	expectedR2 := &MockInput{
 		name:   "def",
-		typ:    reflect.TypeOf(r2.DEF),
 		shared: false,
 		m:      r2,
 		val:    &r2.DEF,
-		usage:  "",
 	}
 
 	expectedR1d := &MockInput{
 		name:   "abc",
-		typ:    reflect.TypeOf(r1d.ABC),
 		shared: true,
 		m:      r1d,
 		val:    &r1d.ABC,
-		usage:  "",
 	}
 
 	tests := []struct {
@@ -155,10 +148,8 @@ func TestDependancyInputs(t *testing.T) {
 				}
 				assert.NotNil(t, exp)
 				assert.Equal(t, exp.Name(), v.Name())
-				assert.Equal(t, exp.Type().Name(), v.Type().Name())
 				assert.Equal(t, exp.Shared(), v.Shared())
 				assert.Equal(t, exp.M(), v.M())
-				assert.Equal(t, exp.Usage(), v.Usage())
 				assert.Equal(t, exp.Ptr(), v.Ptr())
 			}
 		})
@@ -167,19 +158,13 @@ func TestDependancyInputs(t *testing.T) {
 
 type MockInput struct {
 	name   string
-	typ    reflect.Type
 	shared bool
 	m      Method
 	val    any
-	usage  string
 }
 
 func (me *MockInput) Name() string {
 	return me.name
-}
-
-func (me *MockInput) Type() reflect.Type {
-	return me.typ
 }
 
 func (me *MockInput) Shared() bool {
@@ -188,10 +173,6 @@ func (me *MockInput) Shared() bool {
 
 func (me *MockInput) M() Method {
 	return me.m
-}
-
-func (me *MockInput) Usage() string {
-	return me.usage
 }
 
 func (me *MockInput) Ptr() any {
