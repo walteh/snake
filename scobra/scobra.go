@@ -19,9 +19,9 @@ type SCobra interface {
 }
 
 type NewSCobraOpts struct {
-	Commands     []SCobra
-	Resolvers    []sbind.Method
-	EnumTypeFunc sbind.EnumTypeFunc
+	Commands  []SCobra
+	Resolvers []sbind.Method
+	Enums     []sbind.EnumOption
 }
 
 func (me *CS) Decorate(self SCobra, snk sbind.Snake, inputs []sbind.Input) error {
@@ -124,7 +124,7 @@ func NewCobraSnake(root *cobra.Command, opts *NewSCobraOpts) (*cobra.Command, er
 	opts2 := &sbind.NewSnakeOpts{
 		Resolvers:      make([]sbind.Method, 0),
 		NamedResolvers: map[string]sbind.Method{},
-		EnumTypeFunc:   opts.EnumTypeFunc,
+		Enums:          opts.Enums,
 	}
 
 	for _, v := range opts.Commands {

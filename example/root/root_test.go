@@ -51,7 +51,7 @@ func TestNewCommand(t *testing.T) {
 				return
 			}
 
-			os.Args = []string{"retab", "sample", "--value", "test123", "--myenum", "g"}
+			os.Args = []string{"retab", "sample", "--value", "test123", "--myenum", "y"}
 
 			err = cmd.Execute()
 			if err != nil {

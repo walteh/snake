@@ -3,8 +3,6 @@ package sbind
 import (
 	"context"
 	"reflect"
-
-	"github.com/go-faster/errors"
 )
 
 type EnumTypeFunc func(string) ([]any, error)
@@ -15,7 +13,7 @@ type NewSnakeOpts struct {
 	Resolvers                  []Method
 	NamedResolvers             map[string]Method
 	GlobalContextResolverFlags bool
-	EnumTypeFunc               EnumTypeFunc
+	Enums                      []EnumOption
 }
 
 type Snake interface {
@@ -65,12 +63,6 @@ func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake,
 	// we always want context to get resolved first
 	opts.NamedResolvers["root"] = NewNoopAsker[context.Context]()
 
-	if opts.EnumTypeFunc == nil {
-		opts.EnumTypeFunc = func(string) ([]any, error) {
-			return nil, errors.Errorf("no enum type func provided")
-		}
-	}
-
 	for _, v := range opts.Resolvers {
 
 		retrn, err := ReturnArgs(v)
@@ -102,9 +94,9 @@ func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake,
 			for _, v := range inpts {
 				switch vok := v.(type) {
 				case *enumInput[string]:
-					err = vok.ApplyOptions(opts.EnumTypeFunc)
+					err = vok.ApplyOptions(opts.Enums)
 				case *enumInput[int]:
-					err = vok.ApplyOptions(opts.EnumTypeFunc)
+					err = vok.ApplyOptions(opts.Enums)
 				}
 				if err != nil {
 					return nil, err

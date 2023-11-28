@@ -6,7 +6,7 @@ import (
 )
 
 type EnumResolver struct {
-	Myenum sample.SampleEnum `usage:"Enum" default:"r"`
+	Myenum sample.SampleEnum `usage:"Enum" default:"z"`
 }
 
 func (me *EnumResolver) Run(cmd *cobra.Command) (*sample.SampleEnum, error) {

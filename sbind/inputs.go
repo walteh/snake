@@ -140,18 +140,27 @@ func (me *enumInput[T]) Options() []T {
 	return me.options
 }
 
-func (me *enumInput[T]) ApplyOptions(opts EnumTypeFunc) error {
-	optsr, err := opts(me.rawTypeName)
-	if err != nil {
-		return err
-	}
+func (me *enumInput[T]) ApplyOptions(opts []EnumOption) error {
+	var sel EnumOption
+
 	mytype := reflect.TypeOf(me.val).Elem()
-	for _, v := range optsr {
-		if reflect.ValueOf(v).CanConvert(mytype) {
-			me.options = append(me.options, reflect.ValueOf(v).Convert(mytype).Interface().(T))
+
+	for _, v := range opts {
+		if v.RawTypeName() != me.rawTypeName {
 			continue
 		}
-		return errors.Errorf("invalid type %T for %q", v, me.rawTypeName)
+
+		sel = v
+	}
+	if sel == nil {
+		return errors.Errorf("no options for %q", me.rawTypeName)
+	}
+
+	for _, v := range sel.Options() {
+		if !reflect.ValueOf(v).CanConvert(mytype) {
+			return errors.Errorf("cannot convert type %T into %q", v, me.rawTypeName)
+		}
+		me.options = append(me.options, reflect.ValueOf(v).Convert(mytype).Interface().(T))
 	}
 	return nil
 }
@@ -255,4 +264,33 @@ func MethodIsShared(m Method) (bool, error) {
 	} else {
 		return true, nil
 	}
+}
+
+type EnumOption interface {
+	RawTypeName() string
+	Options() []any
+}
+
+type rawEnumOption[T any] struct {
+	rawTypeName string
+	options     []T
+}
+
+func NewEnumOption[T ~string | ~int](input ...T) EnumOption {
+	return &rawEnumOption[T]{
+		rawTypeName: reflect.TypeOf(input[0]).String(),
+		options:     input,
+	}
+}
+
+func (me *rawEnumOption[T]) RawTypeName() string {
+	return me.rawTypeName
+}
+
+func (me *rawEnumOption[T]) Options() []any {
+	opts := make([]any, len(me.options))
+	for i, v := range me.options {
+		opts[i] = v
+	}
+	return opts
 }
