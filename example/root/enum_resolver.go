@@ -6,10 +6,9 @@ import (
 )
 
 type EnumResolver struct {
-	Myenum sample.SampleEnum `usage:"Enum" default:"z"`
+	Myenum sample.SampleEnum `usage:"a special enum" default:"z"`
 }
 
-func (me *EnumResolver) Run(cmd *cobra.Command) (*sample.SampleEnum, error) {
-
-	return &me.Myenum, nil
+func (me *EnumResolver) Run(cmd *cobra.Command) (sample.SampleEnum, error) {
+	return me.Myenum, nil
 }

@@ -22,12 +22,8 @@ type InputWithOptions interface {
 type StringInput = simpleValueInput[string]
 type IntInput = simpleValueInput[int]
 type BoolInput = simpleValueInput[bool]
-
 type StringArrayInput = simpleValueInput[[]string]
 type IntArrayInput = simpleValueInput[[]int]
-
-// type StringArrayInput = EnumInput[string]
-// type IntArrayInput = EnumInput[int]
 type StringEnumInput = enumInput[string]
 type IntEnumInput = enumInput[int]
 
@@ -259,7 +255,7 @@ func MethodIsShared(m Method) (bool, error) {
 	rets := ListOfReturns(run.Type())
 	// right now this logic relys on the fact that commands only return one value (the error)
 	// and shared methods return two or more (the error and the values)
-	if len(rets) == 1 {
+	if len(rets) == 1 || (len(rets) == 2 && rets[0].String() == reflect.TypeOf((*Output)(nil)).Elem().String()) {
 		return false, nil
 	} else {
 		return true, nil

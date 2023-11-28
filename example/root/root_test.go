@@ -64,7 +64,7 @@ func TestNewCommand(t *testing.T) {
 
 			args := hndl.Args()
 
-			assert.Equal(t, sample.SampleEnumY, *args.Enum)
+			assert.Equal(t, sample.SampleEnumY, args.Enum)
 
 			// assert.Equal(t, tt.want, got)
 		})

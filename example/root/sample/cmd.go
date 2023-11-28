@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+	"github.com/walteh/snake/sbind"
 	"github.com/walteh/snake/scobra"
 )
 
@@ -23,7 +24,7 @@ type args struct {
 	Arr     []string
 	Read    io.Reader
 	Write   io.Writer
-	Enum    *SampleEnum
+	Enum    SampleEnum
 	Br      io.ByteReader
 	Bw      io.ByteWriter
 	Bs      io.ByteScanner
@@ -52,9 +53,9 @@ func (me *Handler) Run(
 	arr []string,
 	read io.Reader,
 	write io.Writer,
-	en *SampleEnum,
+	en SampleEnum,
 	br io.ByteReader, bw io.ByteWriter, bs io.ByteScanner,
-) error {
+) (sbind.Output, error) {
 	me.args.Context = ctx
 	me.args.Cmd = cmd
 	me.args.Arr = arr
@@ -64,5 +65,5 @@ func (me *Handler) Run(
 	me.args.Br = br
 	me.args.Bw = bw
 	me.args.Bs = bs
-	return nil
+	return nil, nil
 }
