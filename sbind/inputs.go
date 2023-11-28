@@ -10,24 +10,28 @@ import (
 
 type Input interface {
 	Name() string
-	// Type() reflect.Type
 	Shared() bool
-	M() Method
 	Ptr() any
+	Parent() string
 }
 
-type genericInput[T any] struct {
-	field  reflect.StructField
-	shared bool
-	m      Method
-	val    *T
+type InputWithOptions interface {
+	Options() []string
 }
 
-type StringInput = genericInput[string]
-type IntInput = genericInput[int]
-type BoolInput = genericInput[bool]
+type StringInput = simpleValueInput[string]
+type IntInput = simpleValueInput[int]
+type BoolInput = simpleValueInput[bool]
 
-func MethodName(m Method) string {
+type StringArrayInput = simpleValueInput[[]string]
+type IntArrayInput = simpleValueInput[[]int]
+
+// type StringArrayInput = EnumInput[string]
+// type IntArrayInput = EnumInput[int]
+type StringEnumInput = enumInput[string]
+type IntEnumInput = enumInput[int]
+
+func MethodName(m any) string {
 	return reflect.ValueOf(m).Elem().Type().String()
 }
 
@@ -54,9 +58,9 @@ func DependancyInputs[G Method](str string, m FMap[G]) ([]Input, error) {
 				}
 				procd[v.Ptr()] = v
 				if z, ok := nameReserved[v.Name()]; ok {
-					return nil, errors.Errorf("multiple inputs named %q [%q, %q]", v.Name(), z, MethodName(v.M()))
+					return nil, errors.Errorf("multiple inputs named %q [%q, %q]", v.Name(), z, v.Parent())
 				}
-				nameReserved[v.Name()] = MethodName(v.M())
+				nameReserved[v.Name()] = v.Parent()
 			}
 		}
 	}
@@ -86,13 +90,27 @@ func InputsFor[M Method](m M) ([]Input, error) {
 			return nil, errors.Errorf("field %q in %v is a pointer type", f.Name, m)
 		}
 
+		if !f.IsExported() {
+			continue
+		}
+
 		switch f.Type.Kind() {
 		case reflect.String:
-			resp = append(resp, NewGenericInput[M, string](f, m, shared))
+			if f.Type.Name() != "string" {
+				resp = append(resp, NewGenericEnumInput[M, string](f, m, shared))
+			} else {
+				resp = append(resp, NewSimpleValueInput[M, string](f, m, shared))
+			}
 		case reflect.Int:
-			resp = append(resp, NewGenericInput[M, int](f, m, shared))
+			if f.Type.Name() != "int" {
+				resp = append(resp, NewGenericEnumInput[M, int](f, m, shared))
+			} else {
+				resp = append(resp, NewSimpleValueInput[M, int](f, m, shared))
+			}
 		case reflect.Bool:
-			resp = append(resp, NewGenericInput[M, bool](f, m, shared))
+			resp = append(resp, NewSimpleValueInput[M, bool](f, m, shared))
+		case reflect.Array, reflect.Slice:
+			resp = append(resp, NewSimpleValueInput[M, []string](f, m, shared))
 		default:
 			return nil, errors.Errorf("field %q in %v is not a string or int", f.Name, m)
 		}
@@ -101,44 +119,101 @@ func InputsFor[M Method](m M) ([]Input, error) {
 	return resp, nil
 }
 
-func NewGenericInput[M Method, T any](f reflect.StructField, m M, shared bool) *genericInput[T] {
-	return &genericInput[T]{
-		field:  f,
-		m:      m,
-		shared: shared,
-		val:    reflect.Indirect(reflect.ValueOf(m).Elem()).FieldByName(f.Name).Addr().Interface().(*T),
+type genericInput struct {
+	field  reflect.StructField
+	shared bool
+	parent string
+}
+
+type simpleValueInput[T any] struct {
+	*genericInput
+	val *T
+}
+
+type enumInput[T any] struct {
+	simpleValueInput[T]
+	options     []T
+	rawTypeName string
+}
+
+func (me *enumInput[T]) Options() []T {
+	return me.options
+}
+
+func (me *enumInput[T]) ApplyOptions(opts EnumTypeFunc) error {
+	optsr, err := opts(me.rawTypeName)
+	if err != nil {
+		return err
+	}
+	mytype := reflect.TypeOf(me.val).Elem()
+	for _, v := range optsr {
+		if reflect.ValueOf(v).CanConvert(mytype) {
+			me.options = append(me.options, reflect.ValueOf(v).Convert(mytype).Interface().(T))
+			continue
+		}
+		return errors.Errorf("invalid type %T for %q", v, me.rawTypeName)
+	}
+	return nil
+}
+
+func NewGenericEnumInput[M Method, T any](f reflect.StructField, m M, shared bool) *enumInput[T] {
+	v := reflect.Indirect(reflect.ValueOf(m).Elem()).FieldByName(f.Name)
+	return &enumInput[T]{
+		simpleValueInput: simpleValueInput[T]{
+			genericInput: NewGenericInput(f, m, shared),
+			val:          (*T)(v.Addr().UnsafePointer()),
+		},
+		options:     make([]T, 0),
+		rawTypeName: v.Type().String(),
 	}
 }
 
-func (me *genericInput[T]) Value() *T {
+func (me *enumInput[T]) Ptr() any {
 	return me.val
 }
 
-func (me *genericInput[T]) Name() string {
+func NewSimpleValueInput[M Method, T any](f reflect.StructField, m M, shared bool) *simpleValueInput[T] {
+	v := reflect.Indirect(reflect.ValueOf(m).Elem()).FieldByName(f.Name)
+
+	return &simpleValueInput[T]{
+		genericInput: NewGenericInput(f, m, shared),
+		val:          v.Addr().Interface().(*T),
+	}
+}
+
+func NewGenericInput[M Method](f reflect.StructField, m M, shared bool) *genericInput {
+	return &genericInput{
+		field:  f,
+		parent: MethodName(m),
+		shared: shared,
+	}
+}
+
+func (me *simpleValueInput[T]) Value() *T {
+	return me.val
+}
+
+func (me *genericInput) Name() string {
 	return strings.ToLower(me.field.Name)
 }
 
-func (me *genericInput[T]) Type() reflect.Type {
-	return me.field.Type
-}
-
-func (me *genericInput[T]) Shared() bool {
+func (me *genericInput) Shared() bool {
 	return me.shared
 }
 
-func (me *genericInput[T]) M() Method {
-	return me.m
+func (me *genericInput) Parent() string {
+	return me.parent
 }
 
-func (me *genericInput[T]) Usage() string {
+func (me *genericInput) Usage() string {
 	return me.field.Tag.Get("usage")
 }
 
-func (me *genericInput[T]) Ptr() any {
+func (me *simpleValueInput[T]) Ptr() any {
 	return me.val
 }
 
-func (me *genericInput[T]) Default() T {
+func (me *simpleValueInput[T]) Default() T {
 	defstr := me.field.Tag.Get("default")
 	switch any(me.val).(type) {
 	case *string:

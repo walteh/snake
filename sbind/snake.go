@@ -3,12 +3,19 @@ package sbind
 import (
 	"context"
 	"reflect"
+
+	"github.com/go-faster/errors"
 )
+
+type EnumTypeFunc func(string) ([]any, error)
+
+type EnumOptionResolver func(string) ([]string, error)
 
 type NewSnakeOpts struct {
 	Resolvers                  []Method
 	NamedResolvers             map[string]Method
 	GlobalContextResolverFlags bool
+	EnumTypeFunc               EnumTypeFunc
 }
 
 type Snake interface {
@@ -58,6 +65,12 @@ func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake,
 	// we always want context to get resolved first
 	opts.NamedResolvers["root"] = NewNoopAsker[context.Context]()
 
+	if opts.EnumTypeFunc == nil {
+		opts.EnumTypeFunc = func(string) ([]any, error) {
+			return nil, errors.Errorf("no enum type func provided")
+		}
+	}
+
 	for _, v := range opts.Resolvers {
 
 		retrn, err := ReturnArgs(v)
@@ -84,6 +97,18 @@ func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake,
 			inpts, err := DependancyInputs(sexer, snk.Resolve)
 			if err != nil {
 				return nil, err
+			}
+
+			for _, v := range inpts {
+				switch vok := v.(type) {
+				case *enumInput[string]:
+					err = vok.ApplyOptions(opts.EnumTypeFunc)
+				case *enumInput[int]:
+					err = vok.ApplyOptions(opts.EnumTypeFunc)
+				}
+				if err != nil {
+					return nil, err
+				}
 			}
 
 			err = impl.Decorate(cmd, snk, inpts)

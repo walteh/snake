@@ -3,6 +3,7 @@ package root
 import (
 	"context"
 
+	"github.com/go-faster/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/walteh/snake/example/root/sample"
@@ -27,6 +28,18 @@ func NewCommand(ctx context.Context) (*cobra.Command, *sample.Handler, error) {
 			&CustomResolver{},
 			&DoubleResolver{},
 			&TripleResolver{},
+			&EnumResolver{},
+		},
+		EnumTypeFunc: func(s string) ([]any, error) {
+			if s == "sample.SampleEnum" {
+				return []any{
+					sample.SampleEnumX,
+					sample.SampleEnumY,
+					sample.SampleEnumZ,
+				}, nil
+			}
+			return nil, errors.Errorf("unknown enum type %q", s)
+
 		},
 	})
 

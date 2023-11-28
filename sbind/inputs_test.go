@@ -1,9 +1,12 @@
-package sbind
+package sbind_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/walteh/snake/sbind"
 )
 
 type ExampleArgumentResolver struct {
@@ -22,11 +25,19 @@ func (me *DuplicateArgumentResolver) Run() (bool, error) {
 	return me.ABC, nil
 }
 
+type EnumArgumentResolver struct {
+	GHI MockEnum
+}
+
+func (me *EnumArgumentResolver) Run() (MockEnum, error) {
+	return me.GHI, nil
+}
+
 type ExampleÇommand struct {
 	DEF string
 }
 
-func (me *ExampleÇommand) Run(abc string) error {
+func (me *ExampleÇommand) Run(abc string, en MockEnum) error {
 	return nil
 }
 
@@ -37,7 +48,22 @@ func (me *DuplicateCommand) Run(abc string, abc2 bool) error {
 	return nil
 }
 
+type MockEnum string
+
+const (
+	MockEnumA MockEnum = "a"
+	MockEnumB MockEnum = "b"
+	MockEnumC MockEnum = "c"
+)
+
 func TestDependancyInputs(t *testing.T) {
+
+	type mockInput struct {
+		name   string
+		shared bool
+		parent string
+		ptr    any
+	}
 
 	r1 := &ExampleArgumentResolver{
 		ABC: "oops",
@@ -53,12 +79,18 @@ func TestDependancyInputs(t *testing.T) {
 
 	r2d := &DuplicateCommand{}
 
-	m := func(str string) Method {
+	r3 := &EnumArgumentResolver{
+		GHI: MockEnumC,
+	}
+
+	m := func(str string) sbind.Method {
 		switch str {
 		case "bool":
 			return r1d
 		case "string":
 			return r1
+		case "sbind_test.MockEnum":
+			return r3
 		case "command1":
 			return r2
 		case "command2":
@@ -67,37 +99,44 @@ func TestDependancyInputs(t *testing.T) {
 		return nil
 	}
 
-	expectedR1 := &MockInput{
+	expectedR1 := &mockInput{
 		name:   "abc",
 		shared: true,
-		m:      r1,
-		val:    &r1.ABC,
+		parent: sbind.MethodName(r1),
+		ptr:    &r1.ABC,
 	}
 
-	expectedR2 := &MockInput{
+	expectedR2 := &mockInput{
 		name:   "def",
 		shared: false,
-		m:      r2,
-		val:    &r2.DEF,
+		parent: sbind.MethodName(r2),
+		ptr:    &r2.DEF,
 	}
 
-	expectedR1d := &MockInput{
+	expectedR1d := &mockInput{
 		name:   "abc",
 		shared: true,
-		m:      r1d,
-		val:    &r1d.ABC,
+		parent: sbind.MethodName(r1d),
+		ptr:    &r1d.ABC,
+	}
+
+	expectedEnum := &mockInput{
+		name:   "ghi",
+		shared: true,
+		parent: sbind.MethodName(r3),
+		ptr:    &r3.GHI,
 	}
 
 	tests := []struct {
 		name           string
 		str            string
-		expectedInputs []Input
+		expectedInputs []*mockInput
 		wantErr        bool
 	}{
 		{
 			name: "example string",
 			str:  "string",
-			expectedInputs: []Input{
+			expectedInputs: []*mockInput{
 				expectedR1,
 			},
 			wantErr: false,
@@ -105,16 +144,17 @@ func TestDependancyInputs(t *testing.T) {
 		{
 			name: "example command",
 			str:  "command1",
-			expectedInputs: []Input{
+			expectedInputs: []*mockInput{
 				expectedR2,
 				expectedR1,
+				expectedEnum,
 			},
 			wantErr: false,
 		},
 		{
 			name: "example bool",
 			str:  "bool",
-			expectedInputs: []Input{
+			expectedInputs: []*mockInput{
 				expectedR1d,
 			},
 			wantErr: false,
@@ -129,52 +169,32 @@ func TestDependancyInputs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			inputs, err := DependancyInputs(tt.str, m)
+			inputs, err := sbind.DependancyInputs(tt.str, m)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
 			}
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			assert.Equal(t, len(tt.expectedInputs), len(inputs))
 
 			for _, exp := range tt.expectedInputs {
-				var v Input
-				for _, c := range tt.expectedInputs {
-					if exp.Ptr() == c.Ptr() {
+				var v sbind.Input
+				for _, c := range inputs {
+
+					if exp.name == c.Name() && exp.parent == c.Parent() {
 						v = c
 						break
 					}
 				}
-				assert.NotNil(t, exp)
-				assert.Equal(t, exp.Name(), v.Name())
-				assert.Equal(t, exp.Shared(), v.Shared())
-				assert.Equal(t, exp.M(), v.M())
-				assert.Equal(t, exp.Ptr(), v.Ptr())
+
+				assert.NotNil(t, v)
+
+				assert.Equal(t, exp.name, v.Name())
+				assert.Equal(t, exp.shared, v.Shared())
+				assert.Equal(t, exp.parent, v.Parent())
+				assert.Equal(t, reflect.ValueOf(exp.ptr).Pointer(), reflect.ValueOf(v.Ptr()).Pointer())
 			}
 		})
 	}
-}
-
-type MockInput struct {
-	name   string
-	shared bool
-	m      Method
-	val    any
-}
-
-func (me *MockInput) Name() string {
-	return me.name
-}
-
-func (me *MockInput) Shared() bool {
-	return me.shared
-}
-
-func (me *MockInput) M() Method {
-	return me.m
-}
-
-func (me *MockInput) Ptr() any {
-	return me.val
 }

@@ -10,12 +10,15 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
 	"github.com/stretchr/testify/assert"
+	"github.com/walteh/snake/example/root/sample"
 )
 
 func TestNewCommand(t *testing.T) {
+
 	type args struct {
 		ctx context.Context
 	}
+
 	tests := []struct {
 		name    string
 		args    args
@@ -32,6 +35,7 @@ func TestNewCommand(t *testing.T) {
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
@@ -47,7 +51,7 @@ func TestNewCommand(t *testing.T) {
 				return
 			}
 
-			os.Args = []string{"retab", "sample", "--value", "test123"}
+			os.Args = []string{"retab", "sample", "--value", "test123", "--myenum", "g"}
 
 			err = cmd.Execute()
 			if err != nil {
@@ -58,9 +62,14 @@ func TestNewCommand(t *testing.T) {
 			assert.True(t, hndl.Cool)
 			assert.Equal(t, "test123", hndl.Value)
 
+			args := hndl.Args()
+
+			assert.Equal(t, sample.SampleEnumY, *args.Enum)
+
 			// assert.Equal(t, tt.want, got)
 		})
 	}
+
 }
 
 func TestDocs(t *testing.T) {

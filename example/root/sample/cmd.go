@@ -2,7 +2,6 @@ package sample
 
 import (
 	"context"
-	"errors"
 	"io"
 
 	"github.com/spf13/cobra"
@@ -14,6 +13,24 @@ var _ scobra.SCobra = (*Handler)(nil)
 type Handler struct {
 	Value string `default:"default"`
 	Cool  bool   `default:"false"`
+
+	args args
+}
+
+type args struct {
+	Context context.Context
+	Cmd     *cobra.Command
+	Arr     []string
+	Read    io.Reader
+	Write   io.Writer
+	Enum    *SampleEnum
+	Br      io.ByteReader
+	Bw      io.ByteWriter
+	Bs      io.ByteScanner
+}
+
+func (me *Handler) Args() *args {
+	return &me.args
 }
 
 func (me *Handler) Command() *cobra.Command {
@@ -35,13 +52,17 @@ func (me *Handler) Run(
 	arr []string,
 	read io.Reader,
 	write io.Writer,
+	en *SampleEnum,
 	br io.ByteReader, bw io.ByteWriter, bs io.ByteScanner,
 ) error {
-	arrs := []any{ctx, cmd, arr, read, write, br, bw, bs}
-	for _, a := range arrs {
-		if a == nil {
-			return errors.New("something is nil")
-		}
-	}
+	me.args.Context = ctx
+	me.args.Cmd = cmd
+	me.args.Arr = arr
+	me.args.Read = read
+	me.args.Write = write
+	me.args.Enum = en
+	me.args.Br = br
+	me.args.Bw = bw
+	me.args.Bs = bs
 	return nil
 }

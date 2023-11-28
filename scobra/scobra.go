@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/go-faster/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/walteh/snake/sbind"
@@ -18,8 +19,9 @@ type SCobra interface {
 }
 
 type NewSCobraOpts struct {
-	Commands  []SCobra
-	Resolvers []sbind.Method
+	Commands     []SCobra
+	Resolvers    []sbind.Method
+	EnumTypeFunc sbind.EnumTypeFunc
 }
 
 func (me *CS) Decorate(self SCobra, snk sbind.Snake, inputs []sbind.Input) error {
@@ -36,19 +38,37 @@ func (me *CS) Decorate(self SCobra, snk sbind.Snake, inputs []sbind.Input) error
 		if v.Shared() {
 			flgs = me.PersistentFlags()
 		} else {
-			if cmd.Flags().Lookup(strings.ToLower(v.Name())) != nil {
+			if cmd.Flags().Lookup(v.Name()) != nil {
 				// if this is the same object, then the user is trying to override the flag, so we let them
 				continue
 			}
 		}
 
 		switch t := v.(type) {
+		case *sbind.StringEnumInput:
+			d, err := NewWrappedEnum(t.Default(), t.Value(), t.Options()...)
+			if err != nil {
+				return err
+			}
+			flgs.Var(d, v.Name(), t.Usage())
+		case *sbind.IntEnumInput:
+			d, err := NewWrappedEnum(t.Default(), t.Value(), t.Options()...)
+			if err != nil {
+				return err
+			}
+			flgs.Var(d, v.Name(), t.Usage())
 		case *sbind.StringInput:
-			flgs.StringVar(t.Value(), strings.ToLower(v.Name()), t.Default(), t.Usage())
+			flgs.StringVar(t.Value(), v.Name(), t.Default(), t.Usage())
 		case *sbind.BoolInput:
-			flgs.BoolVar(t.Value(), strings.ToLower(v.Name()), t.Default(), t.Usage())
+			flgs.BoolVar(t.Value(), v.Name(), t.Default(), t.Usage())
 		case *sbind.IntInput:
-			flgs.IntVar(t.Value(), strings.ToLower(v.Name()), t.Default(), t.Usage())
+			flgs.IntVar(t.Value(), v.Name(), t.Default(), t.Usage())
+		case *sbind.StringArrayInput:
+			flgs.StringSliceVar(t.Value(), v.Name(), t.Default(), t.Usage())
+		case *sbind.IntArrayInput:
+			flgs.IntSliceVar(t.Value(), v.Name(), t.Default(), t.Usage())
+		default:
+			return errors.Errorf("unknown input type %T", t)
 		}
 	}
 
@@ -104,6 +124,7 @@ func NewCobraSnake(root *cobra.Command, opts *NewSCobraOpts) (*cobra.Command, er
 	opts2 := &sbind.NewSnakeOpts{
 		Resolvers:      make([]sbind.Method, 0),
 		NamedResolvers: map[string]sbind.Method{},
+		EnumTypeFunc:   opts.EnumTypeFunc,
 	}
 
 	for _, v := range opts.Commands {
