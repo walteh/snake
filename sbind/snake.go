@@ -106,18 +106,6 @@ func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake,
 				return nil, err
 			}
 
-			for _, v := range inpts {
-				switch vok := v.(type) {
-				case *enumInput[string]:
-					err = vok.ApplyOptions(opts.Enums)
-					// case *enumInput[int]:
-					// 	err = vok.ApplyOptions(opts.Enums)
-				}
-				if err != nil {
-					return nil, err
-				}
-			}
-
 			err = impl.Decorate(cmd, snk, inpts)
 			if err != nil {
 				return nil, err

@@ -4,32 +4,19 @@ import (
 	"reflect"
 
 	"github.com/go-faster/errors"
-	"github.com/spf13/pflag"
 )
 
-// type HasRunArgs interface{ RunArgs() []reflect.Type }
-
 type Method interface {
-	// HasRunArgs
-	// Run() reflect.Value
-	// Names() []string
-	// HandleResponse([]reflect.Value) ([]*reflect.Value, error)
 }
 
-type Flagged interface {
-	Flags() *pflag.FlagSet
-}
+type FMap func(string) ValidatedRunMethod
 
-type FMap[G any] func(string) G
-
-func DependanciesOf[G ValidatedRunMethod](str string, m FMap[G]) ([]string, error) {
+func DependanciesOf(str string, m FMap) ([]string, error) {
 	if ok := m(str); !reflect.ValueOf(ok).IsValid() || reflect.ValueOf(ok).IsNil() {
 		return nil, errors.Errorf("missing resolver for %q", str)
 	}
 
-	mapa, err := FindBrothers(str, func(s string) ValidatedRunMethod {
-		return m(s)
-	})
+	mapa, err := FindBrothers(str, m)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +33,7 @@ func EndOfChainPtr() *reflect.Value {
 	return &v
 }
 
-func FindBrothers(str string, me FMap[ValidatedRunMethod]) ([]string, error) {
+func FindBrothers(str string, me FMap) ([]string, error) {
 	raw, err := findBrothersRaw(str, me, nil)
 	if err != nil {
 		return nil, err
@@ -58,7 +45,7 @@ func FindBrothers(str string, me FMap[ValidatedRunMethod]) ([]string, error) {
 	return resp, nil
 }
 
-func findBrothersRaw(str string, fmap FMap[ValidatedRunMethod], rmap map[string]bool) (map[string]bool, error) {
+func findBrothersRaw(str string, fmap FMap, rmap map[string]bool) (map[string]bool, error) {
 	var err error
 	if rmap == nil {
 		rmap = make(map[string]bool)
@@ -86,7 +73,7 @@ func findBrothersRaw(str string, fmap FMap[ValidatedRunMethod], rmap map[string]
 	return rmap, nil
 }
 
-func FindArguments(str string, fmap FMap[ValidatedRunMethod]) ([]reflect.Value, error) {
+func FindArguments(str string, fmap FMap) ([]reflect.Value, error) {
 	raw, err := findArgumentsRaw(str, fmap, nil)
 	if err != nil {
 		return nil, err
@@ -98,22 +85,20 @@ func FindArguments(str string, fmap FMap[ValidatedRunMethod]) ([]reflect.Value, 
 	return resp, nil
 }
 
-func RunResolvingArguments(str string, fmap FMap[ValidatedRunMethod]) error {
-
+func RunResolvingArguments(str string, fmap FMap) error {
 	_, err := findArgumentsRaw(str, fmap, nil)
 	if err != nil {
 		return err
 	}
 
 	return nil
-
 }
 
 func reflectTypeString(typ reflect.Type) string {
 	return typ.String()
 }
 
-func findArgumentsRaw(str string, fmap FMap[ValidatedRunMethod], wrk *Binder) (*Binder, error) {
+func findArgumentsRaw(str string, fmap FMap, wrk *Binder) (*Binder, error) {
 	validated := fmap(str)
 	var err error
 	if validated == nil {

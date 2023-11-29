@@ -24,13 +24,13 @@ type IntInput = simpleValueInput[int]
 type BoolInput = simpleValueInput[bool]
 type StringArrayInput = simpleValueInput[[]string]
 type IntArrayInput = simpleValueInput[[]int]
-type StringEnumInput = enumInput[string]
+type StringEnumInput = enumInput
 
 func MethodName(m ValidatedRunMethod) string {
 	return reflect.ValueOf(m.RunFunc()).Type().String()
 }
 
-func DependancyInputs[G ValidatedRunMethod](str string, m FMap[G], enum ...EnumOption) ([]Input, error) {
+func DependancyInputs(str string, m FMap, enum ...EnumOption) ([]Input, error) {
 	deps, err := DependanciesOf(str, m)
 	if err != nil {
 		return nil, err
@@ -69,10 +69,8 @@ func DependancyInputs[G ValidatedRunMethod](str string, m FMap[G], enum ...EnumO
 }
 
 func InputsFor(m ValidatedRunMethod, enum ...EnumOption) ([]Input, error) {
-	flds := StructFields(m)
-	shared := MenthodIsShared(m)
 	resp := make([]Input, 0)
-	for _, f := range flds {
+	for _, f := range StructFields(m) {
 
 		if !f.IsExported() {
 			continue
@@ -85,20 +83,20 @@ func InputsFor(m ValidatedRunMethod, enum ...EnumOption) ([]Input, error) {
 		switch f.Type.Kind() {
 		case reflect.String:
 			if f.Type.Name() != "string" {
-				en, err := NewGenericEnumInput[string](f, m, shared, enum...)
+				en, err := NewGenericEnumInput(f, m, enum...)
 				if err != nil {
 					return nil, err
 				}
 				resp = append(resp, en)
 			} else {
-				resp = append(resp, NewSimpleValueInput[string](f, m, shared))
+				resp = append(resp, NewSimpleValueInput[string](f, m))
 			}
 		case reflect.Int:
-			resp = append(resp, NewSimpleValueInput[int](f, m, shared))
+			resp = append(resp, NewSimpleValueInput[int](f, m))
 		case reflect.Bool:
-			resp = append(resp, NewSimpleValueInput[bool](f, m, shared))
+			resp = append(resp, NewSimpleValueInput[bool](f, m))
 		case reflect.Array, reflect.Slice:
-			resp = append(resp, NewSimpleValueInput[[]string](f, m, shared))
+			resp = append(resp, NewSimpleValueInput[[]string](f, m))
 		default:
 			return nil, errors.Errorf("field %q in %v is not a string or int", f.Name, m)
 		}
@@ -118,17 +116,17 @@ type simpleValueInput[T any] struct {
 	val *T
 }
 
-type enumInput[T EnumConstraint] struct {
-	simpleValueInput[T]
-	options     []T
+type enumInput struct {
+	simpleValueInput[string]
+	options     []string
 	rawTypeName string
 }
 
-func (me *enumInput[T]) Options() []T {
+func (me *enumInput) Options() []string {
 	return me.options
 }
 
-func getEnumOptionsFrom[T EnumConstraint](mytype reflect.Type, enum ...EnumOption) ([]T, error) {
+func getEnumOptionsFrom(mytype reflect.Type, enum ...EnumOption) ([]string, error) {
 	rawTypeName := mytype.String()
 	var sel EnumOption
 	for _, v := range enum {
@@ -142,83 +140,49 @@ func getEnumOptionsFrom[T EnumConstraint](mytype reflect.Type, enum ...EnumOptio
 		return nil, errors.Errorf("no options for %q", rawTypeName)
 	}
 
-	// this is not only ever used for strings, but it is the only type that is currently supported
-	myTarget := reflect.TypeOf((*T)(nil)).Elem()
+	return sel.Options(), nil
 
-	res := make([]T, 0)
-	for _, v := range sel.Options() {
-		if !reflect.ValueOf(v).CanConvert(myTarget) {
-			return nil, errors.Errorf("cannot convert type %T into %q", v, rawTypeName)
-		}
-		res = append(res, reflect.ValueOf(v).Convert(myTarget).Interface().(T))
-	}
-	return res, nil
 }
 
-func (me *enumInput[T]) ApplyOptions(opts []EnumOption) error {
-	var sel EnumOption
-
-	mytype := reflect.TypeOf(me.val).Elem()
-
-	for _, v := range opts {
-		if v.RawTypeName() != me.rawTypeName {
-			continue
-		}
-
-		sel = v
-	}
-	if sel == nil {
-		return errors.Errorf("no options for %q", me.rawTypeName)
-	}
-
-	for _, v := range sel.Options() {
-		if !reflect.ValueOf(v).CanConvert(mytype) {
-			return errors.Errorf("cannot convert type %T into %q", v, me.rawTypeName)
-		}
-		me.options = append(me.options, reflect.ValueOf(v).Convert(mytype).Interface().(T))
-	}
-	return nil
-}
-
-func NewGenericEnumInput[T EnumConstraint](f reflect.StructField, m ValidatedRunMethod, shared bool, enum ...EnumOption) (*enumInput[T], error) {
+func NewGenericEnumInput(f reflect.StructField, m ValidatedRunMethod, enum ...EnumOption) (*enumInput, error) {
 
 	v := FieldByName(m, f.Name)
 
 	mytype := v.Type()
 
-	opts, err := getEnumOptionsFrom[T](mytype, enum...)
+	opts, err := getEnumOptionsFrom(mytype, enum...)
 	if err != nil {
 		return nil, err
 	}
 
-	return &enumInput[T]{
-		simpleValueInput: simpleValueInput[T]{
-			genericInput: NewGenericInput(f, m, shared),
-			val:          (*T)(v.Addr().UnsafePointer()),
+	return &enumInput{
+		simpleValueInput: simpleValueInput[string]{
+			genericInput: NewGenericInput(f, m),
+			val:          (*string)(v.Addr().UnsafePointer()),
 		},
 		options:     opts,
 		rawTypeName: mytype.String(),
 	}, nil
 }
 
-func (me *enumInput[T]) Ptr() any {
+func (me *enumInput) Ptr() any {
 	return me.val
 }
 
-func NewSimpleValueInput[T any](f reflect.StructField, m ValidatedRunMethod, shared bool) *simpleValueInput[T] {
+func NewSimpleValueInput[T any](f reflect.StructField, m ValidatedRunMethod) *simpleValueInput[T] {
 	v := FieldByName(m, f.Name)
 
 	return &simpleValueInput[T]{
-		genericInput: NewGenericInput(f, m, shared),
+		genericInput: NewGenericInput(f, m),
 		val:          v.Addr().Interface().(*T),
 	}
 }
 
-func NewGenericInput(f reflect.StructField, m ValidatedRunMethod, shared bool) *genericInput {
+func NewGenericInput(f reflect.StructField, m ValidatedRunMethod) *genericInput {
 	return &genericInput{
 		field:  f,
 		parent: MethodName(m),
-		shared: shared,
+		shared: MenthodIsShared(m),
 	}
 }
 
