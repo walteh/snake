@@ -26,12 +26,12 @@ func TestNewCommand(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "test",
+			name: "simple test 1",
 			args: args{
 				ctx: context.Background(),
 			},
 			want: &cobra.Command{
-				Use: "retab",
+				Use: "root",
 			},
 		},
 	}
@@ -45,13 +45,13 @@ func TestNewCommand(t *testing.T) {
 				return
 			}
 
-			err = os.Setenv("RETAB_COOL", "true")
+			err = os.Setenv("ROOT_COOL", "true")
 			if err != nil {
 				t.Errorf("Setenv() error = %v", err)
 				return
 			}
 
-			os.Args = []string{"retab", "sample", "--value", "test123", "--myenum", "y"}
+			os.Args = []string{"root", "sample", "--value", "test123", "--myenum", "y"}
 
 			err = cmd.Execute()
 			if err != nil {
@@ -65,8 +65,6 @@ func TestNewCommand(t *testing.T) {
 			args := hndl.Args()
 
 			assert.Equal(t, sample.SampleEnumY, args.Enum)
-
-			// assert.Equal(t, tt.want, got)
 		})
 	}
 
@@ -84,7 +82,7 @@ func TestDocs(t *testing.T) {
 
 	tmp := os.TempDir()
 
-	ref := filepath.Join(tmp, "retab-docs")
+	ref := filepath.Join(tmp, "root-docs")
 
 	t.Cleanup(func() {
 		os.RemoveAll(ref)
@@ -103,7 +101,7 @@ func TestDocs(t *testing.T) {
 		return
 	}
 
-	fle, err := os.Open(filepath.Join(mdpath, "retab_sample.md"))
+	fle, err := os.Open(filepath.Join(mdpath, "root_sample.md"))
 	if err != nil {
 		t.Errorf("Open() error = %v", err)
 		return

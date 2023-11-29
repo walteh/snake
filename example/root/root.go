@@ -13,7 +13,7 @@ import (
 func NewCommand(ctx context.Context) (*cobra.Command, *sample.Handler, error) {
 
 	cmd := &cobra.Command{
-		Use: "retab",
+		Use: "root",
 	}
 
 	handler := &sample.Handler{}
