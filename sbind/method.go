@@ -94,7 +94,9 @@ func MenthodIsShared(run ValidatedRunMethod) bool {
 	rets := ListOfReturns(run)
 	// right now this logic relys on the fact that commands only return one value (the error)
 	// and shared methods return two or more (the error and the values)
-	if len(rets) == 1 || (len(rets) == 2 && rets[0].String() == reflect.TypeOf((*Output)(nil)).Elem().String()) {
+	if len(rets) == 1 ||
+		// this is the logic to support the new Output type
+		(len(rets) == 2 && rets[0].String() == reflect.TypeOf((*Output)(nil)).Elem().String()) {
 		return false
 	} else {
 		return true

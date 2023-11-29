@@ -44,8 +44,13 @@ func (me *rawEnumOption[T]) RunFunc() reflect.Value {
 }
 
 func NewEnumOptionWithResolver[T EnumConstraint](resolver EnumResolver, input ...T) EnumOption {
+	sel := new(T)
+	if resolver != nil {
+		*sel = T("select")
+	}
+
 	return &rawEnumOption[T]{
-		MyEnum:       new(T),
+		MyEnum:       sel,
 		rawTypeName:  reflect.TypeOf((*T)(nil)).Elem().String(),
 		options:      input,
 		enumResolver: resolver,
@@ -77,7 +82,7 @@ func (e *rawEnumOption[I]) SetCurrent(vt string) error {
 		*e.MyEnum = I(vt)
 		return nil
 	}
-	return errors.Errorf("invalid value %q, expected one of %s", vt, strings.Join(e.OptionsWithSelect(), ", "))
+	return errors.Errorf("invalid value %q, expected one of [\"%s\"]", vt, strings.Join(e.OptionsWithSelect(), "\", \""))
 }
 
 func (e *rawEnumOption[I]) CurrentPtr() *string {
@@ -90,7 +95,7 @@ func (me *rawEnumOption[T]) Run() (T, error) {
 			return "", errors.Errorf("no enum resolver for %q", me.rawTypeName)
 		}
 
-		resolve, err := me.enumResolver(me.rawTypeName, me.OptionsWithSelect())
+		resolve, err := me.enumResolver(me.rawTypeName, me.Options())
 		if err != nil {
 			return "", err
 		}
