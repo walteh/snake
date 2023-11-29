@@ -18,14 +18,19 @@ type NewSnakeOpts struct {
 
 type Snake interface {
 	ResolverNames() []string
-	Resolve(string) Method
+	Resolve(string) ValidatedRunMethod
 	// Bound(string) *reflect.Value
 	Binder() *Binder
+	SetResolver(string, ValidatedRunMethod)
 }
 
 type defaultSnake struct {
 	bindings  *Binder
-	resolvers map[string]Method
+	resolvers map[string]ValidatedRunMethod
+}
+
+func (me *defaultSnake) SetResolver(name string, meth ValidatedRunMethod) {
+	me.resolvers[name] = meth
 }
 
 func (me *defaultSnake) ResolverNames() []string {
@@ -36,7 +41,7 @@ func (me *defaultSnake) ResolverNames() []string {
 	return names
 }
 
-func (me *defaultSnake) Resolve(name string) Method {
+func (me *defaultSnake) Resolve(name string) ValidatedRunMethod {
 	return me.resolvers[name]
 }
 
@@ -57,7 +62,7 @@ func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake,
 
 	snk := &defaultSnake{
 		bindings:  NewBinder(),
-		resolvers: make(map[string]Method),
+		resolvers: make(map[string]ValidatedRunMethod),
 	}
 
 	// we always want context to get resolved first
@@ -65,28 +70,38 @@ func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake,
 
 	for _, v := range opts.Resolvers {
 
-		retrn, err := ReturnArgs(v)
+		runner, err := GetRunMethod(v)
 		if err != nil {
 			return nil, err
 		}
+
+		retrn := ReturnArgs(runner)
 
 		for _, r := range retrn {
 			if r.Kind().String() == "error" {
 				continue
 			}
-			snk.resolvers[reflectTypeString(r)] = v
+			snk.resolvers[reflectTypeString(r)], err = GetRunMethod(v)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
 	for k, v := range opts.NamedResolvers {
-		snk.resolvers[k] = v
+		r, err := GetRunMethod(v)
+		if err != nil {
+			return nil, err
+		}
+
+		snk.resolvers[k] = r
 	}
 
 	for _, sexer := range snk.ResolverNames() {
 		exer := snk.Resolve(sexer)
 
-		if cmd, ok := exer.(M); ok {
-			inpts, err := DependancyInputs(sexer, snk.Resolve)
+		if cmd, ok := exer.Ref().(M); ok {
+			inpts, err := DependancyInputs(sexer, snk.Resolve, opts.Enums...)
 			if err != nil {
 				return nil, err
 			}
@@ -95,8 +110,8 @@ func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake,
 				switch vok := v.(type) {
 				case *enumInput[string]:
 					err = vok.ApplyOptions(opts.Enums)
-				case *enumInput[int]:
-					err = vok.ApplyOptions(opts.Enums)
+					// case *enumInput[int]:
+					// 	err = vok.ApplyOptions(opts.Enums)
 				}
 				if err != nil {
 					return nil, err

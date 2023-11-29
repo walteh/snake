@@ -22,12 +22,12 @@ type Flagged interface {
 
 type FMap[G any] func(string) G
 
-func DependanciesOf[G Method](str string, m FMap[G]) ([]string, error) {
+func DependanciesOf[G ValidatedRunMethod](str string, m FMap[G]) ([]string, error) {
 	if ok := m(str); !reflect.ValueOf(ok).IsValid() || reflect.ValueOf(ok).IsNil() {
 		return nil, errors.Errorf("missing resolver for %q", str)
 	}
 
-	mapa, err := FindBrothers(str, func(s string) Method {
+	mapa, err := FindBrothers(str, func(s string) ValidatedRunMethod {
 		return m(s)
 	})
 	if err != nil {
@@ -46,7 +46,7 @@ func EndOfChainPtr() *reflect.Value {
 	return &v
 }
 
-func FindBrothers(str string, me FMap[Method]) ([]string, error) {
+func FindBrothers(str string, me FMap[ValidatedRunMethod]) ([]string, error) {
 	raw, err := findBrothersRaw(str, me, nil)
 	if err != nil {
 		return nil, err
@@ -58,21 +58,16 @@ func FindBrothers(str string, me FMap[Method]) ([]string, error) {
 	return resp, nil
 }
 
-func findBrothersRaw(str string, fmap FMap[Method], rmap map[string]bool) (map[string]bool, error) {
+func findBrothersRaw(str string, fmap FMap[ValidatedRunMethod], rmap map[string]bool) (map[string]bool, error) {
 	var err error
 	if rmap == nil {
 		rmap = make(map[string]bool)
 	}
 
-	var curr reflect.Value
+	validated := fmap(str)
 
-	if meth := fmap(str); meth == nil {
+	if validated == nil {
 		return nil, errors.Errorf("missing resolver for %q", str)
-	} else {
-		curr, err = GetRunMethod(meth)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	if rmap[str] {
@@ -81,7 +76,7 @@ func findBrothersRaw(str string, fmap FMap[Method], rmap map[string]bool) (map[s
 
 	rmap[str] = true
 
-	for _, f := range ListOfArgs(curr.Type()) {
+	for _, f := range ListOfArgs(validated) {
 		rmap, err = findBrothersRaw(f.String(), fmap, rmap)
 		if err != nil {
 			return nil, err
@@ -91,7 +86,7 @@ func findBrothersRaw(str string, fmap FMap[Method], rmap map[string]bool) (map[s
 	return rmap, nil
 }
 
-func FindArguments(str string, fmap FMap[Method]) ([]reflect.Value, error) {
+func FindArguments(str string, fmap FMap[ValidatedRunMethod]) ([]reflect.Value, error) {
 	raw, err := findArgumentsRaw(str, fmap, nil)
 	if err != nil {
 		return nil, err
@@ -103,14 +98,7 @@ func FindArguments(str string, fmap FMap[Method]) ([]reflect.Value, error) {
 	return resp, nil
 }
 
-func valueToMethod(v reflect.Value) Method {
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-	return v.Interface().(Method)
-}
-
-func RunResolvingArguments(str string, fmap FMap[Method]) error {
+func RunResolvingArguments(str string, fmap FMap[ValidatedRunMethod]) error {
 
 	_, err := findArgumentsRaw(str, fmap, nil)
 	if err != nil {
@@ -119,52 +107,17 @@ func RunResolvingArguments(str string, fmap FMap[Method]) error {
 
 	return nil
 
-	// if resp, ok := args.bindings[str]; !ok {
-	// 	return errors.Errorf("missing resolver for %q", str)
-	// } else {
-
-	// 	// var r reflect.Value
-
-	// 	// if resp.Kind() == reflect.Ptr {
-	// 	// 	r = resp.Elem()
-	// 	// } else {
-
-	// 	if resp.Interface() != nil {
-	// 		// r = resp
-	// 		return resp.Interface().(error)
-	// 	} else {
-	// 		return nil
-	// 	}
-
-	// 	// }
-	// 	// return resp.Interface().(error)
-	// 	// if resp.IsZero() {
-	// 	// 	return nil
-	// 	// }
-	// 	// isError := r.Type().Implements(reflect.TypeOf((*error)(nil)).Elem())
-	// 	// if !isError {
-	// 	// 	return nil
-	// 	// } else {
-	// 	// 	return r.Interface().(error)
-	// 	// }
-	// }
-
 }
 
 func reflectTypeString(typ reflect.Type) string {
 	return typ.String()
 }
 
-func findArgumentsRaw(str string, fmap FMap[Method], wrk *Binder) (*Binder, error) {
-	var curr reflect.Value
+func findArgumentsRaw(str string, fmap FMap[ValidatedRunMethod], wrk *Binder) (*Binder, error) {
+	validated := fmap(str)
 	var err error
-	if meth := fmap(str); meth == nil {
+	if validated == nil {
 		return nil, errors.Errorf("missing resolver for %q", str)
-	} else {
-		curr, err = GetRunMethod(meth)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	if wrk == nil {
@@ -176,7 +129,7 @@ func findArgumentsRaw(str string, fmap FMap[Method], wrk *Binder) (*Binder, erro
 	}
 
 	tmp := make([]reflect.Value, 0)
-	for _, f := range ListOfArgs(curr.Type()) {
+	for _, f := range ListOfArgs(validated) {
 		name := reflectTypeString(f)
 		wrk, err = findArgumentsRaw(name, fmap, wrk)
 		if err != nil {
@@ -193,7 +146,7 @@ func findArgumentsRaw(str string, fmap FMap[Method], wrk *Binder) (*Binder, erro
 	// 	methd = GetRunMethod(curr)
 	// }
 
-	out := curr.Call(tmp)
+	out := CallMethod(validated, tmp)
 	// out, err := curr.HandleResponse(resp)
 	// if err != nil {
 	// 	return nil, err

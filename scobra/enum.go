@@ -8,6 +8,7 @@ import (
 	"github.com/go-faster/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"github.com/walteh/snake/sbind"
 	"golang.org/x/exp/slices"
 )
 
@@ -15,7 +16,7 @@ var (
 	_ pflag.Value = &wrappedEnum[string]{}
 )
 
-func NewWrappedEnum[I ~string | ~int](def I, curr *I, values ...I) (*wrappedEnum[I], error) {
+func NewWrappedEnum[I sbind.EnumConstraint](def I, curr *I, values ...I) (*wrappedEnum[I], error) {
 	strt := &wrappedEnum[I]{values: values, current: curr}
 	err := strt.set(def)
 	if err != nil {
@@ -24,7 +25,7 @@ func NewWrappedEnum[I ~string | ~int](def I, curr *I, values ...I) (*wrappedEnum
 	return strt, nil
 }
 
-type wrappedEnum[I ~string | ~int] struct {
+type wrappedEnum[I sbind.EnumConstraint] struct {
 	current *I
 	values  []I
 }

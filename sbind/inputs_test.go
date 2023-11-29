@@ -65,36 +65,38 @@ func TestDependancyInputs(t *testing.T) {
 		ptr    any
 	}
 
-	r1 := &ExampleArgumentResolver{
-		ABC: "oops",
-	}
+	r1 := &ExampleArgumentResolver{ABC: "abc"}
+	vr1, err := sbind.GetRunMethod(r1)
+	require.NoError(t, err)
 
-	r2 := &ExampleÇommand{
-		DEF: "oops",
-	}
+	r2 := &ExampleÇommand{DEF: "oops"}
+	vr2, err := sbind.GetRunMethod(r2)
+	require.NoError(t, err)
 
-	r1d := &DuplicateArgumentResolver{
-		ABC: true,
-	}
+	r1d := &DuplicateArgumentResolver{ABC: true}
+	vr1d, err := sbind.GetRunMethod(r1d)
+	require.NoError(t, err)
 
 	r2d := &DuplicateCommand{}
+	vr2d, err := sbind.GetRunMethod(r2d)
+	require.NoError(t, err)
 
-	r3 := &EnumArgumentResolver{
-		GHI: MockEnumC,
-	}
+	r3 := &EnumArgumentResolver{GHI: MockEnumC}
+	vr3, err := sbind.GetRunMethod(r3)
+	require.NoError(t, err)
 
-	m := func(str string) sbind.Method {
+	m := func(str string) sbind.ValidatedRunMethod {
 		switch str {
 		case "bool":
-			return r1d
+			return vr1d
 		case "string":
-			return r1
+			return vr1
 		case "sbind_test.MockEnum":
-			return r3
+			return vr3
 		case "command1":
-			return r2
+			return vr2
 		case "command2":
-			return r2d
+			return vr2d
 		}
 		return nil
 	}
@@ -102,28 +104,28 @@ func TestDependancyInputs(t *testing.T) {
 	expectedR1 := &mockInput{
 		name:   "abc",
 		shared: true,
-		parent: sbind.MethodName(r1),
-		ptr:    &r1.ABC,
+		parent: sbind.MethodName(vr1),
+		ptr:    &(vr1.TypedRef()).ABC,
 	}
 
 	expectedR2 := &mockInput{
 		name:   "def",
 		shared: false,
-		parent: sbind.MethodName(r2),
+		parent: sbind.MethodName(vr2),
 		ptr:    &r2.DEF,
 	}
 
 	expectedR1d := &mockInput{
 		name:   "abc",
 		shared: true,
-		parent: sbind.MethodName(r1d),
+		parent: sbind.MethodName(vr1d),
 		ptr:    &r1d.ABC,
 	}
 
 	expectedEnum := &mockInput{
 		name:   "ghi",
 		shared: true,
-		parent: sbind.MethodName(r3),
+		parent: sbind.MethodName(vr3),
 		ptr:    &r3.GHI,
 	}
 
@@ -169,14 +171,14 @@ func TestDependancyInputs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			inputs, err := sbind.DependancyInputs(tt.str, m)
+			inputs, err := sbind.DependancyInputs(tt.str, m, sbind.NewEnumOption(MockEnumA, MockEnumB, MockEnumC))
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
 
-			assert.Equal(t, len(tt.expectedInputs), len(inputs))
+			require.Equal(t, len(tt.expectedInputs), len(inputs))
 
 			for _, exp := range tt.expectedInputs {
 				var v sbind.Input

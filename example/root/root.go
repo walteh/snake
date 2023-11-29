@@ -27,7 +27,7 @@ func NewCommand(ctx context.Context) (*cobra.Command, *sample.Handler, error) {
 			&CustomResolver{},
 			&DoubleResolver{},
 			&TripleResolver{},
-			&EnumResolver{},
+			// &EnumResolver{},
 		},
 		Enums: []sbind.EnumOption{
 			sbind.NewEnumOption(

@@ -2,83 +2,114 @@ package sbind
 
 import (
 	"reflect"
+
+	"github.com/go-faster/errors"
 )
 
-// type Method interface {
-// 	Run() reflect.Value
-// 	// ValidateResponse() error
-// 	// HandleResponse([]reflect.Value) ([]*reflect.Value, error)
-// 	Names() []string
-// 	// Command() Cobrad
-// }
-
-// var _ Method = (*method)(nil)
-
-// func (me *method) Run() reflect.Value {
-// 	return me.method
-// }
-
-// type namedMethod struct {
-// 	name   string
-// 	method any
-// }
-
-// type MethodWrapper interface {
-// 	Method() any
-// }
-
-// func (me *namedMethod) Method() any {
-// 	return me.method
-// }
-
-// func (me *namedMethod) Names() []string {
-// 	return []string{me.name}
-// }
-
-// func NewNamedMethod(method any) Method {
-// 	return &namedMethod{name: reflectTypeString(reflect.TypeOf(method)), method: method}
-// }
-
-// func RunArgs(me Method) []reflect.Type {
-// 	return ListOfArgs(GetRunMethod(me).Type())
-// }
-
-func ReturnArgs(me Method) ([]reflect.Type, error) {
-	run, err := GetRunMethod(me)
-	if err != nil {
-		return nil, err
-	}
-	return ListOfReturns(run.Type()), nil
+type ValidatedRunMethod interface {
+	RunFunc() reflect.Value
+	Ref() Method
 }
 
-// func (me *method) ValidateResponse() error {
-// 	return me.validationStrategy(me.ReturnArgs())
-// }
+type TypedValidatedRunMethod[M Method] interface {
+	ValidatedRunMethod
+	TypedRef() M
+}
 
-// func (me *method) HandleResponse(out []reflect.Value) ([]*reflect.Value, error) {
-// 	output := make([]*reflect.Value, 0)
-// 	for _, v := range out {
-// 		output = append(output, &v)
-// 	}
-// 	return output, nil
-// }
+func GetRunMethod[M Method](inter M) (TypedValidatedRunMethod[M], error) {
 
-// func (me *method) Names() []string {
-// 	return me.names
-// }
+	prov, ok := any(inter).(MethodProvider)
+	if ok {
+		return &runMethod[M]{
+			runfunc: prov.Method(),
+			strc:    inter,
+		}, nil
+	}
 
-// func IsContextResolver(me Method) bool {
-// 	returns := ReturnArgs(me)
-// 	return len(returns) == 2 && returns[0] == reflect.TypeOf((*context.Context)(nil)).Elem()
-// }
+	value := reflect.ValueOf(inter)
 
-// type method struct {
-// 	names  []string
-// 	method reflect.Value
+	method := value.MethodByName("Run")
+	if !method.IsValid() {
+		if value.CanAddr() {
+			method = value.Addr().MethodByName("Run")
+		}
+	}
 
-// 	setFlag            func(string, any)
-// 	getFlag            func(string) any
-// 	validationStrategy func([]reflect.Type) error
-// 	responseStrategy   func([]reflect.Value) ([]*reflect.Value, error)
-// 	// cmd                Cobrad
-// }
+	if !method.IsValid() {
+		return nil, errors.Errorf("missing Run method on %q", value.Type())
+	}
+
+	return &runMethod[M]{
+		runfunc: method,
+		strc:    inter,
+	}, nil
+
+}
+
+type runMethod[M Method] struct {
+	runfunc reflect.Value
+	strc    M
+}
+
+func (me *runMethod[M]) RunFunc() reflect.Value {
+	return me.runfunc
+}
+
+func (me *runMethod[M]) Ref() Method {
+	return me.strc
+}
+
+func (me *runMethod[M]) TypedRef() M {
+	return me.strc
+}
+
+func ListOfArgs(m ValidatedRunMethod) []reflect.Type {
+	var args []reflect.Type
+	typ := m.RunFunc().Type()
+	for i := 0; i < typ.NumIn(); i++ {
+		args = append(args, typ.In(i))
+	}
+
+	return args
+}
+
+func ListOfReturns(m ValidatedRunMethod) []reflect.Type {
+	var args []reflect.Type
+	typ := m.RunFunc().Type()
+	for i := 0; i < typ.NumOut(); i++ {
+		args = append(args, typ.Out(i))
+	}
+	return args
+}
+
+func MenthodIsShared(run ValidatedRunMethod) bool {
+	rets := ListOfReturns(run)
+	// right now this logic relys on the fact that commands only return one value (the error)
+	// and shared methods return two or more (the error and the values)
+	if len(rets) == 1 || (len(rets) == 2 && rets[0].String() == reflect.TypeOf((*Output)(nil)).Elem().String()) {
+		return false
+	} else {
+		return true
+	}
+}
+
+func ReturnArgs(me ValidatedRunMethod) []reflect.Type {
+	return ListOfReturns(me)
+}
+
+func FieldByName(me ValidatedRunMethod, name string) reflect.Value {
+	return reflect.Indirect(reflect.ValueOf(me.Ref()).Elem()).FieldByName(name)
+}
+
+func CallMethod(me ValidatedRunMethod, args []reflect.Value) []reflect.Value {
+	return me.RunFunc().Call(args)
+}
+
+func StructFields(me ValidatedRunMethod) []reflect.StructField {
+	typ := reflect.TypeOf(me.Ref())
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+	}
+	vis := reflect.VisibleFields(typ)
+	return vis
+}

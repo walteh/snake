@@ -51,12 +51,11 @@ func (me *CS) Decorate(self SCobra, snk sbind.Snake, inputs []sbind.Input) error
 				return err
 			}
 			flgs.Var(d, v.Name(), t.Usage())
-		case *sbind.IntEnumInput:
-			d, err := NewWrappedEnum(t.Default(), t.Value(), t.Options()...)
+			vd, err := sbind.GetRunMethod(d)
 			if err != nil {
 				return err
 			}
-			flgs.Var(d, v.Name(), t.Usage())
+			snk.SetResolver(t.Name(), vd)
 		case *sbind.StringInput:
 			flgs.StringVar(t.Value(), v.Name(), t.Default(), t.Usage())
 		case *sbind.BoolInput:
@@ -138,6 +137,10 @@ func NewCobraSnake(root *cobra.Command, opts *NewSCobraOpts) (*cobra.Command, er
 	// these will always be overwritten in the RunE function
 	opts2.Resolvers = append(opts2.Resolvers, sbind.NewNoopMethod[*cobra.Command]())
 	opts2.Resolvers = append(opts2.Resolvers, sbind.NewNoopMethod[[]string]())
+
+	for _, v := range opts2.Enums {
+		opts2.Resolvers = append(opts2.Resolvers, v.NoopResolver())
+	}
 
 	snk, err := sbind.NewSnake(opts2, me)
 	if err != nil {
