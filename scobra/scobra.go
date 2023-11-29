@@ -20,7 +20,7 @@ type SCobra interface {
 
 type NewSCobraOpts struct {
 	Commands  []SCobra
-	Resolvers []sbind.Method
+	Resolvers []sbind.ValidatedRunMethod
 	Enums     []sbind.EnumOption
 }
 
@@ -46,16 +46,23 @@ func (me *CS) Decorate(self SCobra, snk sbind.Snake, inputs []sbind.Input) error
 
 		switch t := v.(type) {
 		case *sbind.StringEnumInput:
-			d, err := NewWrappedEnum(t.Default(), t.Value(), t.Options()...)
-			if err != nil {
-				return err
-			}
-			flgs.Var(d, v.Name(), t.Usage())
-			vd, err := sbind.GetRunMethod(d)
-			if err != nil {
-				return err
-			}
-			snk.SetResolver(t.Name(), vd)
+			flgs.Var(NewWrappedEnum(t), v.Name(), t.Usage())
+			// if we, ok := t.Ptr().(*wrappedEnum); ok {
+			// } else {
+			// 	return errors.Errorf("unknown input type %T", t)
+			// }
+			// flgs.Var(t., v.Name(), t.Usage())
+			// d, err := NewWrappedEnum(t)
+			// if err != nil {
+			// 	return err
+			// }
+			// flgs.Var(d, v.Name(), t.Usage())
+			// vd, err := sbind.GetRunMethod(d)
+			// if err != nil {
+			// 	return err
+			// }
+			// snk.SetResolver(t.Name(), vd)
+			// flgs.Var(t.Value(), v.Name(), t.Usage())
 		case *sbind.StringInput:
 			flgs.StringVar(t.Value(), v.Name(), t.Default(), t.Usage())
 		case *sbind.BoolInput:
@@ -121,13 +128,15 @@ func NewCobraSnake(root *cobra.Command, opts *NewSCobraOpts) (*cobra.Command, er
 	me := &CS{root}
 
 	opts2 := &sbind.NewSnakeOpts{
-		Resolvers:      make([]sbind.Method, 0),
-		NamedResolvers: map[string]sbind.Method{},
+		Resolvers:      make([]sbind.ValidatedRunMethod, 0),
+		NamedResolvers: map[string]sbind.ValidatedRunMethod{},
 		Enums:          opts.Enums,
 	}
 
+	var err error
+
 	for _, v := range opts.Commands {
-		opts2.NamedResolvers[v.Command().Name()] = v
+		opts2.NamedResolvers[v.Command().Name()] = sbind.MustGetRunMethod(v)
 	}
 
 	for _, v := range opts.Resolvers {
@@ -139,7 +148,7 @@ func NewCobraSnake(root *cobra.Command, opts *NewSCobraOpts) (*cobra.Command, er
 	opts2.Resolvers = append(opts2.Resolvers, sbind.NewNoopMethod[[]string]())
 
 	for _, v := range opts2.Enums {
-		opts2.Resolvers = append(opts2.Resolvers, v.NoopResolver())
+		opts2.Resolvers = append(opts2.Resolvers, v)
 	}
 
 	snk, err := sbind.NewSnake(opts2, me)

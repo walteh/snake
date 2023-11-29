@@ -77,7 +77,8 @@ func InputsFor(m ValidatedRunMethod, enum ...EnumOption) ([]Input, error) {
 		}
 
 		if f.Type.Kind() == reflect.Ptr {
-			return nil, errors.Errorf("field %q in %v is a pointer type", f.Name, m)
+			f.Type = f.Type.Elem()
+			// return nil, errors.Errorf("field %q in %T is a pointer type", f.Name, m)
 		}
 
 		switch f.Type.Kind() {
@@ -117,16 +118,11 @@ type simpleValueInput[T any] struct {
 }
 
 type enumInput struct {
-	simpleValueInput[string]
-	options     []string
-	rawTypeName string
+	EnumOption
+	*genericInput
 }
 
-func (me *enumInput) Options() []string {
-	return me.options
-}
-
-func getEnumOptionsFrom(mytype reflect.Type, enum ...EnumOption) ([]string, error) {
+func getEnumOptionsFrom(mytype reflect.Type, enum ...EnumOption) (EnumOption, error) {
 	rawTypeName := mytype.String()
 	var sel EnumOption
 	for _, v := range enum {
@@ -140,33 +136,24 @@ func getEnumOptionsFrom(mytype reflect.Type, enum ...EnumOption) ([]string, erro
 		return nil, errors.Errorf("no options for %q", rawTypeName)
 	}
 
-	return sel.Options(), nil
+	return sel, nil
 
 }
 
 func NewGenericEnumInput(f reflect.StructField, m ValidatedRunMethod, enum ...EnumOption) (*enumInput, error) {
 
-	v := FieldByName(m, f.Name)
+	mytype := FieldByName(m, f.Name).Type()
 
-	mytype := v.Type()
+	if mytype.Kind() == reflect.Ptr {
+		mytype = mytype.Elem()
+	}
 
 	opts, err := getEnumOptionsFrom(mytype, enum...)
 	if err != nil {
 		return nil, err
 	}
 
-	return &enumInput{
-		simpleValueInput: simpleValueInput[string]{
-			genericInput: NewGenericInput(f, m),
-			val:          (*string)(v.Addr().UnsafePointer()),
-		},
-		options:     opts,
-		rawTypeName: mytype.String(),
-	}, nil
-}
-
-func (me *enumInput) Ptr() any {
-	return me.val
+	return EnumOptionAsInput(opts, NewGenericInput(f, m)), nil
 }
 
 func NewSimpleValueInput[T any](f reflect.StructField, m ValidatedRunMethod) *simpleValueInput[T] {
@@ -210,8 +197,12 @@ func (me *simpleValueInput[T]) Ptr() any {
 	return me.val
 }
 
+func (me *genericInput) Default() string {
+	return me.field.Tag.Get("default")
+}
+
 func (me *simpleValueInput[T]) Default() T {
-	defstr := me.field.Tag.Get("default")
+	defstr := me.genericInput.Default()
 	switch any(me.val).(type) {
 	case *string:
 		return any(defstr).(T)

@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/walteh/snake/example/root/sample"
 )
 
@@ -40,24 +41,20 @@ func TestNewCommand(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			cmd, hndl, err := NewCommand(tt.args.ctx)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewCommand() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				assert.Error(t, err)
 				return
+			} else {
+				require.NoError(t, err)
 			}
 
 			err = os.Setenv("ROOT_COOL", "true")
-			if err != nil {
-				t.Errorf("Setenv() error = %v", err)
-				return
-			}
+			require.NoError(t, err)
 
-			os.Args = []string{"root", "sample", "--value", "test123", "--myenum", "y"}
+			os.Args = []string{"root", "sample", "--value", "test123", "--myenum"}
 
 			err = cmd.Execute()
-			if err != nil {
-				t.Errorf("Execute() error = %v", err)
-				return
-			}
+			require.NoError(t, err)
 
 			assert.True(t, hndl.Cool)
 			assert.Equal(t, "test123", hndl.Value)

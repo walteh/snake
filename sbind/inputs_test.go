@@ -25,13 +25,13 @@ func (me *DuplicateArgumentResolver) Run() (bool, error) {
 	return me.ABC, nil
 }
 
-type EnumArgumentResolver struct {
-	GHI MockEnum
-}
+// type EnumArgumentResolver struct {
+// 	GHI MockEnum
+// }
 
-func (me *EnumArgumentResolver) Run() (MockEnum, error) {
-	return me.GHI, nil
-}
+// func (me *EnumArgumentResolver) Run() (MockEnum, error) {
+// 	return me.GHI, nil
+// }
 
 type ExampleÇommand struct {
 	DEF string
@@ -81,7 +81,7 @@ func TestDependancyInputs(t *testing.T) {
 	vr2d, err := sbind.GetRunMethod(r2d)
 	require.NoError(t, err)
 
-	r3 := &EnumArgumentResolver{GHI: MockEnumC}
+	r3 := sbind.NewEnumOptionWithResolver(nil, MockEnumA, MockEnumB, MockEnumC)
 	vr3, err := sbind.GetRunMethod(r3)
 	require.NoError(t, err)
 
@@ -123,10 +123,10 @@ func TestDependancyInputs(t *testing.T) {
 	}
 
 	expectedEnum := &mockInput{
-		name:   "ghi",
+		name:   "myenum",
 		shared: true,
 		parent: sbind.MethodName(vr3),
-		ptr:    &r3.GHI,
+		ptr:    r3.CurrentPtr(),
 	}
 
 	tests := []struct {
@@ -171,7 +171,7 @@ func TestDependancyInputs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			inputs, err := sbind.DependancyInputs(tt.str, m, sbind.NewEnumOption(MockEnumA, MockEnumB, MockEnumC))
+			inputs, err := sbind.DependancyInputs(tt.str, m, r3)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -190,7 +190,7 @@ func TestDependancyInputs(t *testing.T) {
 					}
 				}
 
-				assert.NotNil(t, v)
+				require.NotNil(t, v)
 
 				assert.Equal(t, exp.name, v.Name())
 				assert.Equal(t, exp.shared, v.Shared())

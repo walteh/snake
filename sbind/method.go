@@ -11,6 +11,14 @@ type ValidatedRunMethod interface {
 	Ref() Method
 }
 
+func MustGetRunMethod[M Method](inter M) TypedValidatedRunMethod[M] {
+	m, err := GetRunMethod(inter)
+	if err != nil {
+		panic(err)
+	}
+	return m
+}
+
 type TypedValidatedRunMethod[M Method] interface {
 	ValidatedRunMethod
 	TypedRef() M

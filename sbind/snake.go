@@ -10,8 +10,8 @@ type EnumTypeFunc func(string) ([]any, error)
 type EnumOptionResolver func(string) ([]string, error)
 
 type NewSnakeOpts struct {
-	Resolvers                  []Method
-	NamedResolvers             map[string]Method
+	Resolvers                  []ValidatedRunMethod
+	NamedResolvers             map[string]ValidatedRunMethod
 	GlobalContextResolverFlags bool
 	Enums                      []EnumOption
 }
@@ -66,14 +66,9 @@ func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake,
 	}
 
 	// we always want context to get resolved first
-	opts.NamedResolvers["root"] = NewNoopAsker[context.Context]()
+	opts.NamedResolvers["root"] = MustGetRunMethod(NewNoopAsker[context.Context]())
 
-	for _, v := range opts.Resolvers {
-
-		runner, err := GetRunMethod(v)
-		if err != nil {
-			return nil, err
-		}
+	for _, runner := range opts.Resolvers {
 
 		retrn := ReturnArgs(runner)
 
@@ -81,20 +76,12 @@ func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake,
 			if r.Kind().String() == "error" {
 				continue
 			}
-			snk.resolvers[reflectTypeString(r)], err = GetRunMethod(v)
-			if err != nil {
-				return nil, err
-			}
+			snk.resolvers[reflectTypeString(r)] = runner
 		}
 	}
 
 	for k, v := range opts.NamedResolvers {
-		r, err := GetRunMethod(v)
-		if err != nil {
-			return nil, err
-		}
-
-		snk.resolvers[k] = r
+		snk.resolvers[k] = v
 	}
 
 	for _, sexer := range snk.ResolverNames() {

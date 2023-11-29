@@ -1,23 +1,26 @@
 package scobra
 
-import "github.com/manifoldco/promptui"
+import (
+	"github.com/go-faster/errors"
+	"github.com/manifoldco/promptui"
+)
 
-func (me *wrappedEnum[A]) Run() (A, error) {
-
-	if me.current == nil || *me.current == "select" {
-		prompt := promptui.Select{
-			Label: "Select ",
-			Items: me.values,
-		}
-
-		_, result, err := prompt.Run()
-
-		if err != nil {
-			return A(""), err
-		}
-
-		return A(result), nil
+func PromptUIEnumResolver(typ string, opts []string) (string, error) {
+	prompt := promptui.Select{
+		Label: "Select " + typ,
+		Items: opts,
 	}
 
-	return *me.current, nil
+	_, result, err := prompt.Run()
+
+	if err != nil {
+		return "", err
+	}
+
+	if result == "" {
+		return "", errors.Errorf("invalid %q", typ)
+	}
+
+	return result, nil
+
 }
