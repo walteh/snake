@@ -122,6 +122,10 @@ type enumInput struct {
 	*genericInput
 }
 
+func (me *enumInput) Name() string {
+	return me.EnumOption.Name()
+}
+
 func getEnumOptionsFrom(mytype reflect.Type, enum ...EnumOption) (EnumOption, error) {
 	rawTypeName := mytype.String()
 	var sel EnumOption

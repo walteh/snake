@@ -51,7 +51,7 @@ func TestNewCommand(t *testing.T) {
 			err = os.Setenv("ROOT_COOL", "true")
 			require.NoError(t, err)
 
-			os.Args = []string{"root", "sample", "--value", "test123", "--myenum", "select"}
+			os.Args = []string{"root", "sample", "--value", "test123", "--the-cool-enum", "select"}
 
 			err = cmd.Execute()
 			require.NoError(t, err)

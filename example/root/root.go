@@ -30,6 +30,7 @@ func NewCommand(ctx context.Context) (*cobra.Command, *sample.Handler, error) {
 		},
 		Enums: []sbind.EnumOption{
 			sbind.NewEnumOptionWithResolver(
+				"the-cool-enum",
 				func(s1 string, s2 []string) (string, error) {
 					return string(sample.SampleEnumY), nil
 				},

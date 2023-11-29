@@ -24,6 +24,7 @@ type EnumOption interface {
 	RawTypeName() string
 	Options() []string
 	Ptr() any
+	Name() string
 }
 
 type rawEnumOption[T EnumConstraint] struct {
@@ -31,6 +32,7 @@ type rawEnumOption[T EnumConstraint] struct {
 	rawTypeName  string
 	options      []T
 	enumResolver EnumResolver
+	name         string
 }
 
 // Ref implements ValidatedRunMethod.
@@ -43,7 +45,7 @@ func (me *rawEnumOption[T]) RunFunc() reflect.Value {
 	return reflect.ValueOf(me.Run)
 }
 
-func NewEnumOptionWithResolver[T EnumConstraint](resolver EnumResolver, input ...T) EnumOption {
+func NewEnumOptionWithResolver[T EnumConstraint](name string, resolver EnumResolver, input ...T) EnumOption {
 	sel := new(T)
 	if resolver != nil {
 		*sel = T("select")
@@ -54,7 +56,12 @@ func NewEnumOptionWithResolver[T EnumConstraint](resolver EnumResolver, input ..
 		rawTypeName:  reflect.TypeOf((*T)(nil)).Elem().String(),
 		options:      input,
 		enumResolver: resolver,
+		name:         name,
 	}
+}
+
+func (me *rawEnumOption[T]) Name() string {
+	return me.name
 }
 
 func (me *rawEnumOption[T]) RawTypeName() string {
@@ -107,10 +114,10 @@ func (me *rawEnumOption[T]) Run() (T, error) {
 	return *me.MyEnum, nil
 }
 
-func EnumOptionAsInput(me EnumOption, gen *genericInput) *enumInput {
+func EnumOptionAsInput(me EnumOption, m *genericInput) *enumInput {
 	return &enumInput{
 		EnumOption:   me,
-		genericInput: gen,
+		genericInput: m,
 	}
 }
 

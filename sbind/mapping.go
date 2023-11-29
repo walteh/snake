@@ -123,19 +123,7 @@ func findArgumentsRaw(str string, fmap FMap, wrk *Binder) (*Binder, error) {
 		tmp = append(tmp, *wrk.bindings[name])
 	}
 
-	// var methd reflect.Value
-
-	// if prov, ok := curr.(MethodProvider); ok {
-	// 	methd = prov.Method()
-	// } else {
-	// 	methd = GetRunMethod(curr)
-	// }
-
 	out := CallMethod(validated, tmp)
-	// out, err := curr.HandleResponse(resp)
-	// if err != nil {
-	// 	return nil, err
-	// }
 
 	if len(out) == 1 {
 		// only commands can have one response value, which is always an error

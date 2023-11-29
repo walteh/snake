@@ -81,7 +81,7 @@ func TestDependancyInputs(t *testing.T) {
 	vr2d, err := sbind.GetRunMethod(r2d)
 	require.NoError(t, err)
 
-	r3 := sbind.NewEnumOptionWithResolver(nil, MockEnumA, MockEnumB, MockEnumC)
+	r3 := sbind.NewEnumOptionWithResolver("best-enum-ever", nil, MockEnumA, MockEnumB, MockEnumC)
 	vr3, err := sbind.GetRunMethod(r3)
 	require.NoError(t, err)
 
