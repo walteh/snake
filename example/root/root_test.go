@@ -40,7 +40,7 @@ func TestNewCommand(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			cmd, hndl, err := NewCommand(tt.args.ctx)
+			_, cmd, hndl, err := NewCommand(tt.args.ctx)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -53,7 +53,7 @@ func TestNewCommand(t *testing.T) {
 
 			os.Args = []string{"root", "sample", "--value", "test123", "--sample-enum", "select"}
 
-			err = cmd.Execute()
+			err = cmd.RootCommand.Execute()
 			require.NoError(t, err)
 
 			assert.True(t, hndl.Cool)
@@ -71,7 +71,7 @@ func TestDocs(t *testing.T) {
 
 	ctx := context.Background()
 
-	cmd, _, err := NewCommand(ctx)
+	_, cmd, _, err := NewCommand(ctx)
 	if err != nil {
 		t.Errorf("NewCommand() error = %v", err)
 		return
@@ -92,7 +92,7 @@ func TestDocs(t *testing.T) {
 		return
 	}
 
-	err = doc.GenMarkdownTree(cmd, mdpath)
+	err = doc.GenMarkdownTree(cmd.RootCommand, mdpath)
 	if err != nil {
 		t.Errorf("GenMarkdownTree() error = %v", err)
 		return

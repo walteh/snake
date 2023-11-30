@@ -11,8 +11,8 @@ import (
 	"github.com/walteh/snake"
 )
 
-type CS struct {
-	*cobra.Command
+type CobraSnake struct {
+	RootCommand *cobra.Command
 }
 
 type SCobra interface {
@@ -25,14 +25,14 @@ func NewCommandResolver(s SCobra) snake.TypedResolver[SCobra] {
 	return snake.MustGetRunMethod(s)
 }
 
-func (me *CS) ManagedResolvers(_ context.Context) []snake.Resolver {
+func (me *CobraSnake) ManagedResolvers(_ context.Context) []snake.Resolver {
 	return []snake.Resolver{
 		snake.NewNoopMethod[*cobra.Command](),
 		snake.NewNoopMethod[[]string](),
 	}
 }
 
-func (me *CS) Decorate(ctx context.Context, self SCobra, snk snake.Snake, inputs []snake.Input) error {
+func (me *CobraSnake) Decorate(ctx context.Context, self SCobra, snk snake.Snake, inputs []snake.Input) error {
 
 	cmd := self.Command()
 
@@ -44,7 +44,7 @@ func (me *CS) Decorate(ctx context.Context, self SCobra, snk snake.Snake, inputs
 		flgs := cmd.Flags()
 
 		if v.Shared() {
-			flgs = me.PersistentFlags()
+			flgs = me.RootCommand.PersistentFlags()
 		} else {
 			if cmd.Flags().Lookup(v.Name()) != nil {
 				// if this is the same object, then the user is trying to override the flag, so we let them
@@ -76,7 +76,7 @@ func (me *CS) Decorate(ctx context.Context, self SCobra, snk snake.Snake, inputs
 			if f.Changed {
 				return
 			}
-			val := strings.ToUpper(me.Name() + "_" + strings.ReplaceAll(f.Name, "-", "_"))
+			val := strings.ToUpper(me.RootCommand.Name() + "_" + strings.ReplaceAll(f.Name, "-", "_"))
 			envvar := os.Getenv(val)
 			if envvar == "" {
 				return
@@ -110,14 +110,14 @@ func (me *CS) Decorate(ctx context.Context, self SCobra, snk snake.Snake, inputs
 		return nil
 	}
 
-	me.AddCommand(cmd)
+	me.RootCommand.AddCommand(cmd)
 
 	return nil
 }
 
-func (me *CS) OnSnakeInit(ctx context.Context, snk snake.Snake) error {
+func (me *CobraSnake) OnSnakeInit(ctx context.Context, snk snake.Snake) error {
 
-	me.RunE = func(cmd *cobra.Command, args []string) error {
+	me.RootCommand.RunE = func(cmd *cobra.Command, args []string) error {
 		binder := snake.NewBinder()
 
 		snake.SetBinding(binder, cmd)
@@ -135,15 +135,15 @@ func (me *CS) OnSnakeInit(ctx context.Context, snk snake.Snake) error {
 	return nil
 }
 
-func NewCobraSnake(root *cobra.Command) (*CS, error) {
+func NewCobraSnake(root *cobra.Command) *CobraSnake {
 
 	if root == nil {
 		root = &cobra.Command{}
 	}
 
-	me := &CS{root}
+	me := &CobraSnake{root}
 
 	root.SilenceUsage = true
 
-	return me, nil
+	return me
 }

@@ -14,7 +14,7 @@ func main() {
 
 	ctx := context.Background()
 
-	cmd, _, err := root.NewCommand(ctx)
+	_, cmd, _, err := root.NewCommand(ctx)
 	if err != nil {
 		if !scobra.IsHandledByPrintingToConsole(err) {
 			_, _ = fmt.Print(err)
@@ -22,9 +22,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx = cmd.Context()
+	ctx = cmd.RootCommand.Context()
 
-	str, err := scobra.DecorateTemplate(ctx, cmd, &scobra.DecorateOptions{
+	str, err := scobra.DecorateTemplate(ctx, cmd.RootCommand, &scobra.DecorateOptions{
 		Headings: color.New(color.FgCyan, color.Bold),
 		ExecName: color.New(color.FgHiGreen, color.Bold),
 		Commands: color.New(color.FgHiRed, color.Faint),
@@ -36,11 +36,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	cmd.SetUsageTemplate(str)
+	cmd.RootCommand.SetUsageTemplate(str)
 
 	// cmd.SilenceErrors = true
 
-	if err := cmd.ExecuteContext(ctx); err != nil {
+	if err := cmd.RootCommand.ExecuteContext(ctx); err != nil {
 		if !scobra.IsHandledByPrintingToConsole(err) {
 			_, _ = fmt.Print(err)
 		}

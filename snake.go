@@ -5,9 +5,8 @@ import (
 	"reflect"
 )
 
-type NewSnakeOpts[M NamedMethod] struct {
-	Resolvers      []Resolver
-	Implementation SnakeImplementation[M]
+type NewSnakeOpts struct {
+	Resolvers []Resolver
 }
 
 type Snake interface {
@@ -42,13 +41,12 @@ type SnakeImplementation[X any] interface {
 }
 
 func NewSnake[M NamedMethod](ctx context.Context, impl SnakeImplementation[M], res ...Resolver) (Snake, error) {
-	return NewSnakeWithOpts(ctx, &NewSnakeOpts[M]{
-		Resolvers:      res,
-		Implementation: impl,
+	return NewSnakeWithOpts(ctx, impl, &NewSnakeOpts{
+		Resolvers: res,
 	})
 }
 
-func NewSnakeWithOpts[M NamedMethod](ctx context.Context, opts *NewSnakeOpts[M]) (Snake, error) {
+func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementation[M], opts *NewSnakeOpts) (Snake, error) {
 
 	snk := &defaultSnake{
 		resolvers: make(map[string]Resolver),
@@ -58,7 +56,13 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, opts *NewSnakeOpts[M])
 
 	named := make(map[string]TypedResolver[M])
 
-	inputResolvers := append(opts.Resolvers, opts.Implementation.ManagedResolvers(ctx)...)
+	inputResolvers := make([]Resolver, 0)
+
+	if opts.Resolvers != nil {
+		inputResolvers = append(inputResolvers, opts.Resolvers...)
+	}
+
+	inputResolvers = append(inputResolvers, impl.ManagedResolvers(ctx)...)
 
 	for _, runner := range inputResolvers {
 
@@ -91,14 +95,14 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, opts *NewSnakeOpts[M])
 			return nil, err
 		}
 
-		err = opts.Implementation.Decorate(ctx, runner.TypedRef(), snk, inpts)
+		err = impl.Decorate(ctx, runner.TypedRef(), snk, inpts)
 		if err != nil {
 			return nil, err
 		}
 
 	}
 
-	err := opts.Implementation.OnSnakeInit(ctx, snk)
+	err := impl.OnSnakeInit(ctx, snk)
 	if err != nil {
 		return nil, err
 	}

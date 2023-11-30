@@ -11,31 +11,26 @@ import (
 	"github.com/walteh/snake/scobra"
 )
 
-func NewCommand(ctx context.Context) (*cobra.Command, *sample.Handler, error) {
+func NewCommand(ctx context.Context) (snake.Snake, *scobra.CobraSnake, *sample.Handler, error) {
 
 	cmd := &cobra.Command{
 		Use: "root",
 	}
 
+	impl := scobra.NewCobraSnake(cmd)
+
 	handler := &sample.Handler{}
-
-	out, err := scobra.NewCobraSnake(cmd)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	loaded := resolvers.LoadResolvers()
 
 	commands := []snake.Resolver{
 		scobra.NewCommandResolver(handler),
 	}
 
-	commands = append(commands, loaded...)
-
-	_, err = snake.NewSnake(ctx, out, commands...)
+	snk, err := snake.NewSnakeWithOpts(ctx, impl, &snake.NewSnakeOpts{
+		Resolvers: append(commands, resolvers.LoadResolvers()...),
+	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return out.Command, handler, err
+	return snk, impl, handler, err
 }
