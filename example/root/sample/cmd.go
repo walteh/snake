@@ -16,6 +16,8 @@ type Handler struct {
 	Value string `default:"default"`
 	Cool  bool   `default:"false"`
 
+	curr int
+
 	args args
 }
 
@@ -70,14 +72,18 @@ func (me *Handler) Run(
 	me.args.Br = br
 	me.args.Bw = bw
 	me.args.Bs = bs
+
+	me.curr += 1
 	return &snake.TableOutput{
 		ColumnNames: []string{"name", "value"},
 		RowValueData: [][]any{
 			{"value", me.Value},
 			{"cool", me.Cool},
+			{"curr", me.curr},
 		},
 		RowValueColors: [][]*color.Color{
 			{color.New(color.FgHiGreen), color.New(color.Bold)},
+			{color.New(color.FgHiRed), color.New(color.Bold)},
 			{color.New(color.FgHiBlue), color.New(color.FgBlack)},
 		},
 	}, nil

@@ -26,29 +26,53 @@ func ResolveAllShared(ctx context.Context, names []string, fmap FMap, binder *Bi
 	return binder, nil
 }
 
-func RunResolvingArguments(outputHandler OutputHandler, fmap FMap, str string, binder *Binder) error {
+func WrapWithMiddleware(base MiddlewareFunc, middlewares ...Middleware) MiddlewareFunc {
+
+	for _, v := range middlewares {
+		base = v.Wrap(base)
+	}
+	return base
+}
+
+func RunResolvingArguments(outputHandler OutputHandler, fmap FMap, str string, binder *Binder, middlewares ...Middleware) error {
 	// always resolve context.Context first
-	binder, err := findArgumentsRaw("context.Context", fmap, binder)
+	_, err := findArgumentsRaw("context.Context", fmap, binder)
 	if err != nil {
 		return err
 	}
 
-	binder, err = findArgumentsRaw(str, fmap, binder)
-	if err != nil {
-		return err
+	base := func(ctx context.Context) error {
+		defer func() {
+			delete(binder.bindings, str)
+		}()
+
+		binder, err := findArgumentsRaw(str, fmap, binder)
+		if err != nil {
+			return err
+		}
+
+		out := binder.bindings[str]
+
+		if out == nil {
+			return errors.Errorf("missing resolver for %q", str)
+		}
+
+		result := binder.bindings[str].Interface()
+
+		if out, ok := result.(Output); ok {
+			return HandleOutput(ctx, outputHandler, out)
+		}
+
+		return nil
 	}
 
-	out := binder.bindings[str]
+	wrp := WrapWithMiddleware(base, middlewares...)
+
 	ctx := binder.bindings["context.Context"].Interface().(context.Context)
 
-	if out == nil {
-		return errors.Errorf("missing resolver for %q", str)
-	}
-
-	result := binder.bindings[str].Interface()
-
-	if out, ok := result.(Output); ok {
-		return HandleOutput(ctx, outputHandler, out)
+	err = wrp(ctx)
+	if err != nil {
+		return err
 	}
 
 	return nil

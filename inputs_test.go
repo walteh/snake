@@ -97,21 +97,21 @@ func TestDependancyInputs(t *testing.T) {
 	}
 
 	expectedR1 := &mockInput{
-		name:   "abc",
+		name:   "a-b-c",
 		shared: true,
 		parent: snake.MethodName(vr1),
 		ptr:    &r1.ABC,
 	}
 
 	expectedR2 := &mockInput{
-		name:   "def",
+		name:   "d-e-f",
 		shared: false,
 		parent: snake.MethodName(vr2),
 		ptr:    &r2.DEF,
 	}
 
 	expectedR1d := &mockInput{
-		name:   "abc",
+		name:   "a-b-c",
 		shared: true,
 		parent: snake.MethodName(vr1d),
 		ptr:    &r1d.ABC,

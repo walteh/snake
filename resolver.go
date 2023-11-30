@@ -6,9 +6,16 @@ import (
 	"github.com/go-faster/errors"
 )
 
+var (
+	_ Resolver              = (*simpleResolver[Method])(nil)
+	_ TypedResolver[Method] = (*simpleResolver[Method])(nil)
+	_ MiddlewareProvider    = (*simpleResolver[Method])(nil)
+)
+
 type TypedResolver[M Method] interface {
 	Resolver
 	TypedRef() M
+	WithMiddleware(...Middleware) TypedResolver[M]
 }
 
 type Resolver interface {
@@ -22,8 +29,9 @@ type MethodProvider interface {
 }
 
 type simpleResolver[M Method] struct {
-	runfunc reflect.Value
-	strc    M
+	runfunc     reflect.Value
+	strc        M
+	middlewares []Middleware
 }
 
 func (me *simpleResolver[M]) RunFunc() reflect.Value {
@@ -36,6 +44,15 @@ func (me *simpleResolver[M]) Ref() Method {
 
 func (me *simpleResolver[M]) TypedRef() M {
 	return me.strc
+}
+
+func (me *simpleResolver[M]) WithMiddleware(mw ...Middleware) TypedResolver[M] {
+	me.middlewares = append(me.middlewares, mw...)
+	return me
+}
+
+func (me *simpleResolver[M]) Middlewares() []Middleware {
+	return me.middlewares
 }
 
 func (me *simpleResolver[M]) IsResolver() {}

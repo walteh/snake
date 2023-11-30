@@ -3,7 +3,8 @@ package snake
 import (
 	"reflect"
 	"strconv"
-	"strings"
+	"time"
+	"unicode"
 
 	"github.com/go-faster/errors"
 )
@@ -24,6 +25,8 @@ type IntInput = simpleValueInput[int]
 type BoolInput = simpleValueInput[bool]
 type StringArrayInput = simpleValueInput[[]string]
 type IntArrayInput = simpleValueInput[[]int]
+
+type DurationInput = simpleValueInput[time.Duration]
 type StringEnumInput = enumInput
 
 func MethodName(m Resolver) string {
@@ -72,6 +75,8 @@ func InputsFor(m Resolver, enum ...Enum) ([]Input, error) {
 	resp := make([]Input, 0)
 	for _, f := range StructFields(m) {
 
+		fld := FieldByName(m, f.Name)
+
 		if !f.IsExported() {
 			continue
 		}
@@ -98,8 +103,17 @@ func InputsFor(m Resolver, enum ...Enum) ([]Input, error) {
 			resp = append(resp, NewSimpleValueInput[bool](f, m))
 		case reflect.Array, reflect.Slice:
 			resp = append(resp, NewSimpleValueInput[[]string](f, m))
+		case reflect.Int64:
+			switch fld.Interface().(type) {
+			case time.Duration:
+				resp = append(resp, NewSimpleValueInput[time.Duration](f, m))
+			default:
+				resp = append(resp, NewSimpleValueInput[int64](f, m))
+			}
+		case reflect.Struct:
+			return nil, errors.Errorf("field %q in %v is unexpected reflect.Kind %s", f.Name, m, f.Type.Kind().String())
 		default:
-			return nil, errors.Errorf("field %q in %v is not a string or int", f.Name, m)
+			return nil, errors.Errorf("field %q in %v is unexpected reflect.Kind %s", f.Name, m, f.Type.Kind().String())
 		}
 
 	}
@@ -182,7 +196,15 @@ func (me *simpleValueInput[T]) Value() *T {
 }
 
 func (me *genericInput) Name() string {
-	return strings.ToLower(me.field.Name)
+	// Convert CamelCase (e.g., "NumberOfCats") to kebab-case (e.g., "number-of-cats")
+	var result []rune
+	for i, r := range me.field.Name {
+		if i > 0 && unicode.IsUpper(r) {
+			result = append(result, '-')
+		}
+		result = append(result, unicode.ToLower(r))
+	}
+	return string(result)
 }
 
 func (me *genericInput) Shared() bool {
@@ -206,11 +228,17 @@ func (me *genericInput) Default() string {
 }
 
 func (me *simpleValueInput[T]) Default() T {
+
 	defstr := me.genericInput.Default()
+
+	if defstr == "" && reflect.ValueOf(me.val).IsValid() {
+		return *me.val
+	}
+
 	switch any(me.val).(type) {
 	case *string:
 		return any(defstr).(T)
-	case *int:
+	case *int, *int64:
 		if defstr == "" {
 			return any(0).(T)
 		}
@@ -228,7 +256,16 @@ func (me *simpleValueInput[T]) Default() T {
 			panic(err)
 		}
 		return any(boolt).(T)
+	case *time.Duration:
+		if defstr == "" {
+			return any(time.Second).(T)
+		}
+		durt, err := time.ParseDuration(defstr)
+		if err != nil {
+			panic(err)
+		}
+		return any(durt).(T)
 	default:
-		panic("unhandled type")
+		panic(errors.Errorf("unknown type %T", me.val))
 	}
 }

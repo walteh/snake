@@ -11,6 +11,10 @@ import (
 	"github.com/walteh/snake"
 )
 
+var (
+	_ snake.SnakeImplementation[SCobra] = &CobraSnake{}
+)
+
 type CobraSnake struct {
 	RootCommand *cobra.Command
 }
@@ -32,7 +36,29 @@ func (me *CobraSnake) ManagedResolvers(_ context.Context) []snake.Resolver {
 	}
 }
 
-func (me *CobraSnake) Decorate(ctx context.Context, self SCobra, snk snake.Snake, inputs []snake.Input) error {
+func applyInputToFlags(input snake.Input, flgs *pflag.FlagSet) error {
+	switch t := input.(type) {
+	case *snake.StringEnumInput:
+		flgs.Var(NewWrappedEnum(t), input.Name(), t.Usage())
+	case *snake.StringInput:
+		flgs.StringVar(t.Value(), input.Name(), t.Default(), t.Usage())
+	case *snake.BoolInput:
+		flgs.BoolVar(t.Value(), input.Name(), t.Default(), t.Usage())
+	case *snake.IntInput:
+		flgs.IntVar(t.Value(), input.Name(), t.Default(), t.Usage())
+	case *snake.StringArrayInput:
+		flgs.StringSliceVar(t.Value(), input.Name(), t.Default(), t.Usage())
+	case *snake.IntArrayInput:
+		flgs.IntSliceVar(t.Value(), input.Name(), t.Default(), t.Usage())
+	case *snake.DurationInput:
+		flgs.DurationVar(t.Value(), input.Name(), t.Default(), t.Usage())
+	default:
+		return errors.Errorf("unknown input type %T", t)
+	}
+	return nil
+}
+
+func (me *CobraSnake) Decorate(ctx context.Context, self SCobra, snk snake.Snake, inputs []snake.Input, mw []snake.Middleware) error {
 
 	cmd := self.Command()
 
@@ -52,21 +78,9 @@ func (me *CobraSnake) Decorate(ctx context.Context, self SCobra, snk snake.Snake
 			}
 		}
 
-		switch t := v.(type) {
-		case *snake.StringEnumInput:
-			flgs.Var(NewWrappedEnum(t), v.Name(), t.Usage())
-		case *snake.StringInput:
-			flgs.StringVar(t.Value(), v.Name(), t.Default(), t.Usage())
-		case *snake.BoolInput:
-			flgs.BoolVar(t.Value(), v.Name(), t.Default(), t.Usage())
-		case *snake.IntInput:
-			flgs.IntVar(t.Value(), v.Name(), t.Default(), t.Usage())
-		case *snake.StringArrayInput:
-			flgs.StringSliceVar(t.Value(), v.Name(), t.Default(), t.Usage())
-		case *snake.IntArrayInput:
-			flgs.IntSliceVar(t.Value(), v.Name(), t.Default(), t.Usage())
-		default:
-			return errors.Errorf("unknown input type %T", t)
+		err := applyInputToFlags(v, flgs)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -97,7 +111,7 @@ func (me *CobraSnake) Decorate(ctx context.Context, self SCobra, snk snake.Snake
 
 		outhand := NewOutputHandler(cmd)
 
-		err := snake.RunResolvingArguments(outhand, snk.Resolve, name, binder)
+		err := snake.RunResolvingArguments(outhand, snk.Resolve, name, binder, mw...)
 		if err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}

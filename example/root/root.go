@@ -9,6 +9,7 @@ import (
 	"github.com/walteh/snake/example/resolvers"
 	"github.com/walteh/snake/example/root/sample"
 	"github.com/walteh/snake/scobra"
+	"github.com/walteh/snake/smiddleware"
 )
 
 func NewCommand(ctx context.Context) (snake.Snake, *scobra.CobraSnake, *sample.Handler, error) {
@@ -22,7 +23,7 @@ func NewCommand(ctx context.Context) (snake.Snake, *scobra.CobraSnake, *sample.H
 	handler := &sample.Handler{}
 
 	commands := []snake.Resolver{
-		scobra.NewCommandResolver(handler),
+		scobra.NewCommandResolver(handler).WithMiddleware(smiddleware.NewIntervalMiddleware()),
 	}
 
 	snk, err := snake.NewSnakeWithOpts(ctx, impl, &snake.NewSnakeOpts{

@@ -1,4 +1,4 @@
-package slog
+package szerolog
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -29,8 +30,8 @@ func NewJsonStdErrLogger() *zerolog.Logger {
 	return &logger
 }
 
-func NewVerboseLoggerContext(ctx context.Context, writer io.Writer) context.Context {
-	verboseLogger := NewVerboseConsoleLogger(writer)
+func NewConsoleLoggerContext(ctx context.Context, level zerolog.Level, writer io.Writer) context.Context {
+	verboseLogger := NewVerboseConsoleLogger(writer).With().Logger().Level(level)
 	return verboseLogger.WithContext(ctx)
 }
 
@@ -55,29 +56,52 @@ func NewVerboseConsoleLogger(out io.Writer) *zerolog.Logger {
 	prettyerr := pp.New()
 	prettyerr.SetExportedOnly(false)
 
-	consoleOutput.FormatFieldValue = func(i interface{}) string {
+	consoleOutput.FormatFieldValue = func(i any) string {
 
-		switch i := i.(type) {
+		switch t := i.(type) {
 		case error:
-			return fmt.Sprintf("%v", i)
+			return terrors.FormatErrorCaller(t)
 		case []byte:
-			var g interface{}
-			err := json.Unmarshal(i, &g)
+			var g any
+			err := json.Unmarshal(t, &g)
 			if err != nil {
-				return pretty.Sprint(string(i))
+				return pretty.Sprint(string(t))
 			} else {
 				return pretty.Sprint(g)
 			}
 		}
 
-		return pretty.Sprint(i)
+		switch reflect.TypeOf(i).Kind() {
+		case reflect.Struct:
+			return pretty.Sprint(i)
+		case reflect.Map:
+			return pretty.Sprint(i)
+		case reflect.Slice:
+			return pretty.Sprint(i)
+		case reflect.Array:
+			return pretty.Sprint(i)
+		case reflect.Ptr:
+			return pretty.Sprint(i)
+		case reflect.Interface:
+			return pretty.Sprint(i)
+		case reflect.Func:
+			return pretty.Sprint(i)
+		case reflect.Chan:
+			return pretty.Sprint(i)
+		case reflect.UnsafePointer:
+			return pretty.Sprint(i)
+		case reflect.Uintptr:
+			return pretty.Sprint(i)
+		}
+
+		return fmt.Sprintf("%v", i)
 	}
 
-	consoleOutput.FormatTimestamp = func(i interface{}) string {
+	consoleOutput.FormatTimestamp = func(i any) string {
 		return time.Now().Format("[15:04:05.000000]")
 	}
 
-	consoleOutput.FormatCaller = func(i interface{}) string {
+	consoleOutput.FormatCaller = func(i any) string {
 		if i == nil {
 			return ""
 		}

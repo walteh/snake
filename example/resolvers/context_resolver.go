@@ -5,13 +5,13 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
+	"github.com/walteh/snake/szerolog"
 )
 
 type ContextResolver struct {
 	Quiet   bool `usage:"Do not print any output" default:"false"`
 	Debug   bool `usage:"Print debug output" default:"false"`
 	Version bool `usage:"Print version and exit" default:"false"`
-	// Cool    string
 }
 
 func (me *ContextResolver) Run(cmd *cobra.Command) (context.Context, error) {
@@ -27,7 +27,7 @@ func (me *ContextResolver) Run(cmd *cobra.Command) (context.Context, error) {
 
 	ctx := context.Background()
 
-	ctx = zerolog.New(zerolog.NewConsoleWriter()).With().Timestamp().Logger().Level(level).WithContext(ctx)
+	ctx = szerolog.NewConsoleLoggerContext(ctx, level, cmd.OutOrStdout())
 
 	return ctx, nil
 }

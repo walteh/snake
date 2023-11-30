@@ -2,6 +2,7 @@ package snake
 
 import (
 	"context"
+	"reflect"
 )
 
 type NewSnakeOpts struct {
@@ -30,7 +31,7 @@ func (me *defaultSnake) Resolve(name string) Resolver {
 }
 
 type SnakeImplementation[X any] interface {
-	Decorate(context.Context, X, Snake, []Input) error
+	Decorate(context.Context, X, Snake, []Input, []Middleware) error
 	ManagedResolvers(context.Context) []Resolver
 	OnSnakeInit(context.Context, Snake) error
 }
@@ -42,6 +43,7 @@ func NewSnake[M NamedMethod](ctx context.Context, impl SnakeImplementation[M], r
 }
 
 func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementation[M], opts *NewSnakeOpts) (Snake, error) {
+	var err error
 
 	snk := &defaultSnake{
 		resolvers: make(map[string]Resolver),
@@ -61,8 +63,9 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 
 	for _, runner := range inputResolvers {
 
-		if nmd, err := runner.(TypedResolver[M]); err {
+		if nmd, ok := runner.(TypedResolver[M]); ok {
 			named[nmd.TypedRef().Name()] = nmd
+
 			continue
 		}
 
@@ -80,6 +83,7 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 		if mp, ok := runner.(Enum); ok {
 			enums = append(enums, mp)
 		}
+
 	}
 
 	for name, runner := range named {
@@ -90,18 +94,38 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 			return nil, err
 		}
 
-		err = impl.Decorate(ctx, runner.TypedRef(), snk, inpts)
+		mw := make([]Middleware, 0)
+
+		if mwd, ok := runner.(MiddlewareProvider); ok {
+			mw = append(mw, mwd.Middlewares()...)
+
+			for _, m := range mwd.Middlewares() {
+
+				mwin, err := InputsFor(NewMiddlewareResolver(m), enums...)
+				if err != nil {
+					return nil, err
+				}
+
+				inpts = append(inpts, mwin...)
+			}
+		}
+
+		err = impl.Decorate(ctx, runner.TypedRef(), snk, inpts, mw)
 		if err != nil {
 			return nil, err
 		}
 
 	}
 
-	err := impl.OnSnakeInit(ctx, snk)
+	err = impl.OnSnakeInit(ctx, snk)
 	if err != nil {
 		return nil, err
 	}
 
 	return snk, nil
 
+}
+
+func buildMiddlewareName(name string, m Middleware) string {
+	return name + "_" + reflectTypeString(reflect.TypeOf(m))
 }

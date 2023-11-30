@@ -40,7 +40,9 @@ func TestNewCommand(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			_, cmd, hndl, err := NewCommand(tt.args.ctx)
+			ctx := context.Background()
+
+			_, cmd, hndl, err := NewCommand(ctx)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -51,7 +53,7 @@ func TestNewCommand(t *testing.T) {
 			err = os.Setenv("ROOT_COOL", "true")
 			require.NoError(t, err)
 
-			os.Args = []string{"root", "sample", "--value", "test123", "--sample-enum", "select"}
+			os.Args = []string{"root", "sample", "--value", "test123", "--sample-enum", "select", "--number-of-runs", "1", "--interval", "500ms", "--debug"}
 
 			err = cmd.RootCommand.Execute()
 			require.NoError(t, err)
@@ -72,10 +74,7 @@ func TestDocs(t *testing.T) {
 	ctx := context.Background()
 
 	_, cmd, _, err := NewCommand(ctx)
-	if err != nil {
-		t.Errorf("NewCommand() error = %v", err)
-		return
-	}
+	require.NoError(t, err)
 
 	tmp := os.TempDir()
 
@@ -87,38 +86,24 @@ func TestDocs(t *testing.T) {
 
 	mdpath := filepath.Join(ref, "md")
 
-	if err := os.MkdirAll(mdpath, 0755); err != nil {
-		t.Errorf("MkdirAll() error = %v", err)
-		return
-	}
+	err = os.MkdirAll(mdpath, 0755)
+	require.NoError(t, err)
 
 	err = doc.GenMarkdownTree(cmd.RootCommand, mdpath)
-	if err != nil {
-		t.Errorf("GenMarkdownTree() error = %v", err)
-		return
-	}
+	require.NoError(t, err)
 
 	fle, err := os.Open(filepath.Join(mdpath, "root_sample.md"))
-	if err != nil {
-		t.Errorf("Open() error = %v", err)
-		return
-	}
+	require.NoError(t, err)
 
 	defer fle.Close()
 
 	stat, err := fle.Stat()
-	if err != nil {
-		t.Errorf("Stat() error = %v", err)
-		return
-	}
+	require.NoError(t, err)
 
 	dat := make([]byte, stat.Size())
 
 	_, err = fle.Read(dat)
-	if err != nil {
-		t.Errorf("Read() error = %v", err)
-		return
-	}
+	require.NoError(t, err)
 
 	assert.True(t, stat.Size() > 0)
 
