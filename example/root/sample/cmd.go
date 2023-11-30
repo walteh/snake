@@ -73,8 +73,8 @@ func (me *Handler) Run(
 			{"cool", me.Cool},
 		},
 		RowValueColors: [][]*color.Color{
-			{color.New(color.FgHiGreen), color.New(color.BgBlack)},
-			{color.New(color.BgHiRed), color.New(color.FgBlack)},
+			{color.New(color.FgHiGreen), color.New(color.Bold)},
+			{color.New(color.FgHiBlue), color.New(color.FgBlack)},
 		},
 	}, nil
 

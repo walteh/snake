@@ -10,6 +10,9 @@ import (
 	"github.com/walteh/snake/sbind"
 )
 
+// YO could we have more inputs for the ouputs? maybe add some specific flags to them if they have a run method?
+// like being able to pass a --json flag to the table output and it will convert it to json? or a csv flag, or a file flag.
+
 var _ sbind.OutputHandler = (*OutputHandler)(nil)
 
 type OutputHandler struct {
@@ -50,10 +53,10 @@ func (*OutputHandler) HandleTableOutput(ctx context.Context, out *sbind.TableOut
 				v = reflect.ValueOf(v).Elem().Interface()
 			}
 			if v == nil {
-				strdat[i] = "NULL"
+				strdat[j] = "NULL"
 				continue
 			}
-			strdat[i] = out.RowValueColors[i][j].Sprintf("%v", v)
+			strdat[j] = out.RowValueColors[i][j].Sprintf("%v", v)
 		}
 
 		table.Append(strdat)
