@@ -18,7 +18,7 @@ func NewCommand(ctx context.Context) (snake.Snake, *scobra.CobraSnake, *sample.H
 		Use: "root",
 	}
 
-	impl := scobra.NewCobraSnake(cmd)
+	impl := scobra.NewCobraSnake(ctx, cmd)
 
 	handler := &sample.Handler{}
 

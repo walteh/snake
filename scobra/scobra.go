@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/go-faster/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -113,12 +114,12 @@ func (me *CobraSnake) Decorate(ctx context.Context, self SCobra, snk snake.Snake
 
 		err := snake.RunResolvingArguments(outhand, snk.Resolve, name, binder, mw...)
 		if err != nil {
-			return HandleErrorByPrintingToConsole(cmd, err)
+			return err
 		}
 		if oldRunE != nil {
 			err := oldRunE(cmd, args)
 			if err != nil {
-				return HandleErrorByPrintingToConsole(cmd, err)
+				return err
 			}
 		}
 		return nil
@@ -141,7 +142,7 @@ func (me *CobraSnake) OnSnakeInit(ctx context.Context, snk snake.Snake) error {
 
 		err := snake.RunResolvingArguments(outhand, snk.Resolve, "root", binder)
 		if err != nil {
-			return HandleErrorByPrintingToConsole(cmd, err)
+			return err
 		}
 		return nil
 	}
@@ -149,7 +150,7 @@ func (me *CobraSnake) OnSnakeInit(ctx context.Context, snk snake.Snake) error {
 	return nil
 }
 
-func NewCobraSnake(root *cobra.Command) *CobraSnake {
+func NewCobraSnake(ctx context.Context, root *cobra.Command) *CobraSnake {
 
 	if root == nil {
 		root = &cobra.Command{}
@@ -157,7 +158,26 @@ func NewCobraSnake(root *cobra.Command) *CobraSnake {
 
 	me := &CobraSnake{root}
 
+	str, err := DecorateTemplate(ctx, root, &DecorateOptions{
+		Headings: color.New(color.FgCyan, color.Bold),
+		ExecName: color.New(color.FgHiGreen, color.Bold),
+		Commands: color.New(color.FgHiRed, color.Faint),
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	root.SetUsageTemplate(str)
+
 	root.SilenceUsage = true
 
 	return me
+}
+
+func ExecuteHandlingError(ctx context.Context, cmd *CobraSnake) {
+	err := HandleErrorByPrintingToConsole(cmd.RootCommand, cmd.RootCommand.ExecuteContext(ctx))
+	if err != nil {
+		os.Exit(1)
+	}
+	os.Exit(0)
 }

@@ -1,4 +1,4 @@
-package snake
+package slegacy
 
 import (
 	"context"
@@ -18,11 +18,11 @@ type Snakeable interface {
 }
 
 var (
-	ErrMissingBinding   = errors.New("snake.ErrMissingBinding")
-	ErrMissingRun       = errors.New("snake.ErrMissingRun")
-	ErrInvalidRun       = errors.New("snake.ErrInvalidRun")
-	ErrInvalidArguments = errors.New("snake.ErrInvalidArguments")
-	ErrInvalidResolver  = errors.New("snake.ErrInvalidResolver")
+	ErrMissingBinding   = errors.New("slegacy.ErrMissingBinding")
+	ErrMissingRun       = errors.New("slegacy.ErrMissingRun")
+	ErrInvalidRun       = errors.New("slegacy.ErrInvalidRun")
+	ErrInvalidArguments = errors.New("slegacy.ErrInvalidArguments")
+	ErrInvalidResolver  = errors.New("slegacy.ErrInvalidResolver")
 )
 
 func NewRootCommand(ctx context.Context, snk Snakeable) (context.Context, error) {
@@ -437,7 +437,7 @@ func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context
 
 			// check if the context resolver returned a child context
 			if _, ok := crb.Value(contextResolverKey).(bool); !ok {
-				return ctx, ErrInvalidResolver
+				return ctx, errors.Wrapf(ErrInvalidResolver, "resolver for type %q returned a context that is not a child context", pt)
 			}
 
 			// this is the context resolver binding, we need to process it
