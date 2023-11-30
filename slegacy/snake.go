@@ -1,4 +1,4 @@
-package snake
+package slegacy
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/spf13/cobra"
-	"github.com/walteh/snake"
+	"github.com/walteh/snake/scobra"
 
 	"github.com/go-faster/errors"
 )
@@ -18,11 +18,11 @@ type Snakeable interface {
 }
 
 var (
-	ErrMissingBinding   = errors.New("snake.ErrMissingBinding")
-	ErrMissingRun       = errors.New("snake.ErrMissingRun")
-	ErrInvalidRun       = errors.New("snake.ErrInvalidRun")
-	ErrInvalidArguments = errors.New("snake.ErrInvalidArguments")
-	ErrInvalidResolver  = errors.New("snake.ErrInvalidResolver")
+	ErrMissingBinding   = errors.New("slegacy.ErrMissingBinding")
+	ErrMissingRun       = errors.New("slegacy.ErrMissingRun")
+	ErrInvalidRun       = errors.New("slegacy.ErrInvalidRun")
+	ErrInvalidArguments = errors.New("slegacy.ErrInvalidArguments")
+	ErrInvalidResolver  = errors.New("slegacy.ErrInvalidResolver")
 )
 
 func NewRootCommand(ctx context.Context, snk Snakeable) (context.Context, error) {
@@ -55,12 +55,12 @@ func NewRootCommand(ctx context.Context, snk Snakeable) (context.Context, error)
 		}()
 
 		if err := cmd.ParseFlags(args); err != nil {
-			return snake.HandleErrorByPrintingToConsole(cmd, err)
+			return scobra.HandleErrorByPrintingToConsole(cmd, err)
 		}
 
 		zctx, err := snk.PreRun(zctx, args)
 		if err != nil {
-			return snake.HandleErrorByPrintingToConsole(cmd, err)
+			return scobra.HandleErrorByPrintingToConsole(cmd, err)
 		}
 
 		cmd.SetContext(zctx)
@@ -78,7 +78,7 @@ func NewRootCommand(ctx context.Context, snk Snakeable) (context.Context, error)
 
 		zctx, err := snk.PreRun(zctx, args)
 		if err != nil {
-			return snake.HandleErrorByPrintingToConsole(cmd, err)
+			return scobra.HandleErrorByPrintingToConsole(cmd, err)
 		}
 
 		cmd.SetContext(zctx)
@@ -133,12 +133,12 @@ func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Contex
 		}()
 
 		if err := cmd.ParseFlags(args); err != nil {
-			return snake.HandleErrorByPrintingToConsole(cmd, err)
+			return scobra.HandleErrorByPrintingToConsole(cmd, err)
 		}
 
 		zctx, err := snk.PreRun(zctx, args)
 		if err != nil {
-			return snake.HandleErrorByPrintingToConsole(cmd, err)
+			return scobra.HandleErrorByPrintingToConsole(cmd, err)
 		}
 
 		cmd.SetContext(zctx)
@@ -157,7 +157,7 @@ func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Contex
 
 		dctx, err := ResolveBindingsFromProvider(getRootCommandCtx(), method)
 		if err != nil {
-			return snake.HandleErrorByPrintingToConsole(cmd, err)
+			return scobra.HandleErrorByPrintingToConsole(cmd, err)
 		}
 
 		zctx = mergeBindingKeepingFirst(zctx, dctx)
@@ -165,7 +165,7 @@ func NewCommand(ctx context.Context, name string, snk Snakeable) (context.Contex
 		cmd.SetContext(zctx)
 
 		if err := callRunMethod(cmd, method, tpe); err != nil {
-			return snake.HandleErrorByPrintingToConsole(cmd, err)
+			return scobra.HandleErrorByPrintingToConsole(cmd, err)
 		}
 		return nil
 	}
@@ -437,7 +437,7 @@ func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context
 
 			// check if the context resolver returned a child context
 			if _, ok := crb.Value(contextResolverKey).(bool); !ok {
-				return ctx, ErrInvalidResolver
+				return ctx, errors.Wrapf(ErrInvalidResolver, "resolver for type %q returned a context that is not a child context", pt)
 			}
 
 			// this is the context resolver binding, we need to process it

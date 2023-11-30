@@ -1,8 +1,7 @@
-package root
+package resolvers
 
 import (
 	"github.com/spf13/pflag"
-	"github.com/walteh/snake"
 )
 
 type CustomInterface interface {
@@ -10,8 +9,6 @@ type CustomInterface interface {
 
 type CustomInterfaceStruct struct {
 }
-
-var _ snake.Flagged = (*CustomResolver)(nil)
 
 type CustomResolver struct {
 }

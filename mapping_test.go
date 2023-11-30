@@ -1,4 +1,4 @@
-package snake
+package snake_test
 
 import (
 	"reflect"
@@ -6,30 +6,31 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/walteh/snake"
 )
 
-type MockHasRunArgs struct {
-	args []any
+func NewMockIsRunnable(fn any) snake.Resolver {
+	return &MockIsRunnable{
+		fn: reflect.ValueOf(fn),
+	}
 }
 
-func (m MockHasRunArgs) RunArgs() []reflect.Type {
-	wrk := make([]reflect.Type, len(m.args))
-	for i, v := range m.args {
-		wrk[i] = reflect.TypeOf(v)
-	}
-	return wrk
+func (m *MockIsRunnable) Ref() snake.Method {
+	return m
 }
 
 type MockIsRunnable struct {
 	fn reflect.Value
 }
 
-func (m MockIsRunnable) RunArgs() []reflect.Type {
-	return listOfArgs(m.fn.Type())
+func (m *MockIsRunnable) IsResolver() {}
+
+func (m *MockIsRunnable) RunFunc() reflect.Value {
+	return m.fn
 }
 
-func (m MockIsRunnable) Run() reflect.Value {
-	return m.fn
+func (m MockIsRunnable) Names() []string {
+	return []string{m.fn.Type().String()}
 }
 
 func (m MockIsRunnable) HandleResponse(x []reflect.Value) ([]*reflect.Value, error) {
@@ -37,31 +38,15 @@ func (m MockIsRunnable) HandleResponse(x []reflect.Value) ([]*reflect.Value, err
 }
 
 func TestFindBrothers(t *testing.T) {
-	fmap := map[string]HasRunArgs{
-		"int": MockHasRunArgs{
-			args: []any{},
-		},
-		"uint64": MockHasRunArgs{
-			args: []any{1},
-		},
-		"string": MockHasRunArgs{
-			args: []any{uint64(1)},
-		},
-		"snake.MockHasRunArgs": MockHasRunArgs{
-			args: []any{1, uint64(1), "1"},
-		},
-		"key1": MockHasRunArgs{
-			args: []any{1},
-		},
-		"key2": MockHasRunArgs{
-			args: []any{1, uint64(1), "1"},
-		},
-		"key3": MockHasRunArgs{
-			args: []any{uint64(1)},
-		},
-		"key4": MockHasRunArgs{
-			args: []any{MockHasRunArgs{}},
-		},
+	fmap := map[string]snake.Resolver{
+		"int":                       NewMockIsRunnable(func() {}),
+		"uint64":                    NewMockIsRunnable(func(int) {}),
+		"string":                    NewMockIsRunnable(func(uint64) {}),
+		"snake_test.MockIsRunnable": NewMockIsRunnable(func(int, uint64, string) {}),
+		"key1":                      NewMockIsRunnable(func(int) {}),
+		"key2":                      NewMockIsRunnable(func(int, uint64, string) {}),
+		"key3":                      NewMockIsRunnable(func(uint64) {}),
+		"key4":                      NewMockIsRunnable(func(MockIsRunnable) {}),
 	}
 
 	tableTests := []struct {
@@ -71,12 +56,12 @@ func TestFindBrothers(t *testing.T) {
 		{"key1", []string{"key1", "int"}},
 		{"key2", []string{"key2", "int", "uint64", "string"}},
 		{"key3", []string{"key3", "int", "uint64"}},
-		{"key4", []string{"key4", "int", "uint64", "string", "snake.MockHasRunArgs"}},
+		{"key4", []string{"key4", "int", "uint64", "string", "snake_test.MockIsRunnable"}},
 	}
 
 	for _, tt := range tableTests {
 		t.Run(tt.str, func(t *testing.T) {
-			got, err := findBrothers(tt.str, func(s string) HasRunArgs {
+			got, err := snake.FindBrothers(tt.str, func(s string) snake.Resolver {
 				if r, ok := fmap[s]; ok {
 					return r
 				}
@@ -93,7 +78,7 @@ func TestFindBrothers(t *testing.T) {
 func TestFindArguments(t *testing.T) {
 
 	type args struct {
-		fmap   map[string]IsRunnable
+		fmap   map[string]snake.Resolver
 		target string
 	}
 
@@ -106,23 +91,23 @@ func TestFindArguments(t *testing.T) {
 			name: "test1",
 			args: args{
 				target: "key1",
-				fmap: map[string]IsRunnable{
-					"uint32": MockIsRunnable{
+				fmap: map[string]snake.Resolver{
+					"uint32": &MockIsRunnable{
 						fn: reflect.ValueOf(func() (uint32, error) {
 							return 2, nil
 						}),
 					},
-					"uint16": MockIsRunnable{
+					"uint16": &MockIsRunnable{
 						fn: reflect.ValueOf(func(a uint32) (uint16, error) {
 							return uint16(a + 1), nil
 						}),
 					},
-					"int": MockIsRunnable{
+					"int": &MockIsRunnable{
 						fn: reflect.ValueOf(func(a uint32, b uint16) (int, error) {
 							return int(a + uint32(b)), nil
 						}),
 					},
-					"key1": MockIsRunnable{
+					"key1": &MockIsRunnable{
 						fn: reflect.ValueOf(func(a uint32, b uint16, c int) error {
 							return nil
 						}),
@@ -140,7 +125,7 @@ func TestFindArguments(t *testing.T) {
 
 	for _, tt := range tableTests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := findArguments(tt.args.target, func(s string) IsRunnable {
+			got, err := snake.FindArguments(tt.args.target, func(s string) snake.Resolver {
 				if r, ok := tt.args.fmap[s]; ok {
 					return r
 				}

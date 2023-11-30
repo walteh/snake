@@ -1,24 +1,61 @@
 package snake
 
-import (
-	"github.com/spf13/pflag"
-)
+import "reflect"
 
-var _ Flagged = (*inlineResolver[any])(nil)
-
-type inlineResolver[I any] struct {
-	flagFunc func(*pflag.FlagSet)
-	runFunc  func() (I, error)
+type noopResolver[A any] struct {
 }
 
-func (me *inlineResolver[I]) Flags(flgs *pflag.FlagSet) {
-	me.flagFunc(flgs)
+func (me *noopResolver[A]) Names() []string {
+	return []string{}
 }
 
-func (me *inlineResolver[I]) Run() (I, error) {
-	return me.runFunc()
+func (me *noopResolver[A]) Run() (a A, err error) {
+	return a, err
 }
 
-func NewArgInlineFunc[I any](flagFunc func(*pflag.FlagSet), runFunc func() (I, error)) Flagged {
-	return &inlineResolver[I]{flagFunc: flagFunc, runFunc: runFunc}
+func (me *noopResolver[A]) RunFunc() reflect.Value {
+	return reflect.ValueOf(me.Run)
+}
+
+func (me *noopResolver[A]) Ref() Method {
+	return me
+}
+
+func (me *noopResolver[A]) TypedRef() *noopResolver[A] {
+	return me
+}
+
+func NewNoopMethod[A any]() Resolver {
+	return &noopResolver[A]{}
+}
+
+func (me *noopResolver[A]) IsResolver() {}
+
+type noopAsker[A any] struct {
+}
+
+func (me *noopAsker[A]) Names() []string {
+	return []string{}
+}
+
+func (me *noopAsker[A]) Run(a A) (err error) {
+	return err
+}
+
+func (me *noopAsker[A]) RunFunc() reflect.Value {
+	return reflect.ValueOf(me.Run)
+}
+
+func (me *noopAsker[A]) Ref() Method {
+	return me
+}
+
+func NewNoopAsker[A any]() Resolver {
+	return &noopAsker[A]{}
+}
+
+func (me *noopAsker[A]) IsResolver() {}
+
+func (me *noopAsker[A]) TypedRef() *noopAsker[A] {
+	return me
 }

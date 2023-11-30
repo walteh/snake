@@ -1,10 +1,10 @@
-package snake
+package slegacy
 
 import (
 	"context"
 	"reflect"
 
-	"github.com/pkg/errors"
+	"github.com/go-faster/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -165,12 +165,12 @@ func callRunMethod(cmd *cobra.Command, f reflect.Value, t reflect.Type) error {
 		} else {
 			// if we end up here, we need to validate the bindings exist
 			if !bindingsExist {
-				return errors.WithMessagef(ErrMissingBinding, "no snake bindings in context, looking for type %q", pt)
+				return errors.Wrapf(ErrMissingBinding, "no snake bindings in context, looking for type %q", pt)
 			}
 
 			bv, ok := b[pt.String()]
 			if !ok {
-				return errors.WithMessagef(ErrMissingBinding, "no snake binding for type %q", pt)
+				return errors.Wrapf(ErrMissingBinding, "no snake binding for type %q", pt)
 			}
 
 			v, err := bv()
@@ -206,15 +206,15 @@ func commonValidateRunMethod(inter any, method reflect.Value) (reflect.Type, str
 	parentName := reflect.TypeOf(inter).String()
 
 	if method.Kind() == reflect.Invalid || method.IsZero() || method.IsNil() {
-		return nil, parentName, errors.WithMessagef(ErrMissingRun, "target ===> %s", parentName)
+		return nil, parentName, errors.Wrapf(ErrMissingRun, "target ===> %s", parentName)
 	}
 
 	if !method.IsValid() {
-		return nil, parentName, errors.WithMessagef(ErrInvalidRun, "target ===> %s", parentName)
+		return nil, parentName, errors.Wrapf(ErrInvalidRun, "target ===> %s", parentName)
 	}
 
 	if method.Kind() != reflect.Func {
-		return nil, parentName, errors.WithMessagef(ErrInvalidRun, "expected function, got %s for (%s).Run", method.Type(), parentName)
+		return nil, parentName, errors.Wrapf(ErrInvalidRun, "expected function, got %s for (%s).Run", method.Type(), parentName)
 	}
 
 	// only here we know it is safe to call Type()
@@ -232,7 +232,7 @@ func validateRunMethod(inter any, method reflect.Value) (reflect.Type, error) {
 
 	// must return only an error to comply with cobra.Command.RunE
 	if t.NumOut() != 1 || !t.Out(0).Implements(callbackReturnSignature) {
-		return nil, errors.WithMessagef(ErrInvalidRun, "return value of (%s).Run must be of type \"error\"", pname)
+		return nil, errors.Wrapf(ErrInvalidRun, "return value of (%s).Run must be of type \"error\"", pname)
 	}
 
 	return t, nil

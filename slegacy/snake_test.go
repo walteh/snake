@@ -1,4 +1,4 @@
-package snake
+package slegacy
 
 import (
 	"context"

@@ -13,6 +13,7 @@
 		"editor.formatOnSave": true,
 		"search.useIgnoreFiles": true,
 		"debug.console.wordWrap": false,
+		"explorer.sortOrder": "type",
 		/* //////////////////////////////////////////////
 							FILES
 		////////////////////////////////////////////// */
@@ -39,6 +40,10 @@
 		"files.exclude": {
 			"**/.git": true
 		},
+		// turn off go test caching
+		"go.testFlags": [
+			"-count=1"
+		],
 		/* //////////////////////////////////////////////
 							DOCKER
 		////////////////////////////////////////////// */
