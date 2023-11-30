@@ -1,6 +1,7 @@
 package scobra
 
 import (
+	"context"
 	"os"
 	"strings"
 
@@ -16,14 +17,22 @@ type CS struct {
 
 type SCobra interface {
 	Command() *cobra.Command
+	Name() string
+	// sbind.NamedMethod
 }
 
-type NewSCobraOpts struct {
-	Commands  []SCobra
-	Resolvers []sbind.Resolver
+func NewCommandResolver(s SCobra) sbind.TypedResolver[SCobra] {
+	return sbind.MustGetRunMethod(s)
 }
 
-func (me *CS) Decorate(self SCobra, snk sbind.Snake, inputs []sbind.Input) error {
+func (me *CS) ManagedResolvers(_ context.Context) []sbind.Resolver {
+	return []sbind.Resolver{
+		sbind.NewNoopMethod[*cobra.Command](),
+		sbind.NewNoopMethod[[]string](),
+	}
+}
+
+func (me *CS) Decorate(ctx context.Context, self SCobra, snk sbind.Snake, inputs []sbind.Input) error {
 
 	cmd := self.Command()
 
@@ -81,10 +90,14 @@ func (me *CS) Decorate(self SCobra, snk sbind.Snake, inputs []sbind.Input) error
 	}
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		defer sbind.SetBindingWithLock(snk.Binder(), cmd)()
-		defer sbind.SetBindingWithLock(snk.Binder(), args)()
+		binder := sbind.NewBinder()
 
-		err := sbind.RunResolvingArguments(cmd.Context(), &OutputHandler{cmd: cmd}, snk.Resolve, name)
+		sbind.SetBinding(binder, cmd)
+		sbind.SetBinding(binder, args)
+
+		outhand := NewOutputHandler(cmd)
+
+		err := sbind.RunResolvingArguments(outhand, snk.Resolve, name, binder)
 		if err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
@@ -102,7 +115,27 @@ func (me *CS) Decorate(self SCobra, snk sbind.Snake, inputs []sbind.Input) error
 	return nil
 }
 
-func NewCobraSnake(root *cobra.Command, opts *NewSCobraOpts) (*cobra.Command, error) {
+func (me *CS) OnSnakeInit(ctx context.Context, snk sbind.Snake) error {
+
+	me.RunE = func(cmd *cobra.Command, args []string) error {
+		binder := sbind.NewBinder()
+
+		sbind.SetBinding(binder, cmd)
+		sbind.SetBinding(binder, args)
+
+		outhand := NewOutputHandler(cmd)
+
+		err := sbind.RunResolvingArguments(outhand, snk.Resolve, "root", binder)
+		if err != nil {
+			return HandleErrorByPrintingToConsole(cmd, err)
+		}
+		return nil
+	}
+
+	return nil
+}
+
+func NewCobraSnake(root *cobra.Command) (*CS, error) {
 
 	if root == nil {
 		root = &cobra.Command{}
@@ -110,39 +143,7 @@ func NewCobraSnake(root *cobra.Command, opts *NewSCobraOpts) (*cobra.Command, er
 
 	me := &CS{root}
 
-	opts2 := &sbind.NewSnakeOpts{
-		Resolvers:      make([]sbind.Resolver, 0),
-		NamedResolvers: map[string]sbind.Resolver{},
-	}
-
-	var err error
-
-	for _, v := range opts.Commands {
-		opts2.NamedResolvers[v.Command().Name()] = sbind.MustGetRunMethod(v)
-	}
-
-	for _, v := range opts.Resolvers {
-		opts2.Resolvers = append(opts2.Resolvers, v)
-	}
-
-	// these will always be overwritten in the RunE function
-	opts2.Resolvers = append(opts2.Resolvers, sbind.NewNoopMethod[*cobra.Command]())
-	opts2.Resolvers = append(opts2.Resolvers, sbind.NewNoopMethod[[]string]())
-
-	snk, err := sbind.NewSnake(opts2, me)
-	if err != nil {
-		return nil, err
-	}
-
-	root.RunE = func(cmd *cobra.Command, args []string) error {
-		err := sbind.RunResolvingArguments(cmd.Context(), &OutputHandler{cmd: cmd}, snk.Resolve, "root")
-		if err != nil {
-			return HandleErrorByPrintingToConsole(cmd, err)
-		}
-		return nil
-	}
-
 	root.SilenceUsage = true
 
-	return root, nil
+	return me, nil
 }

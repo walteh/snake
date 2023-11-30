@@ -1,13 +1,16 @@
 package sbind
 
 import (
-	"context"
 	"reflect"
 
 	"github.com/go-faster/errors"
 )
 
 type Method interface {
+}
+
+type NamedMethod interface {
+	Name() string
 }
 
 type FMap func(string) Resolver
@@ -84,27 +87,6 @@ func FindArguments(str string, fmap FMap) ([]reflect.Value, error) {
 		resp = append(resp, *v)
 	}
 	return resp, nil
-}
-
-func RunResolvingArguments(ctx context.Context, outputHandler OutputHandler, fmap FMap, str string) error {
-	binder, err := findArgumentsRaw(str, fmap, nil)
-	if err != nil {
-		return err
-	}
-
-	out := binder.bindings[str]
-
-	if out == nil {
-		return errors.Errorf("missing resolver for %q", str)
-	}
-
-	result := binder.bindings[str].Interface()
-
-	if out, ok := result.(Output); ok {
-		return HandleOutput(ctx, outputHandler, out)
-	}
-
-	return nil
 }
 
 func reflectTypeString(typ reflect.Type) string {

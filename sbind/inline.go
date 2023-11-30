@@ -21,6 +21,10 @@ func (me *noopResolver[A]) Ref() Method {
 	return me
 }
 
+func (me *noopResolver[A]) TypedRef() *noopResolver[A] {
+	return me
+}
+
 func NewNoopMethod[A any]() Resolver {
 	return &noopResolver[A]{}
 }
@@ -51,3 +55,7 @@ func NewNoopAsker[A any]() Resolver {
 }
 
 func (me *noopAsker[A]) IsResolver() {}
+
+func (me *noopAsker[A]) TypedRef() *noopAsker[A] {
+	return me
+}

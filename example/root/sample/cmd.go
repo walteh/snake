@@ -35,9 +35,13 @@ func (me *Handler) Args() *args {
 	return &me.args
 }
 
+func (*Handler) Name() string {
+	return "sample"
+}
+
 func (me *Handler) Command() *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "sample",
+		Use: me.Name(),
 	}
 
 	cmd.Args = cobra.ExactArgs(0)

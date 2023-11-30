@@ -1,4 +1,4 @@
-package root
+package resolvers
 
 import (
 	"github.com/spf13/pflag"

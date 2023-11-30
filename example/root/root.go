@@ -2,10 +2,10 @@ package root
 
 import (
 	"context"
-	"io"
 
 	"github.com/spf13/cobra"
 
+	"github.com/walteh/snake/example/resolvers"
 	"github.com/walteh/snake/example/root/sample"
 	"github.com/walteh/snake/sbind"
 	"github.com/walteh/snake/scobra"
@@ -19,29 +19,23 @@ func NewCommand(ctx context.Context) (*cobra.Command, *sample.Handler, error) {
 
 	handler := &sample.Handler{}
 
-	out, err := scobra.NewCobraSnake(cmd, &scobra.NewSCobraOpts{
-		Commands: []scobra.SCobra{
-			handler,
-		},
-		Resolvers: []sbind.Resolver{
-			// SINGLE RESOLVERS
-			sbind.MustGetResolverFor[context.Context](&ContextResolver{}),
-			sbind.MustGetResolverFor[CustomInterface](&CustomResolver{}),
-			// MULTI RESOLVERS
-			sbind.MustGetResolverFor2[io.Reader, io.Writer](&DoubleResolver{}),
-			sbind.MustGetResolverFor3[io.ByteReader, io.ByteWriter, io.ByteScanner](&TripleResolver{}),
-			// ENUM RESOLVERS
-			sbind.NewEnumOptionWithResolver(
-				"the-cool-enum",
-				func(s1 string, s2 []string) (string, error) {
-					return string(sample.SampleEnumY), nil
-				},
-				sample.SampleEnumX,
-				sample.SampleEnumY,
-				sample.SampleEnumZ,
-			),
-		},
-	})
+	out, err := scobra.NewCobraSnake(cmd)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	return out, handler, err
+	loaded := resolvers.LoadResolvers()
+
+	commands := []sbind.Resolver{
+		scobra.NewCommandResolver(handler),
+	}
+
+	commands = append(commands, loaded...)
+
+	_, err = sbind.NewSnake(ctx, out, commands...)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return out.Command, handler, err
 }

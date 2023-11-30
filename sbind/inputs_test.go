@@ -24,19 +24,11 @@ func (me *DuplicateArgumentResolver) Run() (bool, error) {
 	return me.ABC, nil
 }
 
-// type EnumArgumentResolver struct {
-// 	GHI MockEnum
-// }
-
-// func (me *EnumArgumentResolver) Run() (MockEnum, error) {
-// 	return me.GHI, nil
-// }
-
-type ExampleÇommand struct {
+type ExampleCommand struct {
 	DEF string
 }
 
-func (me *ExampleÇommand) Run(abc string, en MockEnum) error {
+func (me *ExampleCommand) Run(abc string, en MockEnum) error {
 	return nil
 }
 
@@ -76,7 +68,7 @@ func TestDependancyInputs(t *testing.T) {
 	r1 := &ExampleArgumentResolver{ABC: "abc"}
 	vr1 := sbind.MustGetRunMethod(r1)
 
-	r2 := &ExampleÇommand{DEF: "oops"}
+	r2 := &ExampleCommand{DEF: "oops"}
 	vr2 := sbind.MustGetRunMethod(r2)
 
 	r1d := &DuplicateArgumentResolver{ABC: true}

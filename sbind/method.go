@@ -6,13 +6,18 @@ import (
 	"github.com/go-faster/errors"
 )
 
+type TypedResolver[M Method] interface {
+	Resolver
+	TypedRef() M
+}
+
 type Resolver interface {
 	RunFunc() reflect.Value
 	Ref() Method
 	IsResolver()
 }
 
-func MustGetRunMethod[M Method](inter M) Resolver {
+func MustGetRunMethod[M Method](inter M) TypedResolver[M] {
 	m, err := getRunMethod(inter)
 	if err != nil {
 		panic(err)
@@ -21,18 +26,18 @@ func MustGetRunMethod[M Method](inter M) Resolver {
 }
 
 func MustGetResolverFor[M any](inter Method) Resolver {
-	return mustGetResolverForRaw(inter, reflect.TypeOf((*M)(nil)).Elem())
+	return mustGetResolverForRaw(inter, (*M)(nil))
 }
 
 func MustGetResolverFor2[M1, M2 any](inter Method) Resolver {
-	return mustGetResolverForRaw(inter, reflect.TypeOf((*M1)(nil)).Elem(), reflect.TypeOf((*M2)(nil)).Elem())
+	return mustGetResolverForRaw(inter, (*M1)(nil), (*M2)(nil))
 }
 
 func MustGetResolverFor3[M1, M2, M3 any](inter Method) Resolver {
-	return mustGetResolverForRaw(inter, reflect.TypeOf((*M1)(nil)).Elem(), reflect.TypeOf((*M2)(nil)).Elem(), reflect.TypeOf((*M3)(nil)).Elem())
+	return mustGetResolverForRaw(inter, (*M1)(nil), (*M2)(nil), (*M3)(nil))
 }
 
-func mustGetResolverForRaw(inter any, args ...reflect.Type) Resolver {
+func mustGetResolverForRaw(inter any, args ...any) Resolver {
 	run, err := getRunMethod(inter)
 	if err != nil {
 		panic(err)
@@ -41,8 +46,9 @@ func mustGetResolverForRaw(inter any, args ...reflect.Type) Resolver {
 	resvf := ResolverFor(run)
 
 	for _, arg := range args {
-		if yes, ok := resvf[arg.String()]; !ok || !yes {
-			panic(errors.Errorf("%q is not a resolver for %q", reflect.TypeOf(inter).String(), arg.String()))
+		argptr := reflect.TypeOf(arg).Elem()
+		if yes, ok := resvf[argptr.String()]; !ok || !yes {
+			panic(errors.Errorf("%q is not a resolver for %q", reflect.TypeOf(inter).String(), argptr.String()))
 		}
 	}
 

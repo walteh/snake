@@ -5,21 +5,17 @@ import (
 	"reflect"
 )
 
-type NewSnakeOpts struct {
-	Resolvers                  []Resolver
-	NamedResolvers             map[string]Resolver
-	GlobalContextResolverFlags bool
+type NewSnakeOpts[M NamedMethod] struct {
+	Resolvers      []Resolver
+	Implementation SnakeImplementation[M]
 }
 
 type Snake interface {
 	ResolverNames() []string
 	Resolve(string) Resolver
-	// Bound(string) *reflect.Value
-	Binder() *Binder
 }
 
 type defaultSnake struct {
-	bindings  *Binder
 	resolvers map[string]Resolver
 }
 
@@ -35,31 +31,41 @@ func (me *defaultSnake) Resolve(name string) Resolver {
 	return me.resolvers[name]
 }
 
-func (me *defaultSnake) Binder() *Binder {
-	return me.bindings
-}
-
 type MethodProvider interface {
 	Method() reflect.Value
 }
 
 type SnakeImplementation[X any] interface {
-	Decorate(X, Snake, []Input) error
+	Decorate(context.Context, X, Snake, []Input) error
+	ManagedResolvers(context.Context) []Resolver
+	OnSnakeInit(context.Context, Snake) error
 }
 
-func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake, error) {
+func NewSnake[M NamedMethod](ctx context.Context, impl SnakeImplementation[M], res ...Resolver) (Snake, error) {
+	return NewSnakeWithOpts(ctx, &NewSnakeOpts[M]{
+		Resolvers:      res,
+		Implementation: impl,
+	})
+}
+
+func NewSnakeWithOpts[M NamedMethod](ctx context.Context, opts *NewSnakeOpts[M]) (Snake, error) {
 
 	snk := &defaultSnake{
-		bindings:  NewBinder(),
 		resolvers: make(map[string]Resolver),
 	}
 
 	enums := make([]EnumOption, 0)
 
-	// we always want context to get resolved first
-	opts.NamedResolvers["root"] = MustGetRunMethod(NewNoopAsker[context.Context]())
+	named := make(map[string]TypedResolver[M])
 
-	for _, runner := range opts.Resolvers {
+	inputResolvers := append(opts.Resolvers, opts.Implementation.ManagedResolvers(ctx)...)
+
+	for _, runner := range inputResolvers {
+
+		if nmd, err := runner.(TypedResolver[M]); err {
+			named[nmd.TypedRef().Name()] = nmd
+			continue
+		}
 
 		retrn := ListOfReturns(runner)
 
@@ -77,27 +83,24 @@ func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake,
 		}
 	}
 
-	for k, v := range opts.NamedResolvers {
-		snk.resolvers[k] = v
-	}
+	for name, runner := range named {
+		snk.resolvers[name] = runner
 
-	for _, sexer := range snk.ResolverNames() {
-		exer := snk.Resolve(sexer)
-
-		if cmd, ok := exer.Ref().(M); ok {
-			inpts, err := DependancyInputs(sexer, snk.Resolve, enums...)
-			if err != nil {
-				return nil, err
-			}
-
-			err = impl.Decorate(cmd, snk, inpts)
-			if err != nil {
-				return nil, err
-			}
-
-			continue
+		inpts, err := DependancyInputs(name, snk.Resolve, enums...)
+		if err != nil {
+			return nil, err
 		}
 
+		err = opts.Implementation.Decorate(ctx, runner.TypedRef(), snk, inpts)
+		if err != nil {
+			return nil, err
+		}
+
+	}
+
+	err := opts.Implementation.OnSnakeInit(ctx, snk)
+	if err != nil {
+		return nil, err
 	}
 
 	return snk, nil

@@ -12,13 +12,9 @@ var (
 	_ Resolver = (*rawEnumOption[string])(nil)
 )
 
-type EnumConstraint interface {
-	~string
-}
 type EnumResolver func(string, []string) (string, error)
 
 type EnumOption interface {
-	// Resolver
 	Resolver
 	SetCurrent(string) error
 	CurrentPtr() *string
@@ -28,7 +24,7 @@ type EnumOption interface {
 	DisplayName() string
 }
 
-type rawEnumOption[T EnumConstraint] struct {
+type rawEnumOption[T ~string] struct {
 	rawTypeName  string
 	options      []T
 	enumResolver EnumResolver
@@ -47,7 +43,7 @@ func (me *rawEnumOption[T]) RunFunc() reflect.Value {
 	return reflect.ValueOf(me.Run)
 }
 
-func NewEnumOptionWithResolver[T EnumConstraint](name string, resolver EnumResolver, input ...T) EnumOption {
+func NewEnumOptionWithResolver[T ~string](name string, resolver EnumResolver, input ...T) EnumOption {
 	sel := new(T)
 	if resolver != nil {
 		*sel = T("select")
