@@ -2,6 +2,7 @@ package scobra
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
@@ -27,9 +28,17 @@ func NewOutputHandler(cmd *cobra.Command) *OutputHandler {
 	}
 }
 
-// HandleJSONOutput implements sbind.OutputHandler.
-func (*OutputHandler) HandleJSONOutput(ctx context.Context, out *snake.JSONOutput) error {
-	panic("unimplemented")
+func (me *OutputHandler) HandleJSONOutput(ctx context.Context, out *snake.JSONOutput) error {
+	// Convert the output data to JSON format
+	jsonData, err := json.MarshalIndent(out.Data, "", "\t")
+	if err != nil {
+		return err // Handle or return the error appropriately
+	}
+
+	// Print the formatted JSON to the command's output
+	me.cmd.Println(string(jsonData))
+
+	return nil
 }
 
 // HandleLongRunningOutput implements sbind.OutputHandler.
