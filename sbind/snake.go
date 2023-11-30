@@ -9,7 +9,6 @@ type NewSnakeOpts struct {
 	Resolvers                  []Resolver
 	NamedResolvers             map[string]Resolver
 	GlobalContextResolverFlags bool
-	Enums                      []EnumOption
 }
 
 type Snake interface {
@@ -55,7 +54,7 @@ func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake,
 		resolvers: make(map[string]Resolver),
 	}
 
-	enums := opts.Enums
+	enums := make([]EnumOption, 0)
 
 	// we always want context to get resolved first
 	opts.NamedResolvers["root"] = MustGetRunMethod(NewNoopAsker[context.Context]())
@@ -72,7 +71,7 @@ func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake,
 			snk.resolvers[reflectTypeString(r)] = runner
 		}
 
-		// enum options are also resolvers so they could be passed here
+		// enum options are also resolvers so they are passed here
 		if mp, ok := runner.(EnumOption); ok {
 			enums = append(enums, mp)
 		}

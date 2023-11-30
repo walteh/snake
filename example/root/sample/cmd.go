@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/walteh/snake/sbind"
 	"github.com/walteh/snake/scobra"
@@ -65,5 +66,16 @@ func (me *Handler) Run(
 	me.args.Br = br
 	me.args.Bw = bw
 	me.args.Bs = bs
-	return nil, nil
+	return &sbind.TableOutput{
+		ColumnNames: []string{"name", "value"},
+		RowValueData: [][]any{
+			{"value", me.Value},
+			{"cool", me.Cool},
+		},
+		RowValueColors: [][]*color.Color{
+			{color.New(color.FgHiGreen), color.New(color.BgBlack)},
+			{color.New(color.BgHiRed), color.New(color.FgBlack)},
+		},
+	}, nil
+
 }

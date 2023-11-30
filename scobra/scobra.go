@@ -46,22 +46,6 @@ func (me *CS) Decorate(self SCobra, snk sbind.Snake, inputs []sbind.Input) error
 		switch t := v.(type) {
 		case *sbind.StringEnumInput:
 			flgs.Var(NewWrappedEnum(t), v.Name(), t.Usage())
-			// if we, ok := t.Ptr().(*wrappedEnum); ok {
-			// } else {
-			// 	return errors.Errorf("unknown input type %T", t)
-			// }
-			// flgs.Var(t., v.Name(), t.Usage())
-			// d, err := NewWrappedEnum(t)
-			// if err != nil {
-			// 	return err
-			// }
-			// flgs.Var(d, v.Name(), t.Usage())
-			// vd, err := sbind.GetRunMethod(d)
-			// if err != nil {
-			// 	return err
-			// }
-			// snk.SetResolver(t.Name(), vd)
-			// flgs.Var(t.Value(), v.Name(), t.Usage())
 		case *sbind.StringInput:
 			flgs.StringVar(t.Value(), v.Name(), t.Default(), t.Usage())
 		case *sbind.BoolInput:
@@ -100,7 +84,7 @@ func (me *CS) Decorate(self SCobra, snk sbind.Snake, inputs []sbind.Input) error
 		defer sbind.SetBindingWithLock(snk.Binder(), cmd)()
 		defer sbind.SetBindingWithLock(snk.Binder(), args)()
 
-		err := sbind.RunResolvingArguments(name, snk.Resolve)
+		err := sbind.RunResolvingArguments(cmd.Context(), &OutputHandler{cmd: cmd}, snk.Resolve, name)
 		if err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
@@ -151,7 +135,7 @@ func NewCobraSnake(root *cobra.Command, opts *NewSCobraOpts) (*cobra.Command, er
 	}
 
 	root.RunE = func(cmd *cobra.Command, args []string) error {
-		err := sbind.RunResolvingArguments("root", snk.Resolve)
+		err := sbind.RunResolvingArguments(cmd.Context(), &OutputHandler{cmd: cmd}, snk.Resolve, "root")
 		if err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}

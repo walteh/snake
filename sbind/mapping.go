@@ -1,6 +1,7 @@
 package sbind
 
 import (
+	"context"
 	"reflect"
 
 	"github.com/go-faster/errors"
@@ -85,10 +86,22 @@ func FindArguments(str string, fmap FMap) ([]reflect.Value, error) {
 	return resp, nil
 }
 
-func RunResolvingArguments(str string, fmap FMap) error {
-	_, err := findArgumentsRaw(str, fmap, nil)
+func RunResolvingArguments(ctx context.Context, outputHandler OutputHandler, fmap FMap, str string) error {
+	binder, err := findArgumentsRaw(str, fmap, nil)
 	if err != nil {
 		return err
+	}
+
+	out := binder.bindings[str]
+
+	if out == nil {
+		return errors.Errorf("missing resolver for %q", str)
+	}
+
+	result := binder.bindings[str].Interface()
+
+	if out, ok := result.(Output); ok {
+		return HandleOutput(ctx, outputHandler, out)
 	}
 
 	return nil
@@ -125,20 +138,39 @@ func findArgumentsRaw(str string, fmap FMap, wrk *Binder) (*Binder, error) {
 
 	out := CallMethod(validated, tmp)
 
-	if len(out) == 1 {
+	if !MenthodIsShared(validated) {
 		// only commands can have one response value, which is always an error
 		// so here we know we can name it str
 		// otherwise we would be naming it "error"
-		wrk.bindings[str] = &out[0]
-		if out[0].Interface() != nil {
-			return wrk, out[0].Interface().(error)
+		//
+		if len(out) == 1 {
+			wrk.Bind(str, &out[0])
+			if out[0].Interface() != nil {
+				return wrk, out[0].Interface().(error)
+			} else {
+				// we want to get out right away as we know this is an error (only one return value)
+				return wrk, nil
+			}
 		}
+
+		resp := out[0]
+
+		if resp.IsNil() {
+			resp = reflect.ValueOf(&NilOutput{})
+		}
+
+		wrk.Bind(str, &resp)
+
 	} else {
 		for _, v := range out {
 			in := v
 			strd := v.Type().String()
 			if strd != "error" {
-				wrk.bindings[strd] = &in
+				wrk.Bind(strd, &in)
+			} else {
+				if in.Interface() != nil {
+					return wrk, in.Interface().(error)
+				}
 			}
 		}
 	}
