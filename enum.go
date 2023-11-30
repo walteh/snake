@@ -17,12 +17,15 @@ type EnumResolverFunc func(string, []string) (string, error)
 
 type Enum interface {
 	Resolver
+	Input
 	SetCurrent(string) error
 	CurrentPtr() *string
 	RawTypeName() string
 	Options() []string
 	Ptr() any
+	Usage() string
 	DisplayName() string
+	ApplyResolver(EnumResolverFunc) error
 }
 
 type rawEnum[T ~string] struct {
@@ -30,8 +33,28 @@ type rawEnum[T ~string] struct {
 	options      []T
 	enumResolver EnumResolverFunc
 	name         string
+	description  string
 	// Val needs to be exported value so it is picked up in inputs.go reflection logic
 	Val *T
+}
+
+// Name implements Enum.
+func (me *rawEnum[T]) Name() string {
+	return me.name
+}
+
+// Parent implements Enum.
+func (m *rawEnum[T]) Parent() string {
+	return MethodName(m)
+}
+
+// Shared implements Enum.
+func (*rawEnum[T]) Shared() bool {
+	return true
+}
+
+func (me *rawEnum[T]) Usage() string {
+	return me.description
 }
 
 // Ref implements ValidatedRunMethod.
@@ -44,20 +67,27 @@ func (me *rawEnum[T]) RunFunc() reflect.Value {
 	return reflect.ValueOf(me.Run)
 }
 
-func NewEnumOptionWithResolver[T ~string](name string, resolver EnumResolverFunc, input ...T) Enum {
+func NewEnumOptionWithResolver[T ~string](name string, description string, input ...T) Enum {
 	sel := new(T)
-	if resolver != nil {
-		// this sets the default to "select" and not nil
-		*sel = T("select")
-	}
+	// if resolver != nil {
+	// 	// this sets the default to "select" and not nil
+	// 	*sel = T("select")
+	// }
 
 	return &rawEnum[T]{
-		rawTypeName:  reflect.TypeOf((*T)(nil)).Elem().String(),
-		options:      input,
-		enumResolver: resolver,
-		name:         name,
-		Val:          sel,
+		rawTypeName: reflect.TypeOf((*T)(nil)).Elem().String(),
+		options:     input,
+		// enumResolver: resolver,
+		name:        name,
+		description: description,
+		Val:         sel,
 	}
+}
+
+func (me *rawEnum[T]) ApplyResolver(resolver EnumResolverFunc) error {
+	me.enumResolver = resolver
+	*me.Val = T("select")
+	return nil
 }
 
 func (me *rawEnum[T]) DisplayName() string {
@@ -66,6 +96,10 @@ func (me *rawEnum[T]) DisplayName() string {
 
 func (me *rawEnum[T]) RawTypeName() string {
 	return me.rawTypeName
+}
+
+func (me *rawEnum[T]) Description() string {
+	return me.description
 }
 
 func (me *rawEnum[T]) OptionsWithSelect() []string {
@@ -116,8 +150,7 @@ func (me *rawEnum[T]) Run() (T, error) {
 
 func EnumAsInput(me Enum, m *genericInput) *enumInput {
 	return &enumInput{
-		Enum:         me,
-		genericInput: m,
+		Enum: me,
 	}
 }
 

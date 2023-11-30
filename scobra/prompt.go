@@ -3,9 +3,12 @@ package scobra
 import (
 	"github.com/go-faster/errors"
 	"github.com/manifoldco/promptui"
+	"github.com/walteh/snake"
 )
 
-func PromptUIEnumResolver(typ string, opts []string) (string, error) {
+var _ snake.EnumResolverFunc = (*CobraSnake)(nil).ResolveEnum
+
+func (me *CobraSnake) ResolveEnum(typ string, opts []string) (string, error) {
 	prompt := promptui.Select{
 		Label: "Select " + typ,
 		Items: opts,

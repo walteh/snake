@@ -6,7 +6,8 @@ import (
 )
 
 type NewSnakeOpts struct {
-	Resolvers []Resolver
+	Resolvers            []Resolver
+	OverrideEnumResolver EnumResolverFunc
 }
 
 type Snake interface {
@@ -34,6 +35,7 @@ type SnakeImplementation[X any] interface {
 	Decorate(context.Context, X, Snake, []Input, []Middleware) error
 	ManagedResolvers(context.Context) []Resolver
 	OnSnakeInit(context.Context, Snake) error
+	ResolveEnum(string, []string) (string, error)
 }
 
 func NewSnake[M NamedMethod](ctx context.Context, impl SnakeImplementation[M], res ...Resolver) (Snake, error) {
@@ -81,6 +83,14 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 
 		// enum options are also resolvers so they are passed here
 		if mp, ok := runner.(Enum); ok {
+			resolver := opts.OverrideEnumResolver
+			if resolver == nil {
+				resolver = impl.ResolveEnum
+			}
+			err := mp.ApplyResolver(resolver)
+			if err != nil {
+				return nil, err
+			}
 			enums = append(enums, mp)
 		}
 

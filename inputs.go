@@ -133,7 +133,6 @@ type simpleValueInput[T any] struct {
 
 type enumInput struct {
 	Enum
-	*genericInput
 }
 
 func (me *enumInput) Name() string {

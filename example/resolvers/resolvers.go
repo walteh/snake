@@ -21,10 +21,7 @@ func LoadResolvers() []snake.Resolver {
 
 		// ENUM RESOLVERS
 		snake.NewEnumOptionWithResolver(
-			"sample-enum",
-			func(s1 string, s2 []string) (string, error) {
-				return string(sample.SampleEnumY), nil
-			},
+			"sample-enum", "the sample of an enum",
 			sample.SampleEnumX,
 			sample.SampleEnumY,
 			sample.SampleEnumZ,

@@ -28,6 +28,9 @@ func NewCommand(ctx context.Context) (snake.Snake, *scobra.CobraSnake, *sample.H
 
 	snk, err := snake.NewSnakeWithOpts(ctx, impl, &snake.NewSnakeOpts{
 		Resolvers: append(commands, resolvers.LoadResolvers()...),
+		OverrideEnumResolver: func(typ string, opts []string) (string, error) {
+			return "y", nil
+		},
 	})
 	if err != nil {
 		return nil, nil, nil, err

@@ -77,7 +77,7 @@ func TestDependancyInputs(t *testing.T) {
 	r2d := &DuplicateCommand{}
 	vr2d := snake.MustGetTypedResolver(r2d)
 
-	r3 := snake.NewEnumOptionWithResolver("best-enum-ever", nil, MockEnumA, MockEnumB, MockEnumC)
+	r3 := snake.NewEnumOptionWithResolver("best-enum-ever", "the description", MockEnumA, MockEnumB, MockEnumC)
 	vr3 := snake.MustGetTypedResolver(r3)
 
 	m := func(str string) snake.Resolver {
