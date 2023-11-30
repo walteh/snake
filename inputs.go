@@ -30,7 +30,7 @@ func MethodName(m Resolver) string {
 	return reflect.ValueOf(m.Ref()).Type().String()
 }
 
-func DependancyInputs(str string, m FMap, enum ...EnumOption) ([]Input, error) {
+func DependancyInputs(str string, m FMap, enum ...Enum) ([]Input, error) {
 	deps, err := DependanciesOf(str, m)
 	if err != nil {
 		return nil, err
@@ -68,7 +68,7 @@ func DependancyInputs(str string, m FMap, enum ...EnumOption) ([]Input, error) {
 	return resp, nil
 }
 
-func InputsFor(m Resolver, enum ...EnumOption) ([]Input, error) {
+func InputsFor(m Resolver, enum ...Enum) ([]Input, error) {
 	resp := make([]Input, 0)
 	for _, f := range StructFields(m) {
 
@@ -118,17 +118,17 @@ type simpleValueInput[T any] struct {
 }
 
 type enumInput struct {
-	EnumOption
+	Enum
 	*genericInput
 }
 
 func (me *enumInput) Name() string {
-	return me.EnumOption.DisplayName()
+	return me.Enum.DisplayName()
 }
 
-func getEnumOptionsFrom(mytype reflect.Type, enum ...EnumOption) (EnumOption, error) {
+func getEnumOptionsFrom(mytype reflect.Type, enum ...Enum) (Enum, error) {
 	rawTypeName := mytype.String()
-	var sel EnumOption
+	var sel Enum
 	for _, v := range enum {
 		if v.RawTypeName() != rawTypeName {
 			continue
@@ -144,7 +144,7 @@ func getEnumOptionsFrom(mytype reflect.Type, enum ...EnumOption) (EnumOption, er
 
 }
 
-func NewGenericEnumInput(f reflect.StructField, m Resolver, enum ...EnumOption) (*enumInput, error) {
+func NewGenericEnumInput(f reflect.StructField, m Resolver, enum ...Enum) (*enumInput, error) {
 
 	mytype := FieldByName(m, f.Name).Type()
 
@@ -157,7 +157,7 @@ func NewGenericEnumInput(f reflect.StructField, m Resolver, enum ...EnumOption) 
 		return nil, err
 	}
 
-	return EnumOptionAsInput(opts, NewGenericInput(f, m)), nil
+	return EnumAsInput(opts, NewGenericInput(f, m)), nil
 }
 
 func NewSimpleValueInput[T any](f reflect.StructField, m Resolver) *simpleValueInput[T] {

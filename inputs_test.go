@@ -66,19 +66,19 @@ func NewMockInputFromInput(i snake.Input) *mockInput {
 func TestDependancyInputs(t *testing.T) {
 
 	r1 := &ExampleArgumentResolver{ABC: "abc"}
-	vr1 := snake.MustGetRunMethod(r1)
+	vr1 := snake.MustGetTypedResolver(r1)
 
 	r2 := &ExampleCommand{DEF: "oops"}
-	vr2 := snake.MustGetRunMethod(r2)
+	vr2 := snake.MustGetTypedResolver(r2)
 
 	r1d := &DuplicateArgumentResolver{ABC: true}
-	vr1d := snake.MustGetRunMethod(r1d)
+	vr1d := snake.MustGetTypedResolver(r1d)
 
 	r2d := &DuplicateCommand{}
-	vr2d := snake.MustGetRunMethod(r2d)
+	vr2d := snake.MustGetTypedResolver(r2d)
 
 	r3 := snake.NewEnumOptionWithResolver("best-enum-ever", nil, MockEnumA, MockEnumB, MockEnumC)
-	vr3 := snake.MustGetRunMethod(r3)
+	vr3 := snake.MustGetTypedResolver(r3)
 
 	m := func(str string) snake.Resolver {
 		switch str {

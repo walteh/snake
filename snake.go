@@ -2,7 +2,6 @@ package snake
 
 import (
 	"context"
-	"reflect"
 )
 
 type NewSnakeOpts struct {
@@ -30,10 +29,6 @@ func (me *defaultSnake) Resolve(name string) Resolver {
 	return me.resolvers[name]
 }
 
-type MethodProvider interface {
-	Method() reflect.Value
-}
-
 type SnakeImplementation[X any] interface {
 	Decorate(context.Context, X, Snake, []Input) error
 	ManagedResolvers(context.Context) []Resolver
@@ -52,7 +47,7 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 		resolvers: make(map[string]Resolver),
 	}
 
-	enums := make([]EnumOption, 0)
+	enums := make([]Enum, 0)
 
 	named := make(map[string]TypedResolver[M])
 
@@ -82,7 +77,7 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 		}
 
 		// enum options are also resolvers so they are passed here
-		if mp, ok := runner.(EnumOption); ok {
+		if mp, ok := runner.(Enum); ok {
 			enums = append(enums, mp)
 		}
 	}

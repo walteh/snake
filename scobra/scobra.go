@@ -22,7 +22,7 @@ type SCobra interface {
 }
 
 func NewCommandResolver(s SCobra) snake.TypedResolver[SCobra] {
-	return snake.MustGetRunMethod(s)
+	return snake.MustGetTypedResolver(s)
 }
 
 func (me *CobraSnake) ManagedResolvers(_ context.Context) []snake.Resolver {

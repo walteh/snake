@@ -8,13 +8,14 @@ import (
 	"github.com/go-faster/errors"
 )
 
+// REFRESHABLE RESOLVER
 var (
-	_ Resolver = (*rawEnumOption[string])(nil)
+	_ Resolver = (*rawEnum[string])(nil)
 )
 
-type EnumResolver func(string, []string) (string, error)
+type EnumResolverFunc func(string, []string) (string, error)
 
-type EnumOption interface {
+type Enum interface {
 	Resolver
 	SetCurrent(string) error
 	CurrentPtr() *string
@@ -24,32 +25,33 @@ type EnumOption interface {
 	DisplayName() string
 }
 
-type rawEnumOption[T ~string] struct {
+type rawEnum[T ~string] struct {
 	rawTypeName  string
 	options      []T
-	enumResolver EnumResolver
+	enumResolver EnumResolverFunc
 	name         string
 	// Val needs to be exported value so it is picked up in inputs.go reflection logic
 	Val *T
 }
 
 // Ref implements ValidatedRunMethod.
-func (me *rawEnumOption[T]) Ref() Method {
+func (me *rawEnum[T]) Ref() Method {
 	return me
 }
 
 // RunFunc implements ValidatedRunMethod.
-func (me *rawEnumOption[T]) RunFunc() reflect.Value {
+func (me *rawEnum[T]) RunFunc() reflect.Value {
 	return reflect.ValueOf(me.Run)
 }
 
-func NewEnumOptionWithResolver[T ~string](name string, resolver EnumResolver, input ...T) EnumOption {
+func NewEnumOptionWithResolver[T ~string](name string, resolver EnumResolverFunc, input ...T) Enum {
 	sel := new(T)
 	if resolver != nil {
+		// this sets the default to "select" and not nil
 		*sel = T("select")
 	}
 
-	return &rawEnumOption[T]{
+	return &rawEnum[T]{
 		rawTypeName:  reflect.TypeOf((*T)(nil)).Elem().String(),
 		options:      input,
 		enumResolver: resolver,
@@ -58,15 +60,15 @@ func NewEnumOptionWithResolver[T ~string](name string, resolver EnumResolver, in
 	}
 }
 
-func (me *rawEnumOption[T]) DisplayName() string {
+func (me *rawEnum[T]) DisplayName() string {
 	return me.name
 }
 
-func (me *rawEnumOption[T]) RawTypeName() string {
+func (me *rawEnum[T]) RawTypeName() string {
 	return me.rawTypeName
 }
 
-func (me *rawEnumOption[T]) OptionsWithSelect() []string {
+func (me *rawEnum[T]) OptionsWithSelect() []string {
 	opts := me.Options()
 	if me.enumResolver != nil {
 		opts = append(opts, "select")
@@ -74,7 +76,7 @@ func (me *rawEnumOption[T]) OptionsWithSelect() []string {
 	return opts
 }
 
-func (me *rawEnumOption[T]) Options() []string {
+func (me *rawEnum[T]) Options() []string {
 	opts := make([]string, len(me.options))
 	for i, v := range me.options {
 		opts[i] = string(v)
@@ -82,7 +84,7 @@ func (me *rawEnumOption[T]) Options() []string {
 	return opts
 }
 
-func (e *rawEnumOption[I]) SetCurrent(vt string) error {
+func (e *rawEnum[I]) SetCurrent(vt string) error {
 	if slices.Contains(e.OptionsWithSelect(), string(vt)) {
 		*e.Val = I(vt)
 		return nil
@@ -90,11 +92,11 @@ func (e *rawEnumOption[I]) SetCurrent(vt string) error {
 	return errors.Errorf("invalid value %q, expected one of [\"%s\"]", vt, strings.Join(e.OptionsWithSelect(), "\", \""))
 }
 
-func (e *rawEnumOption[I]) CurrentPtr() *string {
+func (e *rawEnum[I]) CurrentPtr() *string {
 	return (*string)(reflect.ValueOf(e.Val).UnsafePointer())
 }
 
-func (me *rawEnumOption[T]) Run() (T, error) {
+func (me *rawEnum[T]) Run() (T, error) {
 	if me.Val == nil || reflect.ValueOf(me.Val).IsNil() || *me.Val == "select" {
 		if me.enumResolver == nil {
 			return "", errors.Errorf("no enum resolver for %q", me.rawTypeName)
@@ -112,15 +114,15 @@ func (me *rawEnumOption[T]) Run() (T, error) {
 	return *me.Val, nil
 }
 
-func EnumOptionAsInput(me EnumOption, m *genericInput) *enumInput {
+func EnumAsInput(me Enum, m *genericInput) *enumInput {
 	return &enumInput{
-		EnumOption:   me,
+		Enum:         me,
 		genericInput: m,
 	}
 }
 
-func (me *rawEnumOption[I]) Ptr() any {
+func (me *rawEnum[I]) Ptr() any {
 	return me.CurrentPtr()
 }
 
-func (me *rawEnumOption[I]) IsResolver() {}
+func (me *rawEnum[I]) IsResolver() {}

@@ -10,13 +10,13 @@ var (
 	_ pflag.Value = &wrappedEnum{}
 )
 
-func NewWrappedEnum(opt snake.EnumOption) *wrappedEnum {
+func NewWrappedEnum(opt snake.Enum) *wrappedEnum {
 	strt := &wrappedEnum{internal: opt}
 	return strt
 }
 
 type wrappedEnum struct {
-	internal snake.EnumOption
+	internal snake.Enum
 }
 
 // Set must have pointer receiver so it doesn't change the value of a copy
