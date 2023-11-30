@@ -10,6 +10,7 @@ import (
 
 func LoadResolvers() []sbind.Resolver {
 	return []sbind.Resolver{
+
 		// SINGLE RESOLVERS
 		sbind.MustGetResolverFor[context.Context](&ContextResolver{}),
 		sbind.MustGetResolverFor[CustomInterface](&CustomResolver{}),
@@ -20,7 +21,7 @@ func LoadResolvers() []sbind.Resolver {
 
 		// ENUM RESOLVERS
 		sbind.NewEnumOptionWithResolver(
-			"the-cool-enum",
+			"sample-enum",
 			func(s1 string, s2 []string) (string, error) {
 				return string(sample.SampleEnumY), nil
 			},
@@ -29,5 +30,4 @@ func LoadResolvers() []sbind.Resolver {
 			sample.SampleEnumZ,
 		),
 	}
-
 }
