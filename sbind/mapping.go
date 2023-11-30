@@ -9,7 +9,7 @@ import (
 type Method interface {
 }
 
-type FMap func(string) ValidatedRunMethod
+type FMap func(string) Resolver
 
 func DependanciesOf(str string, m FMap) ([]string, error) {
 	if ok := m(str); !reflect.ValueOf(ok).IsValid() || reflect.ValueOf(ok).IsNil() {

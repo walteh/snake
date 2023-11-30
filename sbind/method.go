@@ -6,29 +6,53 @@ import (
 	"github.com/go-faster/errors"
 )
 
-type ValidatedRunMethod interface {
+type Resolver interface {
 	RunFunc() reflect.Value
 	Ref() Method
+	IsResolver()
 }
 
-func MustGetRunMethod[M Method](inter M) TypedValidatedRunMethod[M] {
-	m, err := GetRunMethod(inter)
+func MustGetRunMethod[M Method](inter M) Resolver {
+	m, err := getRunMethod(inter)
 	if err != nil {
 		panic(err)
 	}
 	return m
 }
 
-type TypedValidatedRunMethod[M Method] interface {
-	ValidatedRunMethod
-	TypedRef() M
+func MustGetResolverFor[M any](inter Method) Resolver {
+	return mustGetResolverForRaw(inter, reflect.TypeOf((*M)(nil)).Elem())
 }
 
-func GetRunMethod[M Method](inter M) (TypedValidatedRunMethod[M], error) {
+func MustGetResolverFor2[M1, M2 any](inter Method) Resolver {
+	return mustGetResolverForRaw(inter, reflect.TypeOf((*M1)(nil)).Elem(), reflect.TypeOf((*M2)(nil)).Elem())
+}
+
+func MustGetResolverFor3[M1, M2, M3 any](inter Method) Resolver {
+	return mustGetResolverForRaw(inter, reflect.TypeOf((*M1)(nil)).Elem(), reflect.TypeOf((*M2)(nil)).Elem(), reflect.TypeOf((*M3)(nil)).Elem())
+}
+
+func mustGetResolverForRaw(inter any, args ...reflect.Type) Resolver {
+	run, err := getRunMethod(inter)
+	if err != nil {
+		panic(err)
+	}
+
+	resvf := ResolverFor(run)
+
+	for _, arg := range args {
+		if yes, ok := resvf[arg.String()]; !ok || !yes {
+			panic(errors.Errorf("%q is not a resolver for %q", reflect.TypeOf(inter).String(), arg.String()))
+		}
+	}
+
+	return run
+}
+func getRunMethod[M Method](inter M) (*simpleResolver[M], error) {
 
 	prov, ok := any(inter).(MethodProvider)
 	if ok {
-		return &runMethod[M]{
+		return &simpleResolver[M]{
 			runfunc: prov.Method(),
 			strc:    inter,
 		}, nil
@@ -47,31 +71,32 @@ func GetRunMethod[M Method](inter M) (TypedValidatedRunMethod[M], error) {
 		return nil, errors.Errorf("missing Run method on %q", value.Type())
 	}
 
-	return &runMethod[M]{
+	return &simpleResolver[M]{
 		runfunc: method,
 		strc:    inter,
 	}, nil
-
 }
 
-type runMethod[M Method] struct {
+type simpleResolver[M Method] struct {
 	runfunc reflect.Value
 	strc    M
 }
 
-func (me *runMethod[M]) RunFunc() reflect.Value {
+func (me *simpleResolver[M]) RunFunc() reflect.Value {
 	return me.runfunc
 }
 
-func (me *runMethod[M]) Ref() Method {
+func (me *simpleResolver[M]) Ref() Method {
 	return me.strc
 }
 
-func (me *runMethod[M]) TypedRef() M {
+func (me *simpleResolver[M]) TypedRef() M {
 	return me.strc
 }
 
-func ListOfArgs(m ValidatedRunMethod) []reflect.Type {
+func (me *simpleResolver[M]) IsResolver() {}
+
+func ListOfArgs(m Resolver) []reflect.Type {
 	var args []reflect.Type
 	typ := m.RunFunc().Type()
 	for i := 0; i < typ.NumIn(); i++ {
@@ -81,7 +106,7 @@ func ListOfArgs(m ValidatedRunMethod) []reflect.Type {
 	return args
 }
 
-func ListOfReturns(m ValidatedRunMethod) []reflect.Type {
+func ListOfReturns(m Resolver) []reflect.Type {
 	var args []reflect.Type
 	typ := m.RunFunc().Type()
 	for i := 0; i < typ.NumOut(); i++ {
@@ -90,7 +115,7 @@ func ListOfReturns(m ValidatedRunMethod) []reflect.Type {
 	return args
 }
 
-func MenthodIsShared(run ValidatedRunMethod) bool {
+func MenthodIsShared(run Resolver) bool {
 	rets := ListOfReturns(run)
 	// right now this logic relys on the fact that commands only return one value (the error)
 	// and shared methods return two or more (the error and the values)
@@ -103,19 +128,26 @@ func MenthodIsShared(run ValidatedRunMethod) bool {
 	}
 }
 
-func ReturnArgs(me ValidatedRunMethod) []reflect.Type {
-	return ListOfReturns(me)
+func ResolverFor(m Resolver) map[string]bool {
+	resp := make(map[string]bool, 0)
+	for _, f := range ListOfReturns(m) {
+		if f.String() == "error" {
+			continue
+		}
+		resp[f.String()] = true
+	}
+	return resp
 }
 
-func FieldByName(me ValidatedRunMethod, name string) reflect.Value {
+func FieldByName(me Resolver, name string) reflect.Value {
 	return reflect.Indirect(reflect.ValueOf(me.Ref()).Elem()).FieldByName(name)
 }
 
-func CallMethod(me ValidatedRunMethod, args []reflect.Value) []reflect.Value {
+func CallMethod(me Resolver, args []reflect.Value) []reflect.Value {
 	return me.RunFunc().Call(args)
 }
 
-func StructFields(me ValidatedRunMethod) []reflect.StructField {
+func StructFields(me Resolver) []reflect.StructField {
 	typ := reflect.TypeOf(me.Ref())
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()

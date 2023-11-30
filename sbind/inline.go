@@ -21,9 +21,11 @@ func (me *noopResolver[A]) Ref() Method {
 	return me
 }
 
-func NewNoopMethod[A any]() ValidatedRunMethod {
+func NewNoopMethod[A any]() Resolver {
 	return &noopResolver[A]{}
 }
+
+func (me *noopResolver[A]) IsResolver() {}
 
 type noopAsker[A any] struct {
 }
@@ -44,6 +46,8 @@ func (me *noopAsker[A]) Ref() Method {
 	return me
 }
 
-func NewNoopAsker[A any]() ValidatedRunMethod {
+func NewNoopAsker[A any]() Resolver {
 	return &noopAsker[A]{}
 }
+
+func (me *noopAsker[A]) IsResolver() {}

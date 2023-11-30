@@ -26,8 +26,8 @@ type StringArrayInput = simpleValueInput[[]string]
 type IntArrayInput = simpleValueInput[[]int]
 type StringEnumInput = enumInput
 
-func MethodName(m ValidatedRunMethod) string {
-	return reflect.ValueOf(m.RunFunc()).Type().String()
+func MethodName(m Resolver) string {
+	return reflect.ValueOf(m.Ref()).Type().String()
 }
 
 func DependancyInputs(str string, m FMap, enum ...EnumOption) ([]Input, error) {
@@ -68,7 +68,7 @@ func DependancyInputs(str string, m FMap, enum ...EnumOption) ([]Input, error) {
 	return resp, nil
 }
 
-func InputsFor(m ValidatedRunMethod, enum ...EnumOption) ([]Input, error) {
+func InputsFor(m Resolver, enum ...EnumOption) ([]Input, error) {
 	resp := make([]Input, 0)
 	for _, f := range StructFields(m) {
 
@@ -123,7 +123,7 @@ type enumInput struct {
 }
 
 func (me *enumInput) Name() string {
-	return me.EnumOption.Name()
+	return me.EnumOption.DisplayName()
 }
 
 func getEnumOptionsFrom(mytype reflect.Type, enum ...EnumOption) (EnumOption, error) {
@@ -144,7 +144,7 @@ func getEnumOptionsFrom(mytype reflect.Type, enum ...EnumOption) (EnumOption, er
 
 }
 
-func NewGenericEnumInput(f reflect.StructField, m ValidatedRunMethod, enum ...EnumOption) (*enumInput, error) {
+func NewGenericEnumInput(f reflect.StructField, m Resolver, enum ...EnumOption) (*enumInput, error) {
 
 	mytype := FieldByName(m, f.Name).Type()
 
@@ -160,7 +160,7 @@ func NewGenericEnumInput(f reflect.StructField, m ValidatedRunMethod, enum ...En
 	return EnumOptionAsInput(opts, NewGenericInput(f, m)), nil
 }
 
-func NewSimpleValueInput[T any](f reflect.StructField, m ValidatedRunMethod) *simpleValueInput[T] {
+func NewSimpleValueInput[T any](f reflect.StructField, m Resolver) *simpleValueInput[T] {
 	v := FieldByName(m, f.Name)
 
 	return &simpleValueInput[T]{
@@ -169,7 +169,7 @@ func NewSimpleValueInput[T any](f reflect.StructField, m ValidatedRunMethod) *si
 	}
 }
 
-func NewGenericInput(f reflect.StructField, m ValidatedRunMethod) *genericInput {
+func NewGenericInput(f reflect.StructField, m Resolver) *genericInput {
 	return &genericInput{
 		field:  f,
 		parent: MethodName(m),

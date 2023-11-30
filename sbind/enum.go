@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	_ ValidatedRunMethod = (*rawEnumOption[string])(nil)
+	_ Resolver = (*rawEnumOption[string])(nil)
 )
 
 type EnumConstraint interface {
@@ -18,21 +18,23 @@ type EnumConstraint interface {
 type EnumResolver func(string, []string) (string, error)
 
 type EnumOption interface {
-	ValidatedRunMethod
+	// Resolver
+	Resolver
 	SetCurrent(string) error
 	CurrentPtr() *string
 	RawTypeName() string
 	Options() []string
 	Ptr() any
-	Name() string
+	DisplayName() string
 }
 
 type rawEnumOption[T EnumConstraint] struct {
-	MyEnum       *T
 	rawTypeName  string
 	options      []T
 	enumResolver EnumResolver
 	name         string
+	// Val needs to be exported value so it is picked up in inputs.go reflection logic
+	Val *T
 }
 
 // Ref implements ValidatedRunMethod.
@@ -52,15 +54,15 @@ func NewEnumOptionWithResolver[T EnumConstraint](name string, resolver EnumResol
 	}
 
 	return &rawEnumOption[T]{
-		MyEnum:       sel,
 		rawTypeName:  reflect.TypeOf((*T)(nil)).Elem().String(),
 		options:      input,
 		enumResolver: resolver,
 		name:         name,
+		Val:          sel,
 	}
 }
 
-func (me *rawEnumOption[T]) Name() string {
+func (me *rawEnumOption[T]) DisplayName() string {
 	return me.name
 }
 
@@ -86,18 +88,18 @@ func (me *rawEnumOption[T]) Options() []string {
 
 func (e *rawEnumOption[I]) SetCurrent(vt string) error {
 	if slices.Contains(e.OptionsWithSelect(), string(vt)) {
-		*e.MyEnum = I(vt)
+		*e.Val = I(vt)
 		return nil
 	}
 	return errors.Errorf("invalid value %q, expected one of [\"%s\"]", vt, strings.Join(e.OptionsWithSelect(), "\", \""))
 }
 
 func (e *rawEnumOption[I]) CurrentPtr() *string {
-	return (*string)(reflect.ValueOf(e.MyEnum).UnsafePointer())
+	return (*string)(reflect.ValueOf(e.Val).UnsafePointer())
 }
 
 func (me *rawEnumOption[T]) Run() (T, error) {
-	if me.MyEnum == nil || reflect.ValueOf(me.MyEnum).IsNil() || *me.MyEnum == "select" {
+	if me.Val == nil || reflect.ValueOf(me.Val).IsNil() || *me.Val == "select" {
 		if me.enumResolver == nil {
 			return "", errors.Errorf("no enum resolver for %q", me.rawTypeName)
 		}
@@ -111,7 +113,7 @@ func (me *rawEnumOption[T]) Run() (T, error) {
 			return "", err
 		}
 	}
-	return *me.MyEnum, nil
+	return *me.Val, nil
 }
 
 func EnumOptionAsInput(me EnumOption, m *genericInput) *enumInput {
@@ -124,3 +126,5 @@ func EnumOptionAsInput(me EnumOption, m *genericInput) *enumInput {
 func (me *rawEnumOption[I]) Ptr() any {
 	return me.CurrentPtr()
 }
+
+func (me *rawEnumOption[I]) IsResolver() {}

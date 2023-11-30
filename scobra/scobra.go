@@ -20,8 +20,7 @@ type SCobra interface {
 
 type NewSCobraOpts struct {
 	Commands  []SCobra
-	Resolvers []sbind.ValidatedRunMethod
-	Enums     []sbind.EnumOption
+	Resolvers []sbind.Resolver
 }
 
 func (me *CS) Decorate(self SCobra, snk sbind.Snake, inputs []sbind.Input) error {
@@ -128,9 +127,8 @@ func NewCobraSnake(root *cobra.Command, opts *NewSCobraOpts) (*cobra.Command, er
 	me := &CS{root}
 
 	opts2 := &sbind.NewSnakeOpts{
-		Resolvers:      make([]sbind.ValidatedRunMethod, 0),
-		NamedResolvers: map[string]sbind.ValidatedRunMethod{},
-		Enums:          opts.Enums,
+		Resolvers:      make([]sbind.Resolver, 0),
+		NamedResolvers: map[string]sbind.Resolver{},
 	}
 
 	var err error
@@ -146,10 +144,6 @@ func NewCobraSnake(root *cobra.Command, opts *NewSCobraOpts) (*cobra.Command, er
 	// these will always be overwritten in the RunE function
 	opts2.Resolvers = append(opts2.Resolvers, sbind.NewNoopMethod[*cobra.Command]())
 	opts2.Resolvers = append(opts2.Resolvers, sbind.NewNoopMethod[[]string]())
-
-	for _, v := range opts2.Enums {
-		opts2.Resolvers = append(opts2.Resolvers, v)
-	}
 
 	snk, err := sbind.NewSnake(opts2, me)
 	if err != nil {

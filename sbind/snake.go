@@ -5,32 +5,23 @@ import (
 	"reflect"
 )
 
-type EnumTypeFunc func(string) ([]any, error)
-
-type EnumOptionResolver func(string) ([]string, error)
-
 type NewSnakeOpts struct {
-	Resolvers                  []ValidatedRunMethod
-	NamedResolvers             map[string]ValidatedRunMethod
+	Resolvers                  []Resolver
+	NamedResolvers             map[string]Resolver
 	GlobalContextResolverFlags bool
 	Enums                      []EnumOption
 }
 
 type Snake interface {
 	ResolverNames() []string
-	Resolve(string) ValidatedRunMethod
+	Resolve(string) Resolver
 	// Bound(string) *reflect.Value
 	Binder() *Binder
-	SetResolver(string, ValidatedRunMethod)
 }
 
 type defaultSnake struct {
 	bindings  *Binder
-	resolvers map[string]ValidatedRunMethod
-}
-
-func (me *defaultSnake) SetResolver(name string, meth ValidatedRunMethod) {
-	me.resolvers[name] = meth
+	resolvers map[string]Resolver
 }
 
 func (me *defaultSnake) ResolverNames() []string {
@@ -41,7 +32,7 @@ func (me *defaultSnake) ResolverNames() []string {
 	return names
 }
 
-func (me *defaultSnake) Resolve(name string) ValidatedRunMethod {
+func (me *defaultSnake) Resolve(name string) Resolver {
 	return me.resolvers[name]
 }
 
@@ -55,28 +46,35 @@ type MethodProvider interface {
 
 type SnakeImplementation[X any] interface {
 	Decorate(X, Snake, []Input) error
-	// ProcessInputs(X, Snake) error
 }
 
 func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake, error) {
 
 	snk := &defaultSnake{
 		bindings:  NewBinder(),
-		resolvers: make(map[string]ValidatedRunMethod),
+		resolvers: make(map[string]Resolver),
 	}
+
+	enums := opts.Enums
 
 	// we always want context to get resolved first
 	opts.NamedResolvers["root"] = MustGetRunMethod(NewNoopAsker[context.Context]())
 
 	for _, runner := range opts.Resolvers {
 
-		retrn := ReturnArgs(runner)
+		retrn := ListOfReturns(runner)
 
+		// every return value marks this runner as the resolver for that type
 		for _, r := range retrn {
 			if r.Kind().String() == "error" {
 				continue
 			}
 			snk.resolvers[reflectTypeString(r)] = runner
+		}
+
+		// enum options are also resolvers so they could be passed here
+		if mp, ok := runner.(EnumOption); ok {
+			enums = append(enums, mp)
 		}
 	}
 
@@ -88,7 +86,7 @@ func NewSnake[M Method](opts *NewSnakeOpts, impl SnakeImplementation[M]) (Snake,
 		exer := snk.Resolve(sexer)
 
 		if cmd, ok := exer.Ref().(M); ok {
-			inpts, err := DependancyInputs(sexer, snk.Resolve, opts.Enums...)
+			inpts, err := DependancyInputs(sexer, snk.Resolve, enums...)
 			if err != nil {
 				return nil, err
 			}

@@ -9,7 +9,7 @@ import (
 	"github.com/walteh/snake/sbind"
 )
 
-func NewMockIsRunnable(fn any) sbind.ValidatedRunMethod {
+func NewMockIsRunnable(fn any) sbind.Resolver {
 	return &MockIsRunnable{
 		fn: reflect.ValueOf(fn),
 	}
@@ -22,6 +22,8 @@ func (m *MockIsRunnable) Ref() sbind.Method {
 type MockIsRunnable struct {
 	fn reflect.Value
 }
+
+func (m *MockIsRunnable) IsResolver() {}
 
 func (m *MockIsRunnable) RunFunc() reflect.Value {
 	return m.fn
@@ -36,7 +38,7 @@ func (m MockIsRunnable) HandleResponse(x []reflect.Value) ([]*reflect.Value, err
 }
 
 func TestFindBrothers(t *testing.T) {
-	fmap := map[string]sbind.ValidatedRunMethod{
+	fmap := map[string]sbind.Resolver{
 		"int":                       NewMockIsRunnable(func() {}),
 		"uint64":                    NewMockIsRunnable(func(int) {}),
 		"string":                    NewMockIsRunnable(func(uint64) {}),
@@ -59,7 +61,7 @@ func TestFindBrothers(t *testing.T) {
 
 	for _, tt := range tableTests {
 		t.Run(tt.str, func(t *testing.T) {
-			got, err := sbind.FindBrothers(tt.str, func(s string) sbind.ValidatedRunMethod {
+			got, err := sbind.FindBrothers(tt.str, func(s string) sbind.Resolver {
 				if r, ok := fmap[s]; ok {
 					return r
 				}
@@ -76,7 +78,7 @@ func TestFindBrothers(t *testing.T) {
 func TestFindArguments(t *testing.T) {
 
 	type args struct {
-		fmap   map[string]sbind.ValidatedRunMethod
+		fmap   map[string]sbind.Resolver
 		target string
 	}
 
@@ -89,7 +91,7 @@ func TestFindArguments(t *testing.T) {
 			name: "test1",
 			args: args{
 				target: "key1",
-				fmap: map[string]sbind.ValidatedRunMethod{
+				fmap: map[string]sbind.Resolver{
 					"uint32": &MockIsRunnable{
 						fn: reflect.ValueOf(func() (uint32, error) {
 							return 2, nil
@@ -123,7 +125,7 @@ func TestFindArguments(t *testing.T) {
 
 	for _, tt := range tableTests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := sbind.FindArguments(tt.args.target, func(s string) sbind.ValidatedRunMethod {
+			got, err := sbind.FindArguments(tt.args.target, func(s string) sbind.Resolver {
 				if r, ok := tt.args.fmap[s]; ok {
 					return r
 				}

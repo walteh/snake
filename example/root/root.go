@@ -2,6 +2,7 @@ package root
 
 import (
 	"context"
+	"io"
 
 	"github.com/spf13/cobra"
 
@@ -22,13 +23,11 @@ func NewCommand(ctx context.Context) (*cobra.Command, *sample.Handler, error) {
 		Commands: []scobra.SCobra{
 			handler,
 		},
-		Resolvers: []sbind.ValidatedRunMethod{
-			sbind.MustGetRunMethod(&ContextResolver{}),
-			sbind.MustGetRunMethod(&CustomResolver{}),
-			sbind.MustGetRunMethod(&DoubleResolver{}),
-			sbind.MustGetRunMethod(&TripleResolver{}),
-		},
-		Enums: []sbind.EnumOption{
+		Resolvers: []sbind.Resolver{
+			sbind.MustGetResolverFor[context.Context](&ContextResolver{}),
+			sbind.MustGetResolverFor[CustomInterface](&CustomResolver{}),
+			sbind.MustGetResolverFor2[io.Reader, io.Writer](&DoubleResolver{}),
+			sbind.MustGetResolverFor3[io.ByteReader, io.ByteWriter, io.ByteScanner](&TripleResolver{}),
 			sbind.NewEnumOptionWithResolver(
 				"the-cool-enum",
 				func(s1 string, s2 []string) (string, error) {

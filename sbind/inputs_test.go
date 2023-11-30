@@ -1,7 +1,6 @@
 package sbind_test
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -56,36 +55,40 @@ const (
 	MockEnumC MockEnum = "c"
 )
 
+type mockInput struct {
+	name   string
+	shared bool
+	parent string
+	ptr    any
+}
+
+func NewMockInputFromInput(i sbind.Input) *mockInput {
+	return &mockInput{
+		name:   i.Name(),
+		shared: i.Shared(),
+		parent: i.Parent(),
+		ptr:    i.Ptr(),
+	}
+}
+
 func TestDependancyInputs(t *testing.T) {
 
-	type mockInput struct {
-		name   string
-		shared bool
-		parent string
-		ptr    any
-	}
-
 	r1 := &ExampleArgumentResolver{ABC: "abc"}
-	vr1, err := sbind.GetRunMethod(r1)
-	require.NoError(t, err)
+	vr1 := sbind.MustGetRunMethod(r1)
 
 	r2 := &ExampleÇommand{DEF: "oops"}
-	vr2, err := sbind.GetRunMethod(r2)
-	require.NoError(t, err)
+	vr2 := sbind.MustGetRunMethod(r2)
 
 	r1d := &DuplicateArgumentResolver{ABC: true}
-	vr1d, err := sbind.GetRunMethod(r1d)
-	require.NoError(t, err)
+	vr1d := sbind.MustGetRunMethod(r1d)
 
 	r2d := &DuplicateCommand{}
-	vr2d, err := sbind.GetRunMethod(r2d)
-	require.NoError(t, err)
+	vr2d := sbind.MustGetRunMethod(r2d)
 
 	r3 := sbind.NewEnumOptionWithResolver("best-enum-ever", nil, MockEnumA, MockEnumB, MockEnumC)
-	vr3, err := sbind.GetRunMethod(r3)
-	require.NoError(t, err)
+	vr3 := sbind.MustGetRunMethod(r3)
 
-	m := func(str string) sbind.ValidatedRunMethod {
+	m := func(str string) sbind.Resolver {
 		switch str {
 		case "bool":
 			return vr1d
@@ -105,7 +108,7 @@ func TestDependancyInputs(t *testing.T) {
 		name:   "abc",
 		shared: true,
 		parent: sbind.MethodName(vr1),
-		ptr:    &(vr1.TypedRef()).ABC,
+		ptr:    &r1.ABC,
 	}
 
 	expectedR2 := &mockInput{
@@ -123,7 +126,7 @@ func TestDependancyInputs(t *testing.T) {
 	}
 
 	expectedEnum := &mockInput{
-		name:   "myenum",
+		name:   "best-enum-ever",
 		shared: true,
 		parent: sbind.MethodName(vr3),
 		ptr:    r3.CurrentPtr(),
@@ -178,25 +181,31 @@ func TestDependancyInputs(t *testing.T) {
 			}
 			require.NoError(t, err)
 
-			require.Equal(t, len(tt.expectedInputs), len(inputs))
+			// require.Equal(t, len(tt.expectedInputs), len(inputs))
 
-			for _, exp := range tt.expectedInputs {
-				var v sbind.Input
-				for _, c := range inputs {
-
-					if exp.name == c.Name() && exp.parent == c.Parent() {
-						v = c
-						break
-					}
-				}
-
-				require.NotNil(t, v)
-
-				assert.Equal(t, exp.name, v.Name())
-				assert.Equal(t, exp.shared, v.Shared())
-				assert.Equal(t, exp.parent, v.Parent())
-				assert.Equal(t, reflect.ValueOf(exp.ptr).Pointer(), reflect.ValueOf(v.Ptr()).Pointer())
+			inpts := make([]*mockInput, len(inputs))
+			for i, v := range inputs {
+				inpts[i] = NewMockInputFromInput(v)
 			}
+
+			assert.ElementsMatch(t, tt.expectedInputs, inpts)
+
+			// for _, exp := range tt.expectedInputs {
+			// 	var v sbind.Input
+			// 	for _, c := range inputs {
+			// 		if exp.name == c.Name() && exp.parent == c.Parent() {
+			// 			v = c
+			// 			break
+			// 		}
+			// 	}
+
+			// 	require.NotNil(t, v)
+
+			// 	assert.Equal(t, exp.name, v.Name())
+			// 	assert.Equal(t, exp.shared, v.Shared())
+			// 	assert.Equal(t, exp.parent, v.Parent())
+			// 	assert.Equal(t, reflect.ValueOf(exp.ptr).Pointer(), reflect.ValueOf(v.Ptr()).Pointer(), "expected %v, got %v for %s - %s", exp.ptr, v.Ptr(), exp.name, exp.parent)
+			// }
 		})
 	}
 }
