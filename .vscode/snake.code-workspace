@@ -13,6 +13,7 @@
 		"editor.formatOnSave": true,
 		"search.useIgnoreFiles": true,
 		"debug.console.wordWrap": false,
+		"explorer.sortOrder": "type",
 		/* //////////////////////////////////////////////
 							FILES
 		////////////////////////////////////////////// */

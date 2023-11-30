@@ -1,9 +1,10 @@
-package snake
+package slog
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -28,8 +29,8 @@ func NewJsonStdErrLogger() *zerolog.Logger {
 	return &logger
 }
 
-func NewVerboseLoggerContext(ctx context.Context) context.Context {
-	verboseLogger := NewVerboseConsoleLogger()
+func NewVerboseLoggerContext(ctx context.Context, writer io.Writer) context.Context {
+	verboseLogger := NewVerboseConsoleLogger(writer)
 	return verboseLogger.WithContext(ctx)
 }
 
@@ -43,9 +44,9 @@ func NewJsonStdErrLoggerContext(ctx context.Context) context.Context {
 	return jsonLogger.WithContext(ctx)
 }
 
-func NewVerboseConsoleLogger() *zerolog.Logger {
+func NewVerboseConsoleLogger(out io.Writer) *zerolog.Logger {
 
-	consoleOutput := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.StampMicro, NoColor: false}
+	consoleOutput := zerolog.ConsoleWriter{Out: out, TimeFormat: time.StampMicro, NoColor: false}
 
 	pretty := pp.New()
 

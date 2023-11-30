@@ -1,11 +1,11 @@
-package sbind_test
+package snake_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/walteh/snake/sbind"
+	"github.com/walteh/snake"
 )
 
 type ExampleArgumentResolver struct {
@@ -54,7 +54,7 @@ type mockInput struct {
 	ptr    any
 }
 
-func NewMockInputFromInput(i sbind.Input) *mockInput {
+func NewMockInputFromInput(i snake.Input) *mockInput {
 	return &mockInput{
 		name:   i.Name(),
 		shared: i.Shared(),
@@ -66,27 +66,27 @@ func NewMockInputFromInput(i sbind.Input) *mockInput {
 func TestDependancyInputs(t *testing.T) {
 
 	r1 := &ExampleArgumentResolver{ABC: "abc"}
-	vr1 := sbind.MustGetRunMethod(r1)
+	vr1 := snake.MustGetRunMethod(r1)
 
 	r2 := &ExampleCommand{DEF: "oops"}
-	vr2 := sbind.MustGetRunMethod(r2)
+	vr2 := snake.MustGetRunMethod(r2)
 
 	r1d := &DuplicateArgumentResolver{ABC: true}
-	vr1d := sbind.MustGetRunMethod(r1d)
+	vr1d := snake.MustGetRunMethod(r1d)
 
 	r2d := &DuplicateCommand{}
-	vr2d := sbind.MustGetRunMethod(r2d)
+	vr2d := snake.MustGetRunMethod(r2d)
 
-	r3 := sbind.NewEnumOptionWithResolver("best-enum-ever", nil, MockEnumA, MockEnumB, MockEnumC)
-	vr3 := sbind.MustGetRunMethod(r3)
+	r3 := snake.NewEnumOptionWithResolver("best-enum-ever", nil, MockEnumA, MockEnumB, MockEnumC)
+	vr3 := snake.MustGetRunMethod(r3)
 
-	m := func(str string) sbind.Resolver {
+	m := func(str string) snake.Resolver {
 		switch str {
 		case "bool":
 			return vr1d
 		case "string":
 			return vr1
-		case "sbind_test.MockEnum":
+		case "snake_test.MockEnum":
 			return vr3
 		case "command1":
 			return vr2
@@ -99,28 +99,28 @@ func TestDependancyInputs(t *testing.T) {
 	expectedR1 := &mockInput{
 		name:   "abc",
 		shared: true,
-		parent: sbind.MethodName(vr1),
+		parent: snake.MethodName(vr1),
 		ptr:    &r1.ABC,
 	}
 
 	expectedR2 := &mockInput{
 		name:   "def",
 		shared: false,
-		parent: sbind.MethodName(vr2),
+		parent: snake.MethodName(vr2),
 		ptr:    &r2.DEF,
 	}
 
 	expectedR1d := &mockInput{
 		name:   "abc",
 		shared: true,
-		parent: sbind.MethodName(vr1d),
+		parent: snake.MethodName(vr1d),
 		ptr:    &r1d.ABC,
 	}
 
 	expectedEnum := &mockInput{
 		name:   "best-enum-ever",
 		shared: true,
-		parent: sbind.MethodName(vr3),
+		parent: snake.MethodName(vr3),
 		ptr:    r3.CurrentPtr(),
 	}
 
@@ -166,7 +166,7 @@ func TestDependancyInputs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			inputs, err := sbind.DependancyInputs(tt.str, m, r3)
+			inputs, err := snake.DependancyInputs(tt.str, m, r3)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return

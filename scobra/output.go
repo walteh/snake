@@ -9,13 +9,13 @@ import (
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
-	"github.com/walteh/snake/sbind"
+	"github.com/walteh/snake"
 )
 
 // YO could we have more inputs for the ouputs? maybe add some specific flags to them if they have a run method?
 // like being able to pass a --json flag to the table output and it will convert it to json? or a csv flag, or a file flag.
 
-var _ sbind.OutputHandler = (*OutputHandler)(nil)
+var _ snake.OutputHandler = (*OutputHandler)(nil)
 
 type OutputHandler struct {
 	cmd *cobra.Command
@@ -28,17 +28,17 @@ func NewOutputHandler(cmd *cobra.Command) *OutputHandler {
 }
 
 // HandleJSONOutput implements sbind.OutputHandler.
-func (*OutputHandler) HandleJSONOutput(ctx context.Context, out *sbind.JSONOutput) error {
+func (*OutputHandler) HandleJSONOutput(ctx context.Context, out *snake.JSONOutput) error {
 	panic("unimplemented")
 }
 
 // HandleLongRunningOutput implements sbind.OutputHandler.
-func (*OutputHandler) HandleLongRunningOutput(ctx context.Context, out *sbind.LongRunningOutput) error {
+func (*OutputHandler) HandleLongRunningOutput(ctx context.Context, out *snake.LongRunningOutput) error {
 	return out.Start(ctx)
 }
 
 // HandleRawTextOutput implements sbind.OutputHandler.
-func (me *OutputHandler) HandleRawTextOutput(ctx context.Context, out *sbind.RawTextOutput) error {
+func (me *OutputHandler) HandleRawTextOutput(ctx context.Context, out *snake.RawTextOutput) error {
 	me.cmd.Println("")
 
 	me.cmd.Println(out.Data)
@@ -48,7 +48,7 @@ func (me *OutputHandler) HandleRawTextOutput(ctx context.Context, out *sbind.Raw
 }
 
 // HandleTableOutput implements sbind.OutputHandler.
-func (me *OutputHandler) HandleTableOutput(ctx context.Context, out *sbind.TableOutput) error {
+func (me *OutputHandler) HandleTableOutput(ctx context.Context, out *snake.TableOutput) error {
 	table := tablewriter.NewWriter(me.cmd.OutOrStdout())
 
 	table.SetHeader(out.ColumnNames)
@@ -76,13 +76,13 @@ func (me *OutputHandler) HandleTableOutput(ctx context.Context, out *sbind.Table
 }
 
 // HandleNilOutput implements sbind.OutputHandler.
-func (me *OutputHandler) HandleNilOutput(ctx context.Context, out *sbind.NilOutput) error {
+func (me *OutputHandler) HandleNilOutput(ctx context.Context, out *snake.NilOutput) error {
 	me.cmd.Println("nil output")
 	return nil
 }
 
 // HandleFileOutput implements sbind.OutputHandler.
-func (me *OutputHandler) HandleFileOutput(ctx context.Context, out *sbind.FileOutput) error {
+func (me *OutputHandler) HandleFileOutput(ctx context.Context, out *snake.FileOutput) error {
 	dir := out.Dir
 
 	if dir == "" {

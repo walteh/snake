@@ -1,4 +1,4 @@
-package sbind_test
+package snake_test
 
 import (
 	"reflect"
@@ -6,16 +6,16 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/walteh/snake/sbind"
+	"github.com/walteh/snake"
 )
 
-func NewMockIsRunnable(fn any) sbind.Resolver {
+func NewMockIsRunnable(fn any) snake.Resolver {
 	return &MockIsRunnable{
 		fn: reflect.ValueOf(fn),
 	}
 }
 
-func (m *MockIsRunnable) Ref() sbind.Method {
+func (m *MockIsRunnable) Ref() snake.Method {
 	return m
 }
 
@@ -38,11 +38,11 @@ func (m MockIsRunnable) HandleResponse(x []reflect.Value) ([]*reflect.Value, err
 }
 
 func TestFindBrothers(t *testing.T) {
-	fmap := map[string]sbind.Resolver{
+	fmap := map[string]snake.Resolver{
 		"int":                       NewMockIsRunnable(func() {}),
 		"uint64":                    NewMockIsRunnable(func(int) {}),
 		"string":                    NewMockIsRunnable(func(uint64) {}),
-		"sbind_test.MockIsRunnable": NewMockIsRunnable(func(int, uint64, string) {}),
+		"snake_test.MockIsRunnable": NewMockIsRunnable(func(int, uint64, string) {}),
 		"key1":                      NewMockIsRunnable(func(int) {}),
 		"key2":                      NewMockIsRunnable(func(int, uint64, string) {}),
 		"key3":                      NewMockIsRunnable(func(uint64) {}),
@@ -56,12 +56,12 @@ func TestFindBrothers(t *testing.T) {
 		{"key1", []string{"key1", "int"}},
 		{"key2", []string{"key2", "int", "uint64", "string"}},
 		{"key3", []string{"key3", "int", "uint64"}},
-		{"key4", []string{"key4", "int", "uint64", "string", "sbind_test.MockIsRunnable"}},
+		{"key4", []string{"key4", "int", "uint64", "string", "snake_test.MockIsRunnable"}},
 	}
 
 	for _, tt := range tableTests {
 		t.Run(tt.str, func(t *testing.T) {
-			got, err := sbind.FindBrothers(tt.str, func(s string) sbind.Resolver {
+			got, err := snake.FindBrothers(tt.str, func(s string) snake.Resolver {
 				if r, ok := fmap[s]; ok {
 					return r
 				}
@@ -78,7 +78,7 @@ func TestFindBrothers(t *testing.T) {
 func TestFindArguments(t *testing.T) {
 
 	type args struct {
-		fmap   map[string]sbind.Resolver
+		fmap   map[string]snake.Resolver
 		target string
 	}
 
@@ -91,7 +91,7 @@ func TestFindArguments(t *testing.T) {
 			name: "test1",
 			args: args{
 				target: "key1",
-				fmap: map[string]sbind.Resolver{
+				fmap: map[string]snake.Resolver{
 					"uint32": &MockIsRunnable{
 						fn: reflect.ValueOf(func() (uint32, error) {
 							return 2, nil
@@ -125,7 +125,7 @@ func TestFindArguments(t *testing.T) {
 
 	for _, tt := range tableTests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := sbind.FindArguments(tt.args.target, func(s string) sbind.Resolver {
+			got, err := snake.FindArguments(tt.args.target, func(s string) snake.Resolver {
 				if r, ok := tt.args.fmap[s]; ok {
 					return r
 				}

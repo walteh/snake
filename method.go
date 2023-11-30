@@ -1,4 +1,4 @@
-package sbind
+package snake
 
 import (
 	"reflect"

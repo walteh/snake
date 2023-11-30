@@ -8,7 +8,7 @@ import (
 	"github.com/go-faster/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/walteh/snake/sbind"
+	"github.com/walteh/snake"
 )
 
 type CS struct {
@@ -21,18 +21,18 @@ type SCobra interface {
 	// sbind.NamedMethod
 }
 
-func NewCommandResolver(s SCobra) sbind.TypedResolver[SCobra] {
-	return sbind.MustGetRunMethod(s)
+func NewCommandResolver(s SCobra) snake.TypedResolver[SCobra] {
+	return snake.MustGetRunMethod(s)
 }
 
-func (me *CS) ManagedResolvers(_ context.Context) []sbind.Resolver {
-	return []sbind.Resolver{
-		sbind.NewNoopMethod[*cobra.Command](),
-		sbind.NewNoopMethod[[]string](),
+func (me *CS) ManagedResolvers(_ context.Context) []snake.Resolver {
+	return []snake.Resolver{
+		snake.NewNoopMethod[*cobra.Command](),
+		snake.NewNoopMethod[[]string](),
 	}
 }
 
-func (me *CS) Decorate(ctx context.Context, self SCobra, snk sbind.Snake, inputs []sbind.Input) error {
+func (me *CS) Decorate(ctx context.Context, self SCobra, snk snake.Snake, inputs []snake.Input) error {
 
 	cmd := self.Command()
 
@@ -53,17 +53,17 @@ func (me *CS) Decorate(ctx context.Context, self SCobra, snk sbind.Snake, inputs
 		}
 
 		switch t := v.(type) {
-		case *sbind.StringEnumInput:
+		case *snake.StringEnumInput:
 			flgs.Var(NewWrappedEnum(t), v.Name(), t.Usage())
-		case *sbind.StringInput:
+		case *snake.StringInput:
 			flgs.StringVar(t.Value(), v.Name(), t.Default(), t.Usage())
-		case *sbind.BoolInput:
+		case *snake.BoolInput:
 			flgs.BoolVar(t.Value(), v.Name(), t.Default(), t.Usage())
-		case *sbind.IntInput:
+		case *snake.IntInput:
 			flgs.IntVar(t.Value(), v.Name(), t.Default(), t.Usage())
-		case *sbind.StringArrayInput:
+		case *snake.StringArrayInput:
 			flgs.StringSliceVar(t.Value(), v.Name(), t.Default(), t.Usage())
-		case *sbind.IntArrayInput:
+		case *snake.IntArrayInput:
 			flgs.IntSliceVar(t.Value(), v.Name(), t.Default(), t.Usage())
 		default:
 			return errors.Errorf("unknown input type %T", t)
@@ -90,14 +90,14 @@ func (me *CS) Decorate(ctx context.Context, self SCobra, snk sbind.Snake, inputs
 	}
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		binder := sbind.NewBinder()
+		binder := snake.NewBinder()
 
-		sbind.SetBinding(binder, cmd)
-		sbind.SetBinding(binder, args)
+		snake.SetBinding(binder, cmd)
+		snake.SetBinding(binder, args)
 
 		outhand := NewOutputHandler(cmd)
 
-		err := sbind.RunResolvingArguments(outhand, snk.Resolve, name, binder)
+		err := snake.RunResolvingArguments(outhand, snk.Resolve, name, binder)
 		if err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}
@@ -115,17 +115,17 @@ func (me *CS) Decorate(ctx context.Context, self SCobra, snk sbind.Snake, inputs
 	return nil
 }
 
-func (me *CS) OnSnakeInit(ctx context.Context, snk sbind.Snake) error {
+func (me *CS) OnSnakeInit(ctx context.Context, snk snake.Snake) error {
 
 	me.RunE = func(cmd *cobra.Command, args []string) error {
-		binder := sbind.NewBinder()
+		binder := snake.NewBinder()
 
-		sbind.SetBinding(binder, cmd)
-		sbind.SetBinding(binder, args)
+		snake.SetBinding(binder, cmd)
+		snake.SetBinding(binder, args)
 
 		outhand := NewOutputHandler(cmd)
 
-		err := sbind.RunResolvingArguments(outhand, snk.Resolve, "root", binder)
+		err := snake.RunResolvingArguments(outhand, snk.Resolve, "root", binder)
 		if err != nil {
 			return HandleErrorByPrintingToConsole(cmd, err)
 		}

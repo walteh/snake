@@ -3,20 +3,20 @@ package scobra
 import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/walteh/snake/sbind"
+	"github.com/walteh/snake"
 )
 
 var (
 	_ pflag.Value = &wrappedEnum{}
 )
 
-func NewWrappedEnum(opt sbind.EnumOption) *wrappedEnum {
+func NewWrappedEnum(opt snake.EnumOption) *wrappedEnum {
 	strt := &wrappedEnum{internal: opt}
 	return strt
 }
 
 type wrappedEnum struct {
-	internal sbind.EnumOption
+	internal snake.EnumOption
 }
 
 // Set must have pointer receiver so it doesn't change the value of a copy

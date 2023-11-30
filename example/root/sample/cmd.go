@@ -6,7 +6,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
-	"github.com/walteh/snake/sbind"
+	"github.com/walteh/snake"
 	"github.com/walteh/snake/scobra"
 )
 
@@ -60,7 +60,7 @@ func (me *Handler) Run(
 	write io.Writer,
 	en SampleEnum,
 	br io.ByteReader, bw io.ByteWriter, bs io.ByteScanner,
-) (sbind.Output, error) {
+) (snake.Output, error) {
 	me.args.Context = ctx
 	me.args.Cmd = cmd
 	me.args.Arr = arr
@@ -70,7 +70,7 @@ func (me *Handler) Run(
 	me.args.Br = br
 	me.args.Bw = bw
 	me.args.Bs = bs
-	return &sbind.TableOutput{
+	return &snake.TableOutput{
 		ColumnNames: []string{"name", "value"},
 		RowValueData: [][]any{
 			{"value", me.Value},
