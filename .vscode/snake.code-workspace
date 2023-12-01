@@ -4,6 +4,10 @@
 			"path": "..",
 			"name": "root"
 		},
+		{
+			"name": "wails",
+			"path": "../example/wails"
+		}
 	],
 	"settings": {
 		/* //////////////////////////////////////////////
@@ -49,6 +53,19 @@
 		////////////////////////////////////////////// */
 		"[dockerfile]": {
 			"editor.defaultFormatter": "foxundermoon.shell-format"
+		},
+		// auto format js and ts
+		"[javascript]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[typescript]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[typescriptreact]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[javascriptreact]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
 		},
 	}
 }
