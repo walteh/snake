@@ -7,6 +7,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/walteh/snake"
+	"github.com/walteh/snake/example/resolvers"
 	"github.com/walteh/snake/scobra"
 )
 
@@ -23,11 +24,9 @@ type Handler struct {
 
 type args struct {
 	Context context.Context
-	Cmd     *cobra.Command
-	Arr     []string
 	Read    io.Reader
 	Write   io.Writer
-	Enum    SampleEnum
+	Enum    resolvers.SampleEnum
 	Br      io.ByteReader
 	Bw      io.ByteWriter
 	Bs      io.ByteScanner
@@ -39,6 +38,10 @@ func (me *Handler) Args() *args {
 
 func (*Handler) Name() string {
 	return "sample"
+}
+
+func (*Handler) Description() string {
+	return "sample description"
 }
 
 func (me *Handler) Command() *cobra.Command {
@@ -56,16 +59,12 @@ func (me *Handler) Command() *cobra.Command {
 
 func (me *Handler) Run(
 	ctx context.Context,
-	cmd *cobra.Command,
-	arr []string,
 	read io.Reader,
 	write io.Writer,
-	en SampleEnum,
+	en resolvers.SampleEnum,
 	br io.ByteReader, bw io.ByteWriter, bs io.ByteScanner,
 ) (snake.Output, error) {
 	me.args.Context = ctx
-	me.args.Cmd = cmd
-	me.args.Arr = arr
 	me.args.Read = read
 	me.args.Write = write
 	me.args.Enum = en

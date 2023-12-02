@@ -13,25 +13,47 @@ type Input interface {
 	Name() string
 	Shared() bool
 	Ptr() any
-	Parent() string
+	Parent() Resolver
+	SetValue(any) error
+	Type() InputType
 }
 
 type InputWithOptions interface {
 	Options() []string
 }
 
-type StringInput = simpleValueInput[string]
-type IntInput = simpleValueInput[int]
-type BoolInput = simpleValueInput[bool]
-type StringArrayInput = simpleValueInput[[]string]
-type IntArrayInput = simpleValueInput[[]int]
-
-type DurationInput = simpleValueInput[time.Duration]
-type StringEnumInput = enumInput
-
 func MethodName(m Resolver) string {
 	return reflect.ValueOf(m.Ref()).Type().String()
 }
+
+// func DependantsOfInput(input Input, fmap FMap) []string {
+
+// 	return
+
+// 	// any resolver who depends on the outputs of the parent
+// 	rets := DependantsOfResolver(input.Parent(), fmap)
+// 	return DependantsOfResolver(input.Parent(), fmap)
+// }
+
+// func DependantsOfResolver(res Resolver, m FMap) []Resolver {
+// 	resv := make([]Resolver, 0)
+// 	rets := IsResolverFor(res)
+// 	fmt.Println("rets", rets)
+// 	for v := range rets {
+// 		if z := m(v); z != nil {
+// 			resf, err := DependanciesOf(v, m)
+// 			if err != nil {
+// 				panic(err)
+// 			}
+// 			for _, v := range resf {
+// 				if g := m(v); g != nil {
+// 					resv = append(resv, g)
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return resv
+// }
 
 func DependancyInputs(str string, m FMap, enum ...Enum) ([]Input, error) {
 	deps, err := DependanciesOf(str, m)
@@ -56,9 +78,9 @@ func DependancyInputs(str string, m FMap, enum ...Enum) ([]Input, error) {
 				}
 				procd[v.Ptr()] = v
 				if z, ok := nameReserved[v.Name()]; ok {
-					return nil, errors.Errorf("multiple inputs named %q [%q, %q]", v.Name(), z, v.Parent())
+					return nil, errors.Errorf("multiple inputs named %q [%q, %q]", v.Name(), z, MethodName(v.Parent()))
 				}
-				nameReserved[v.Name()] = v.Parent()
+				nameReserved[v.Name()] = MethodName(v.Parent())
 			}
 		}
 	}
@@ -122,13 +144,20 @@ func InputsFor(m Resolver, enum ...Enum) ([]Input, error) {
 
 type genericInput struct {
 	field  reflect.StructField
-	shared bool
-	parent string
+	parent Resolver
 }
 
 type simpleValueInput[T any] struct {
 	*genericInput
 	val *T
+}
+
+func (me *simpleValueInput[T]) SetValue(v any) error {
+	if x, ok := v.(T); ok {
+		*me.val = x
+		return nil
+	}
+	return errors.Errorf("unable to set value %v to %T", v, me.val)
 }
 
 type enumInput struct {
@@ -176,17 +205,18 @@ func NewGenericEnumInput(f reflect.StructField, m Resolver, enum ...Enum) (*enum
 func NewSimpleValueInput[T any](f reflect.StructField, m Resolver) *simpleValueInput[T] {
 	v := FieldByName(m, f.Name)
 
-	return &simpleValueInput[T]{
+	inp := &simpleValueInput[T]{
 		genericInput: NewGenericInput(f, m),
 		val:          v.Addr().Interface().(*T),
 	}
+
+	return inp
 }
 
 func NewGenericInput(f reflect.StructField, m Resolver) *genericInput {
 	return &genericInput{
 		field:  f,
-		parent: MethodName(m),
-		shared: MenthodIsShared(m),
+		parent: m,
 	}
 }
 
@@ -207,10 +237,10 @@ func (me *genericInput) Name() string {
 }
 
 func (me *genericInput) Shared() bool {
-	return me.shared
+	return MenthodIsShared(me.parent)
 }
 
-func (me *genericInput) Parent() string {
+func (me *genericInput) Parent() Resolver {
 	return me.parent
 }
 

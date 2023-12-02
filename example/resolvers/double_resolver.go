@@ -3,8 +3,6 @@ package resolvers
 import (
 	"io"
 	"strings"
-
-	"github.com/spf13/cobra"
 )
 
 type DoubleResolver struct {
@@ -12,7 +10,7 @@ type DoubleResolver struct {
 	B bool `usage:"B" default:"true"`
 }
 
-func (me *DoubleResolver) Run(cmd *cobra.Command) (io.Reader, io.Writer, error) {
+func (me *DoubleResolver) Run() (io.Reader, io.Writer, error) {
 
 	return strings.NewReader("hello"), &strings.Builder{}, nil
 }

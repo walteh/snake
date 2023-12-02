@@ -20,7 +20,16 @@ func DependanciesOf(str string, m FMap) ([]string, error) {
 		return nil, errors.Errorf("missing resolver for %q", str)
 	}
 
-	mapa, err := FindBrothers(str, m)
+	mapa, err := FindBrothers(str, m, ListOfArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	return mapa, nil
+}
+
+func DependantsOf(str string, m FMap) ([]string, error) {
+	mapa, err := FindBrothers(str, m, ListOfReturns)
 	if err != nil {
 		return nil, err
 	}
@@ -37,8 +46,10 @@ func EndOfChainPtr() *reflect.Value {
 	return &v
 }
 
-func FindBrothers(str string, me FMap) ([]string, error) {
-	raw, err := findBrothersRaw(str, me, nil)
+type ListFunc func(Resolver) []reflect.Type
+
+func FindBrothers(str string, me FMap, listFunc ListFunc) ([]string, error) {
+	raw, err := findBrothersRaw(str, me, nil, listFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +60,7 @@ func FindBrothers(str string, me FMap) ([]string, error) {
 	return resp, nil
 }
 
-func findBrothersRaw(str string, fmap FMap, rmap map[string]bool) (map[string]bool, error) {
+func findBrothersRaw(str string, fmap FMap, rmap map[string]bool, listFunc ListFunc) (map[string]bool, error) {
 	var err error
 	if rmap == nil {
 		rmap = make(map[string]bool)
@@ -67,8 +78,8 @@ func findBrothersRaw(str string, fmap FMap, rmap map[string]bool) (map[string]bo
 
 	rmap[str] = true
 
-	for _, f := range ListOfArgs(validated) {
-		rmap, err = findBrothersRaw(f.String(), fmap, rmap)
+	for _, f := range listFunc(validated) {
+		rmap, err = findBrothersRaw(f.String(), fmap, rmap, listFunc)
 		if err != nil {
 			return nil, err
 		}

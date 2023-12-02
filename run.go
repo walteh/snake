@@ -2,9 +2,26 @@ package snake
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-faster/errors"
 )
+
+func RefreshDependencies(rer Input, snk Snake, binder *Binder) (*Binder, error) {
+
+	par := MethodName(rer.Parent())
+
+	deps := snk.DependantsOf(par)
+
+	deps = append(deps, par)
+
+	for _, v := range deps {
+		fmt.Printf("deleting binding of %q - is nil: %v \n", v, binder.bindings[v] == nil)
+		delete(binder.bindings, v)
+	}
+
+	return binder, nil
+}
 
 func ResolveAllShared(ctx context.Context, names []string, fmap FMap, binder *Binder) (*Binder, error) {
 

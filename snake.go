@@ -2,7 +2,10 @@ package snake
 
 import (
 	"context"
+	"fmt"
 	"reflect"
+
+	"github.com/go-faster/errors"
 )
 
 type NewSnakeOpts struct {
@@ -13,10 +16,14 @@ type NewSnakeOpts struct {
 type Snake interface {
 	ResolverNames() []string
 	Resolve(string) Resolver
+	Enums() []Enum
+	Resolvers() []Resolver
+	DependantsOf(string) []string
 }
 
 type defaultSnake struct {
-	resolvers map[string]Resolver
+	resolvers  map[string]Resolver
+	dependants map[string][]string
 }
 
 func (me *defaultSnake) ResolverNames() []string {
@@ -36,6 +43,7 @@ type SnakeImplementation[X any] interface {
 	ManagedResolvers(context.Context) []Resolver
 	OnSnakeInit(context.Context, Snake) error
 	ResolveEnum(string, []string) (string, error)
+	ProvideContextResolver() Resolver
 }
 
 func NewSnake[M NamedMethod](ctx context.Context, impl SnakeImplementation[M], res ...Resolver) (Snake, error) {
@@ -48,7 +56,8 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 	var err error
 
 	snk := &defaultSnake{
-		resolvers: make(map[string]Resolver),
+		resolvers:  make(map[string]Resolver),
+		dependants: make(map[string][]string),
 	}
 
 	enums := make([]Enum, 0)
@@ -61,13 +70,17 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 		inputResolvers = append(inputResolvers, opts.Resolvers...)
 	}
 
+	con := impl.ProvideContextResolver()
+	if con != nil {
+		inputResolvers = append(inputResolvers, con)
+	}
+
 	inputResolvers = append(inputResolvers, impl.ManagedResolvers(ctx)...)
 
 	for _, runner := range inputResolvers {
 
 		if nmd, ok := runner.(TypedResolver[M]); ok {
 			named[nmd.TypedRef().Name()] = nmd
-
 			continue
 		}
 
@@ -79,6 +92,7 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 				continue
 			}
 			snk.resolvers[reflectTypeString(r)] = runner
+
 		}
 
 		// enum options are also resolvers so they are passed here
@@ -127,6 +141,25 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 
 	}
 
+	for name := range snk.resolvers {
+
+		deps, err := DependanciesOf(name, snk.Resolve)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to find dependancies of %q", name)
+		}
+
+		for _, dep := range deps {
+			methd := MethodName(snk.Resolve(dep))
+
+			if _, ok := snk.dependants[methd]; !ok {
+				snk.dependants[methd] = make([]string, 0)
+			}
+
+			fmt.Println("adding dependant", name, "to", methd)
+			snk.dependants[methd] = append(snk.dependants[methd], name)
+		}
+	}
+
 	err = impl.OnSnakeInit(ctx, snk)
 	if err != nil {
 		return nil, err
@@ -138,4 +171,26 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 
 func buildMiddlewareName(name string, m Middleware) string {
 	return name + "_" + reflectTypeString(reflect.TypeOf(m))
+}
+
+func (me *defaultSnake) Enums() []Enum {
+	enums := make([]Enum, 0)
+	for _, name := range me.resolvers {
+		if mp, ok := name.(Enum); ok {
+			enums = append(enums, mp)
+		}
+	}
+	return enums
+}
+
+func (me *defaultSnake) Resolvers() []Resolver {
+	abc := make([]Resolver, 0)
+	for _, name := range me.resolvers {
+		abc = append(abc, name)
+	}
+	return abc
+}
+
+func (me *defaultSnake) DependantsOf(name string) []string {
+	return me.dependants[name]
 }

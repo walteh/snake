@@ -58,7 +58,7 @@ func NewMockInputFromInput(i snake.Input) *mockInput {
 	return &mockInput{
 		name:   i.Name(),
 		shared: i.Shared(),
-		parent: i.Parent(),
+		parent: snake.MethodName(i.Parent()),
 		ptr:    i.Ptr(),
 	}
 }

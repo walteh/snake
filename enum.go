@@ -44,8 +44,8 @@ func (me *rawEnum[T]) Name() string {
 }
 
 // Parent implements Enum.
-func (m *rawEnum[T]) Parent() string {
-	return MethodName(m)
+func (m *rawEnum[T]) Parent() Resolver {
+	return m
 }
 
 // Shared implements Enum.
@@ -82,6 +82,13 @@ func NewEnumOptionWithResolver[T ~string](name string, description string, input
 		description: description,
 		Val:         sel,
 	}
+}
+
+func (me *rawEnum[T]) SetValue(v any) error {
+	if x, ok := v.(string); ok {
+		return me.SetCurrent(x)
+	}
+	return errors.Errorf("unable to set value %v to %T", v, me.Val)
 }
 
 func (me *rawEnum[T]) ApplyResolver(resolver EnumResolverFunc) error {
@@ -159,3 +166,7 @@ func (me *rawEnum[I]) Ptr() any {
 }
 
 func (me *rawEnum[I]) IsResolver() {}
+
+func (me *rawEnum[I]) Type() InputType {
+	return StringEnumInputType
+}
