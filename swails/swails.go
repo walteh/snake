@@ -51,6 +51,10 @@ func (me *WailsSnake) OnSnakeInit(ctx context.Context, snk snake.Snake) error {
 		inputs = append(inputs, snki...)
 	}
 
+	for _, input := range inputs {
+		me.inputs[input.Name()] = input
+	}
+
 	return nil
 }
 
