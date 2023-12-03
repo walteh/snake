@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/fatih/color"
 	"github.com/go-faster/errors"
 )
 
@@ -46,7 +45,8 @@ type RawTextOutput struct {
 type TableOutput struct {
 	ColumnNames    []string
 	RowValueData   [][]any
-	RowValueColors [][]*color.Color
+	RowValueColors [][]string
+	RawData        any
 }
 
 type JSONOutput struct {

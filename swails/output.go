@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
 
 	"github.com/walteh/snake"
 )
@@ -37,19 +36,19 @@ func (me *OutputHandler) HandleJSONOutput(ctx context.Context, out *snake.JSONOu
 		return err // Handle or return the error appropriately
 	}
 
+	dat := make(map[string]any)
+
+	err = json.Unmarshal(jsonData, &dat)
+	if err != nil {
+		return err
+	}
+
 	// Print the formatted JSON to the command's output
 	_, _ = fmt.Fprintln(me.stdio, string(jsonData))
 
-	tmpl := `
-	<div>
-					<code class="language-json">
-						%s
-					</code>
-	</div>
-	`
-
 	me.output = &WailsHTMLResponse{
-		HTML: fmt.Sprintf(tmpl, string(jsonData)),
+		Default: "json",
+		JSON:    dat,
 	}
 
 	return nil
@@ -63,16 +62,9 @@ func (*OutputHandler) HandleLongRunningOutput(ctx context.Context, out *snake.Lo
 // HandleRawTextOutput implements sbind.OutputHandler.
 func (me *OutputHandler) HandleRawTextOutput(ctx context.Context, out *snake.RawTextOutput) error {
 
-	tmpl := `
-	<div>
-					<code class="language-txt">
-						%s
-					</code>
-	</div>
-	`
-
 	me.output = &WailsHTMLResponse{
-		HTML: fmt.Sprintf(tmpl, out.Data),
+		Text:    out.Data,
+		Default: "text",
 	}
 
 	return nil
@@ -81,44 +73,42 @@ func (me *OutputHandler) HandleRawTextOutput(ctx context.Context, out *snake.Raw
 // HandleTableOutput implements sbind.OutputHandler.
 func (me *OutputHandler) HandleTableOutput(ctx context.Context, out *snake.TableOutput) error {
 
-	tmpl := `
-	<div>
-		<table class="table table-striped table-bordered table-hover">
-			<thead>
-				<tr>
-					%s
-				</tr>
-			</thead>
-			<tbody>
-				%s
-			</tbody>
-		</table>
-	</div>
-	`
+	jsond := make([]map[string]any, len(out.RowValueData))
 
-	header := ""
-	for _, col := range out.ColumnNames {
-		header += fmt.Sprintf("<th>%s</th>", col)
-	}
+	data := [][]string{out.ColumnNames}
+	stypes := [][]string{out.ColumnNames}
 
-	rows := ""
 	for i, row := range out.RowValueData {
 		strdat := make([]string, len(row))
+		strsty := make([]string, len(row))
 		for j, v := range row {
+
+			strsty[j] = fmt.Sprintf("%s", out.RowValueColors[i][j])
+
 			if reflect.TypeOf(v).Kind() == reflect.Ptr {
 				v = reflect.ValueOf(v).Elem().Interface()
 			}
 			if v == nil {
-				strdat[j] = out.RowValueColors[i][j].Sprint("NULL")
+				strdat[j] = "NULL"
 				continue
 			}
-			strdat[j] = out.RowValueColors[i][j].Sprintf("%v", v)
+			strdat[j] = fmt.Sprintf("%v", v)
 		}
-		rows += fmt.Sprintf("<tr><td>%s</td></tr>", strings.Join(strdat, "</td><td>"))
+
+		jsond[i] = make(map[string]interface{})
+		for j, v := range row {
+			jsond[i][out.ColumnNames[j]] = v
+		}
+
+		data = append(data, strdat)
+		stypes = append(stypes, strsty)
 	}
 
 	me.output = &WailsHTMLResponse{
-		HTML: fmt.Sprintf(tmpl, header, rows),
+		Default:     "table",
+		Table:       data,
+		TableStyles: stypes,
+		JSON:        jsond,
 	}
 
 	return nil
@@ -127,7 +117,7 @@ func (me *OutputHandler) HandleTableOutput(ctx context.Context, out *snake.Table
 // HandleNilOutput implements sbind.OutputHandler.
 func (me *OutputHandler) HandleNilOutput(ctx context.Context, out *snake.NilOutput) error {
 	me.output = &WailsHTMLResponse{
-		HTML: "nil output",
+		Text: "no output",
 	}
 	return nil
 }
@@ -183,7 +173,7 @@ func (me *OutputHandler) HandleFileOutput(ctx context.Context, out *snake.FileOu
 	}
 
 	me.output = &WailsHTMLResponse{
-		HTML: string(res),
+		Text: string(res),
 	}
 
 	return nil

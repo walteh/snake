@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/walteh/snake"
 	"github.com/walteh/snake/example/resolvers"
@@ -30,6 +29,14 @@ type args struct {
 	Br      io.ByteReader
 	Bw      io.ByteWriter
 	Bs      io.ByteScanner
+}
+
+func (*Handler) Image() string {
+	return "https://tailwindui.com/img/logos/48x48/savvycal.svg"
+}
+
+func (*Handler) Emoji() string {
+	return "🤠"
 }
 
 func (me *Handler) Args() *args {
@@ -80,11 +87,10 @@ func (me *Handler) Run(
 			{"cool", me.Cool},
 			{"curr", me.curr},
 		},
-		RowValueColors: [][]*color.Color{
-			{color.New(color.FgHiGreen), color.New(color.Bold)},
-			{color.New(color.FgHiRed), color.New(color.Bold)},
-			{color.New(color.FgHiBlue), color.New(color.FgBlack)},
+		RowValueColors: [][]string{
+			{"green", "red"}, {"blue", "black"}, {"yellow", "white"},
 		},
+		RawData: me,
 	}, nil
 
 }

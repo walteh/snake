@@ -19,6 +19,14 @@ func (*Handler) Description() string {
 	return "basic description"
 }
 
+func (*Handler) Image() string {
+	return "https://tailwindui.com/img/logos/48x48/tuple.svg"
+}
+
+func (*Handler) Emoji() string {
+	return "🚀"
+}
+
 func (me *Handler) Run(dat resolvers.DependantResolverString) (snake.Output, error) {
 	return &snake.RawTextOutput{
 		Data: fmt.Sprintf("hello %s, my value is %s", me.Value, dat),

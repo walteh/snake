@@ -19,6 +19,8 @@ type WailsSnake struct {
 type SWails interface {
 	Name() string
 	Description() string
+	Image() string
+	Emoji() string
 }
 
 func NewCommandResolver(s SWails) snake.TypedResolver[SWails] {

@@ -3,11 +3,14 @@ package scobra
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 
+	"github.com/k0kubun/colorstring"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"github.com/walteh/snake"
@@ -66,14 +69,18 @@ func (me *OutputHandler) HandleTableOutput(ctx context.Context, out *snake.Table
 
 		strdat := make([]string, len(row))
 		for j, v := range row {
+			cols := strings.Split(out.RowValueColors[i][j], " ")
+
+			colstr := "[" + strings.Join(cols, ",") + "]"
+
 			if reflect.TypeOf(v).Kind() == reflect.Ptr {
 				v = reflect.ValueOf(v).Elem().Interface()
 			}
 			if v == nil {
-				strdat[j] = out.RowValueColors[i][j].Sprint("NULL")
+				strdat[j] = colorstring.Color(colstr + "nil")
 				continue
 			}
-			strdat[j] = out.RowValueColors[i][j].Sprintf("%v", v)
+			strdat[j] = colorstring.Color(fmt.Sprintf("%s%v", colstr, v))
 		}
 
 		table.Append(strdat)

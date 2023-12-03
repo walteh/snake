@@ -5,6 +5,7 @@ go 1.21.4
 require (
 	github.com/fatih/color v1.16.0
 	github.com/go-faster/errors v0.7.0
+	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88
 	github.com/k0kubun/pp/v3 v3.2.0
 	github.com/manifoldco/promptui v0.9.0
 	github.com/olekukonko/tablewriter v0.0.5

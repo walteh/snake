@@ -8,7 +8,11 @@ import (
 )
 
 type WailsHTMLResponse struct {
-	HTML string `json:"html"`
+	Default     string     `json:"default"`
+	Text        string     `json:"text"`
+	JSON        any        `json:"json"`
+	Table       [][]string `json:"table"`
+	TableStyles [][]string `json:"table_styles"`
 }
 
 // the handler is designed to be a wails binding that will automatically inject snake bindings
@@ -24,9 +28,10 @@ func (me *WailsSnake) Run(name *WailsCommand) (*WailsHTMLResponse, error) {
 }
 
 type WailsInput struct {
-	Name  string          `json:"name"`
-	Type  snake.InputType `json:"type"`
-	Value any             `json:"value"`
+	Name   string          `json:"name"`
+	Type   snake.InputType `json:"type"`
+	Value  any             `json:"value"`
+	Shared bool            `json:"shared"`
 }
 
 func (me *WailsSnake) Inputs() ([]*WailsInput, error) {
@@ -85,9 +90,10 @@ func (me *WailsSnake) CurrentInput(name string) (*WailsInput, error) {
 	curr := me.inputs[name]
 
 	return &WailsInput{
-		Name:  curr.Name(),
-		Type:  curr.Type(),
-		Value: curr.Ptr(),
+		Name:   curr.Name(),
+		Type:   curr.Type(),
+		Value:  curr.Ptr(),
+		Shared: curr.Shared(),
 	}, nil
 }
 
@@ -111,6 +117,8 @@ func (me *WailsSnake) UpdateInput(input *WailsInput) (*WailsInput, error) {
 type WailsCommand struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	Image       string `json:"image"`
+	Emoji       string `json:"emoji"`
 }
 
 func (me *WailsSnake) Commands() ([]*WailsCommand, error) {
@@ -120,6 +128,8 @@ func (me *WailsSnake) Commands() ([]*WailsCommand, error) {
 			cmds = append(cmds, &WailsCommand{
 				Name:        cmdt.TypedRef().Name(),
 				Description: cmdt.TypedRef().Description(),
+				Image:       cmdt.TypedRef().Image(),
+				Emoji:       cmdt.TypedRef().Emoji(),
 			})
 		}
 	}

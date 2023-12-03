@@ -9,25 +9,13 @@ import (
 )
 
 type ContextResolver struct {
-	Quiet   bool `usage:"Do not print any output" default:"false"`
-	Debug   bool `usage:"Print debug output" default:"false"`
-	Version bool `usage:"Print version and exit" default:"false"`
 }
 
 func (me *ContextResolver) Run() (context.Context, error) {
 
-	var level zerolog.Level
-	if me.Debug {
-		level = zerolog.TraceLevel
-	} else if me.Quiet {
-		level = zerolog.NoLevel
-	} else {
-		level = zerolog.InfoLevel
-	}
-
 	ctx := context.Background()
 
-	ctx = szerolog.NewConsoleLoggerContext(ctx, level, os.Stdout)
+	ctx = szerolog.NewConsoleLoggerContext(ctx, zerolog.TraceLevel, os.Stdout)
 
 	return ctx, nil
 }
