@@ -38,25 +38,37 @@ func (me *WailsSnake) Inputs() ([]*WailsInput, error) {
 
 	var inputs []*WailsInput
 	for _, input := range me.inputs {
-		inp, err := me.CurrentInput(input.Name())
-		if err != nil {
-			return nil, err
+		if input.Shared() {
+			inputs = append(inputs, &WailsInput{
+				Name:   input.Name(),
+				Type:   input.Type(),
+				Value:  input.Ptr(),
+				Shared: input.Shared(),
+			})
 		}
-		inputs = append(inputs, inp)
 	}
 
 	return inputs, nil
 }
 
 func (me *WailsSnake) InputsFor(name *WailsCommand) ([]*WailsInput, error) {
+	cmd := me.snake.Resolve(name.Name)
+
 	snk, err := snake.InputsFor(me.snake.Resolve(name.Name), me.snake.Enums()...)
 	if err != nil {
 		return nil, err
 	}
 
+	var wail SWails
+	if typ, ok := cmd.(snake.TypedResolver[SWails]); ok {
+		wail = typ.TypedRef()
+	} else {
+		return nil, errors.Errorf("command %q is not a wails command", name.Name)
+	}
+
 	var inputs []*WailsInput
 	for _, input := range snk {
-		inp, err := me.CurrentInput(input.Name())
+		inp, err := me.CurrentInput(wail, input)
 		if err != nil {
 			return nil, err
 		}
@@ -85,12 +97,12 @@ func (me *WailsSnake) OptionsForEnum(input *WailsInput) ([]string, error) {
 	return options, nil
 }
 
-func (me *WailsSnake) CurrentInput(name string) (*WailsInput, error) {
+func (me *WailsSnake) CurrentInput(cmd SWails, input snake.Input) (*WailsInput, error) {
 
-	curr := me.inputs[name]
+	curr := me.inputs[inputName(cmd, input)]
 
 	return &WailsInput{
-		Name:   curr.Name(),
+		Name:   inputName(cmd, input),
 		Type:   curr.Type(),
 		Value:  curr.Ptr(),
 		Shared: curr.Shared(),
@@ -111,7 +123,14 @@ func (me *WailsSnake) UpdateInput(input *WailsInput) (*WailsInput, error) {
 		return nil, errors.Errorf("unable to update input %q: %w", input.Name, err)
 	}
 
-	return me.CurrentInput(input.Name)
+	inp := me.inputs[input.Name]
+
+	return &WailsInput{
+		Name:   input.Name,
+		Type:   inp.Type(),
+		Value:  inp.Ptr(),
+		Shared: inp.Shared(),
+	}, nil
 }
 
 type WailsCommand struct {

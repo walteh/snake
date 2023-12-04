@@ -6,12 +6,16 @@ export function Commands() {
   return window['go']['swails']['WailsSnake']['Commands']();
 }
 
-export function CurrentInput(arg1) {
-  return window['go']['swails']['WailsSnake']['CurrentInput'](arg1);
+export function CurrentInput(arg1, arg2) {
+  return window['go']['swails']['WailsSnake']['CurrentInput'](arg1, arg2);
 }
 
 export function Decorate(arg1, arg2, arg3, arg4, arg5) {
   return window['go']['swails']['WailsSnake']['Decorate'](arg1, arg2, arg3, arg4, arg5);
+}
+
+export function Events() {
+  return window['go']['swails']['WailsSnake']['Events']();
 }
 
 export function Inputs() {

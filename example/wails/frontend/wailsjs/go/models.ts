@@ -18,6 +18,7 @@ export namespace swails {
 	        this.emoji = source["emoji"];
 	    }
 	}
+	
 	export class WailsHTMLResponse {
 	    default: string;
 	    text: string;

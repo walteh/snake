@@ -10,10 +10,13 @@ var (
 	_ snake.SnakeImplementation[SWails] = &WailsSnake{}
 )
 
+type WailsEmitter func(ctx context.Context, eventName string, optionalData ...interface{})
+
 type WailsSnake struct {
-	snake  snake.Snake
-	binder *snake.Binder
-	inputs map[string]snake.Input
+	snake   snake.Snake
+	binder  *snake.Binder
+	inputs  map[string]snake.Input
+	emitter WailsEmitter
 }
 
 type SWails interface {
@@ -42,22 +45,27 @@ func (me *WailsSnake) OnSnakeInit(ctx context.Context, snk snake.Snake) error {
 
 	commands := me.snake.Resolvers()
 
-	var inputs []snake.Input
-
 	for _, cmd := range commands {
 		snki, err := snake.InputsFor(cmd, me.snake.Enums()...)
 		if err != nil {
 			return err
 		}
 
-		inputs = append(inputs, snki...)
-	}
-
-	for _, input := range inputs {
-		me.inputs[input.Name()] = input
+		if typ, ok := cmd.(snake.TypedResolver[SWails]); ok {
+			for _, input := range snki {
+				me.inputs[inputName(typ.TypedRef(), input)] = input
+			}
+		}
 	}
 
 	return nil
+}
+
+func inputName(cmd SWails, input snake.Input) string {
+	if input.Shared() {
+		return input.Name()
+	}
+	return cmd.Name() + input.Name()
 }
 
 func (me *WailsSnake) ResolveEnum(typ string, opts []string) (string, error) {
@@ -68,11 +76,12 @@ func (me *WailsSnake) ProvideContextResolver() snake.Resolver {
 	return snake.MustGetResolverFor[context.Context](&ContextResolver{})
 }
 
-func NewWailsSnake(ctx context.Context) *WailsSnake {
+func NewWailsSnake(ctx context.Context, emitter WailsEmitter) *WailsSnake {
 
 	me := &WailsSnake{
-		binder: snake.NewBinder(),
-		inputs: make(map[string]snake.Input),
+		binder:  snake.NewBinder(),
+		inputs:  make(map[string]snake.Input),
+		emitter: emitter,
 	}
 
 	return me

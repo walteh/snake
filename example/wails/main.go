@@ -8,11 +8,13 @@ import (
 	"github.com/walteh/snake/example/resolvers"
 	"github.com/walteh/snake/example/root/basic"
 	"github.com/walteh/snake/example/root/sample"
+
 	"github.com/walteh/snake/swails"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 //go:embed all:frontend/dist
@@ -22,7 +24,7 @@ func main() {
 
 	ctx := context.Background()
 
-	swail := swails.NewWailsSnake(ctx)
+	swail := swails.NewWailsSnake(ctx, runtime.EventsEmit)
 
 	resolvers := resolvers.LoadResolvers()
 
@@ -31,9 +33,7 @@ func main() {
 		swails.NewCommandResolver(&sample.Handler{}),
 	}
 
-	// runtime.EventsOn(ctx, "wails:ready", func() {
-	// 	// fmt.Println("Wails is ready!")
-	// })
+	closers := []func(){}
 
 	// Create application with options
 	err := wails.Run(&options.App{
@@ -57,13 +57,21 @@ func main() {
 				},
 			})
 
+			for _, envs := range swail.Events() {
+				closers = append(closers, runtime.EventsOn(ctx, envs.Name, envs.Func))
+			}
+
 			if err != nil {
 				panic(err)
 			}
 		},
-
+		OnBeforeClose: func(context.Context) bool {
+			for _, closer := range closers {
+				closer()
+			}
+			return false
+		},
 		Bind: []interface{}{
-			// app,
 			swail,
 		},
 	})

@@ -1,13 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import "./App.css";
 import { UpdateInput, OptionsForEnum } from "../wailsjs/go/swails/WailsSnake";
 import { swails } from "../wailsjs/go/models";
 
 import { Switch } from "@headlessui/react";
-
-function classNames(...classes: string[]) {
-	return classes.filter(Boolean).join(" ");
-}
+import clsx from "clsx";
 
 const BoolInput = ({ arg }: { arg: swails.WailsInput }) => {
 	const [value, setValue] = useState<swails.WailsInput>(arg);
@@ -36,24 +32,58 @@ const BoolInput = ({ arg }: { arg: swails.WailsInput }) => {
 			<Switch
 				checked={enabled}
 				onChange={setEnabled}
-				className={classNames(
+				className={clsx(
 					enabled ? "bg-indigo-600" : "bg-gray-200",
-					"relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2"
+					"relative",
+					"inline-flex",
+					"h-6",
+					"w-11",
+					"flex-shrink-0",
+					"cursor-pointer",
+					"rounded-full",
+					"border-2",
+					"border-transparent",
+					"transition-colors",
+					"duration-200",
+					"ease-in-out",
+					"focus:outline-none",
+					"focus:ring-2",
+					"focus:ring-indigo-600",
+					"focus:ring-offset-2"
 				)}
 			>
 				<span className="sr-only">Use setting</span>
 				<span
-					className={classNames(
+					className={clsx(
 						enabled ? "translate-x-5" : "translate-x-0",
-						"pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+						"pointer-events-none",
+						"relative",
+						"inline-block",
+						"h-5",
+						"w-5",
+						"transform",
+						"rounded-full",
+						"bg-white",
+						"shadow",
+						"ring-0",
+						"transition",
+						"duration-200",
+						"ease-in-out"
 					)}
 				>
 					<span
-						className={classNames(
+						className={clsx(
 							enabled
 								? "opacity-0 duration-100 ease-out"
 								: "opacity-100 duration-200 ease-in",
-							"absolute inset-0 flex h-full w-full items-center justify-center transition-opacity"
+							"absolute",
+							"inset-0",
+							"flex",
+							"h-full",
+							"w-full",
+							"items-center",
+							"justify-center",
+							"transition-opacity"
 						)}
 						aria-hidden="true"
 					>
@@ -72,11 +102,18 @@ const BoolInput = ({ arg }: { arg: swails.WailsInput }) => {
 						</svg>
 					</span>
 					<span
-						className={classNames(
+						className={clsx(
 							enabled
 								? "opacity-100 duration-200 ease-in"
 								: "opacity-0 duration-100 ease-out",
-							"absolute inset-0 flex h-full w-full items-center justify-center transition-opacity"
+							"absolute",
+							"inset-0",
+							"flex",
+							"h-full",
+							"w-full",
+							"items-center",
+							"justify-center",
+							"transition-opacity"
 						)}
 						aria-hidden="true"
 					>
@@ -101,7 +138,21 @@ const StringInput = ({ arg }: { arg: swails.WailsInput }) => {
 	const [value, setValue] = useState<swails.WailsInput>(arg);
 
 	return (
-		<div className="relative rounded-md px-3 pb-1.5 pt-2.5 shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-indigo-600">
+		<div
+			className={clsx(
+				"relative",
+				"rounded-md",
+				"px-3",
+				"pb-1.5",
+				"pt-2.5",
+				"shadow-sm",
+				"ring-1",
+				"ring-inset",
+				"ring-gray-300",
+				"focus-within:ring-2",
+				"focus-within:ring-indigo-600"
+			)}
+		>
 			<label
 				htmlFor={value.name}
 				className="absolute -top-2.5 left-2 inline-block bg-white px-1 text-sm font-medium"
