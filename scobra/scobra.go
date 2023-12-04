@@ -6,11 +6,11 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/go-faster/errors"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/walteh/snake"
+	"github.com/walteh/terrors"
 )
 
 var (
@@ -55,7 +55,7 @@ func applyInputToFlags(input snake.Input, flgs *pflag.FlagSet) error {
 	case *snake.DurationInput:
 		flgs.DurationVar(t.Value(), input.Name(), t.Default(), t.Usage())
 	default:
-		return errors.Errorf("unknown input type %T", t)
+		return terrors.Errorf("unknown input type %T", t)
 	}
 	return nil
 }
@@ -166,7 +166,7 @@ func (me *CobraSnake) ResolveEnum(typ string, opts []string) (string, error) {
 	}
 
 	if result == "" {
-		return "", errors.Errorf("invalid %q", typ)
+		return "", terrors.Errorf("invalid %q", typ)
 	}
 
 	return result, nil

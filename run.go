@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-faster/errors"
+	"github.com/walteh/terrors"
 )
 
 func RefreshDependencies(rer Input, snk Snake, binder *Binder) (*Binder, error) {
@@ -29,7 +29,7 @@ func ResolveAllShared(ctx context.Context, names []string, fmap FMap, binder *Bi
 		var err error
 		var resolver Resolver
 		if resolver = fmap(v); resolver == nil {
-			return nil, errors.Errorf("missing resolver for %q", v)
+			return nil, terrors.Errorf("missing resolver for %q", v)
 		}
 
 		if MenthodIsShared(resolver) {
@@ -71,7 +71,7 @@ func RunResolvingArguments(outputHandler OutputHandler, fmap FMap, str string, b
 		out := binder.bindings[str]
 
 		if out == nil {
-			return errors.Errorf("missing resolver for %q", str)
+			return terrors.Errorf("missing resolver for %q", str)
 		}
 
 		result := binder.bindings[str].Interface()

@@ -3,7 +3,7 @@ package snake
 import (
 	"reflect"
 
-	"github.com/go-faster/errors"
+	"github.com/walteh/terrors"
 )
 
 type Method interface {
@@ -17,7 +17,7 @@ type FMap func(string) Resolver
 
 func DependanciesOf(str string, m FMap) ([]string, error) {
 	if ok := m(str); !reflect.ValueOf(ok).IsValid() || reflect.ValueOf(ok).IsNil() {
-		return nil, errors.Errorf("missing resolver for %q", str)
+		return nil, terrors.Errorf("missing resolver for %q", str)
 	}
 
 	mapa, err := FindBrothers(str, m, ListOfArgs)
@@ -69,7 +69,7 @@ func findBrothersRaw(str string, fmap FMap, rmap map[string]bool, listFunc ListF
 	validated := fmap(str)
 
 	if validated == nil {
-		return nil, errors.Errorf("missing resolver for %q", str)
+		return nil, terrors.Errorf("missing resolver for %q", str)
 	}
 
 	if rmap[str] {
@@ -108,7 +108,7 @@ func findArgumentsRaw(str string, fmap FMap, wrk *Binder) (*Binder, error) {
 	validated := fmap(str)
 	var err error
 	if validated == nil {
-		return nil, errors.Errorf("missing resolver for %q", str)
+		return nil, terrors.Errorf("missing resolver for %q", str)
 	}
 
 	if wrk == nil {

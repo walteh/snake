@@ -7,6 +7,7 @@ import (
 	"unicode"
 
 	"github.com/go-faster/errors"
+	"github.com/walteh/terrors"
 )
 
 type Input interface {
@@ -65,7 +66,7 @@ func DependancyInputs(str string, m FMap, enum ...Enum) ([]Input, error) {
 	nameReserved := make(map[string]string, 0)
 	for _, f := range deps {
 		if z := m(f); reflect.ValueOf(z).IsNil() {
-			return nil, errors.Errorf("missing resolver for %q", f)
+			return nil, terrors.Errorf("missing resolver for %q", f)
 		} else {
 			inp, err := InputsFor(z, enum...)
 			if err != nil {
@@ -78,7 +79,7 @@ func DependancyInputs(str string, m FMap, enum ...Enum) ([]Input, error) {
 				}
 				procd[v.Ptr()] = v
 				if z, ok := nameReserved[v.Name()]; ok {
-					return nil, errors.Errorf("multiple inputs named %q [%q, %q]", v.Name(), z, MethodName(v.Parent()))
+					return nil, terrors.Errorf("multiple inputs named %q [%q, %q]", v.Name(), z, MethodName(v.Parent()))
 				}
 				nameReserved[v.Name()] = MethodName(v.Parent())
 			}
@@ -105,7 +106,7 @@ func InputsFor(m Resolver, enum ...Enum) ([]Input, error) {
 
 		if f.Type.Kind() == reflect.Ptr {
 			f.Type = f.Type.Elem()
-			// return nil, errors.Errorf("field %q in %T is a pointer type", f.Name, m)
+			// return nil, terrors.Errorf("field %q in %T is a pointer type", f.Name, m)
 		}
 
 		switch f.Type.Kind() {
@@ -133,9 +134,9 @@ func InputsFor(m Resolver, enum ...Enum) ([]Input, error) {
 				resp = append(resp, NewSimpleValueInput[int64](f, m))
 			}
 		case reflect.Struct:
-			return nil, errors.Errorf("field %q in %v is unexpected reflect.Kind %s", f.Name, m, f.Type.Kind().String())
+			return nil, terrors.Errorf("field %q in %v is unexpected reflect.Kind %s", f.Name, m, f.Type.Kind().String())
 		default:
-			return nil, errors.Errorf("field %q in %v is unexpected reflect.Kind %s", f.Name, m, f.Type.Kind().String())
+			return nil, terrors.Errorf("field %q in %v is unexpected reflect.Kind %s", f.Name, m, f.Type.Kind().String())
 		}
 
 	}
@@ -157,7 +158,7 @@ func (me *simpleValueInput[T]) SetValue(v any) error {
 		*me.val = x
 		return nil
 	}
-	return errors.Errorf("unable to set value %v to %T", v, me.val)
+	return terrors.Errorf("unable to set value %v to %T", v, me.val)
 }
 
 type enumInput struct {
@@ -179,7 +180,7 @@ func getEnumOptionsFrom(mytype reflect.Type, enum ...Enum) (Enum, error) {
 		sel = v
 	}
 	if sel == nil {
-		return nil, errors.Errorf("no options for %q", rawTypeName)
+		return nil, terrors.Errorf("no options for %q", rawTypeName)
 	}
 
 	return sel, nil

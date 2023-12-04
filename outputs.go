@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/go-faster/errors"
+	"github.com/walteh/terrors"
 )
 
 type OutputHandler interface {
@@ -57,7 +57,7 @@ type NilOutput struct{}
 
 func HandleOutput(ctx context.Context, handler OutputHandler, out Output) error {
 	if handler == nil {
-		return errors.Errorf("trying to handle output with no handler provided - %T", out)
+		return terrors.Errorf("trying to handle output with no handler provided - %T", out)
 	}
 	switch t := out.(type) {
 	case *LongRunningOutput:
@@ -67,16 +67,16 @@ func HandleOutput(ctx context.Context, handler OutputHandler, out Output) error 
 	case *TableOutput:
 		clength := len(t.ColumnNames)
 		if len(t.RowValueData) != len(t.RowValueColors) {
-			return errors.Errorf("table output data (%d) does not match colors (%d)", len(t.RowValueData), len(t.RowValueColors))
+			return terrors.Errorf("table output data (%d) does not match colors (%d)", len(t.RowValueData), len(t.RowValueColors))
 		}
 		for _, row := range t.RowValueData {
 			if len(row) != clength {
-				return errors.Errorf("table output column names (%d) do not match data (%d)", clength, len(row))
+				return terrors.Errorf("table output column names (%d) do not match data (%d)", clength, len(row))
 			}
 		}
 		for _, row := range t.RowValueColors {
 			if len(row) != clength {
-				return errors.Errorf("table output column names (%d) do not match data (%d)", clength, len(row))
+				return terrors.Errorf("table output column names (%d) do not match data (%d)", clength, len(row))
 			}
 		}
 		return handler.HandleTableOutput(ctx, t)
@@ -87,6 +87,6 @@ func HandleOutput(ctx context.Context, handler OutputHandler, out Output) error 
 	case *FileOutput:
 		return handler.HandleFileOutput(ctx, t)
 	default:
-		return errors.Errorf("unknown output type %T", t)
+		return terrors.Errorf("unknown output type %T", t)
 	}
 }

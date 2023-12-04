@@ -15,11 +15,11 @@ package scobra
 
 import (
 	"context"
+	"errors"
 	"regexp"
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/go-faster/errors"
 	"github.com/spf13/cobra"
 )
 

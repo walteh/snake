@@ -66,6 +66,12 @@ github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcU
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 github.com/walteh/terrors v0.3.0 h1:3isdUA+OvIqSkmLFM8F4luuWqYWDyqy8stuzRkgwp38=
 github.com/walteh/terrors v0.3.0/go.mod h1:txmqqCK7EbLSUFRXzsRDR8b9oDMX6aywzRSGKiQOdEQ=
+github.com/walteh/terrors v0.4.0 h1:5ZDGBV6rko3RfRW0hZmlyfNBCxVx+Yh5VkXdiGH1KdM=
+github.com/walteh/terrors v0.4.0/go.mod h1:txmqqCK7EbLSUFRXzsRDR8b9oDMX6aywzRSGKiQOdEQ=
+github.com/walteh/terrors v0.5.0 h1:/0100Pe0Yp+4vhHzJ+ayWHywXcdg7h30lXbS+vWcdVc=
+github.com/walteh/terrors v0.5.0/go.mod h1:txmqqCK7EbLSUFRXzsRDR8b9oDMX6aywzRSGKiQOdEQ=
+github.com/walteh/terrors v0.6.0 h1:3Rn9T8xWf0c3AX2WJ8+iDi0ycmVzx9LiyTt4s8GABpo=
+github.com/walteh/terrors v0.6.0/go.mod h1:txmqqCK7EbLSUFRXzsRDR8b9oDMX6aywzRSGKiQOdEQ=
 golang.org/x/sys v0.0.0-20181122145206-62eef0e2fa9b/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20220310020820-b874c991c1a5/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=

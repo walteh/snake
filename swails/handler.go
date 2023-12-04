@@ -3,8 +3,8 @@ package swails
 import (
 	"os"
 
-	"github.com/go-faster/errors"
 	"github.com/walteh/snake"
+	"github.com/walteh/terrors"
 )
 
 type WailsHTMLResponse struct {
@@ -63,7 +63,7 @@ func (me *WailsSnake) InputsFor(name *WailsCommand) ([]*WailsInput, error) {
 	if typ, ok := cmd.(snake.TypedResolver[SWails]); ok {
 		wail = typ.TypedRef()
 	} else {
-		return nil, errors.Errorf("command %q is not a wails command", name.Name)
+		return nil, terrors.Errorf("command %q is not a wails command", name.Name)
 	}
 
 	var inputs []*WailsInput
@@ -81,7 +81,7 @@ func (me *WailsSnake) InputsFor(name *WailsCommand) ([]*WailsInput, error) {
 func (me *WailsSnake) OptionsForEnum(input *WailsInput) ([]string, error) {
 
 	if input.Type != snake.StringEnumInputType {
-		return nil, errors.Errorf("input %q is not an enum", input.Name)
+		return nil, terrors.Errorf("input %q is not an enum", input.Name)
 	}
 
 	snk := me.snake.Enums()
@@ -116,12 +116,12 @@ func (me *WailsSnake) UpdateInput(input *WailsInput) (*WailsInput, error) {
 
 	err := curr.SetValue(input.Value)
 	if err != nil {
-		return nil, errors.Errorf("unable to update input %q: %w", input.Name, err)
+		return nil, terrors.Errorf("unable to update input %q: %w", input.Name, err)
 	}
 
 	me.binder, err = snake.RefreshDependencies(curr, me.snake, me.binder)
 	if err != nil {
-		return nil, errors.Errorf("unable to update input %q: %w", input.Name, err)
+		return nil, terrors.Errorf("unable to update input %q: %w", input.Name, err)
 	}
 
 	inp := me.inputs[input.Command][input.Name]

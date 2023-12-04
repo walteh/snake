@@ -3,11 +3,7 @@ package snake
 import (
 	"reflect"
 
-	"github.com/go-faster/errors"
-)
-
-var (
-	ErrInvalidMethodSignature = errors.New("invalid method signatured")
+	"github.com/walteh/terrors"
 )
 
 type Strategy interface {
@@ -21,11 +17,11 @@ type CommandStrategy struct {
 func (me *CommandStrategy) ValidateResponseTypes(out []reflect.Type) error {
 
 	if len(out) != 1 {
-		return errors.Wrapf(ErrInvalidMethodSignature, "invalid return signature, expected 1, got %d", len(out))
+		return terrors.Errorf("invalid return signature, expected 1, got %d", len(out))
 	}
 
 	if !out[0].Implements(reflect.TypeOf((*error)(nil)).Elem()) {
-		return errors.Wrapf(ErrInvalidMethodSignature, "invalid return type %q, expected %q", out[0].String(), reflect.TypeOf((*error)(nil)).Elem().String())
+		return terrors.Errorf("invalid return type %q, expected %q", out[0].String(), reflect.TypeOf((*error)(nil)).Elem().String())
 	}
 
 	return nil
@@ -74,17 +70,17 @@ type ArgumentStrategy struct {
 func (me *ArgumentStrategy) ValidateResponseTypes(out []reflect.Type) error {
 
 	if len(out) != len(me.args)+1 {
-		return errors.Wrapf(ErrInvalidMethodSignature, "invalid return signature, expected 2, got %d", len(out))
+		return terrors.Errorf("invalid return signature, expected 2, got %d", len(out))
 	}
 
 	for i, v := range me.args {
 		if !out[i].Implements(reflect.TypeOf(v).Elem()) {
-			return errors.Wrapf(ErrInvalidMethodSignature, "invalid return type %q, expected %q", out[i].String(), reflect.TypeOf(v).Elem().String())
+			return terrors.Errorf("invalid return type %q, expected %q", out[i].String(), reflect.TypeOf(v).Elem().String())
 		}
 	}
 
 	if !out[len(out)-1].Implements(reflect.TypeOf((*error)(nil)).Elem()) {
-		return errors.Wrapf(ErrInvalidMethodSignature, "invalid return type %q, expected %q", out[len(out)-1].String(), reflect.TypeOf((*error)(nil)).Elem().String())
+		return terrors.Errorf("invalid return type %q, expected %q", out[len(out)-1].String(), reflect.TypeOf((*error)(nil)).Elem().String())
 	}
 
 	return nil

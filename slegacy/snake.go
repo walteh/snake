@@ -2,14 +2,14 @@ package slegacy
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"sync"
 
 	"github.com/spf13/cobra"
 	"github.com/walteh/snake/scobra"
-
-	"github.com/go-faster/errors"
+	"github.com/walteh/terrors"
 )
 
 type Snakeable interface {
@@ -411,10 +411,10 @@ func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context
 				// if we end up here, we need to validate the bindings exist
 				b, ok := ctx.Value(&bindingsKeyT{}).(bindings)
 				if !ok {
-					return ctx, errors.Wrapf(ErrMissingBinding, "no snake bindings in context, looking for type %q", pt)
+					return ctx, terrors.Errorf("no snake bindings in context, looking for type %q", pt)
 				}
 				if _, ok := b[pt.String()]; !ok {
-					return ctx, errors.Wrapf(ErrMissingBinding, "no snake binding for type %q", pt)
+					return ctx, terrors.Errorf("no snake binding for type %q", pt)
 				}
 				args = append(args, reflect.ValueOf(b[pt.String()]))
 			}
@@ -426,7 +426,7 @@ func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context
 		}
 
 		if p.IsZero() {
-			return ctx, errors.Wrapf(ErrInvalidResolver, "resolver for type %q returned a zero value", pt)
+			return ctx, terrors.Errorf("resolver for type %q returned a zero value", pt)
 		}
 
 		if reflect.TypeOf(p.Interface()).Implements(reflect.TypeOf((*context.Context)(nil)).Elem()) {
@@ -437,7 +437,7 @@ func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context
 
 			// check if the context resolver returned a child context
 			if _, ok := crb.Value(contextResolverKey).(bool); !ok {
-				return ctx, errors.Wrapf(ErrInvalidResolver, "resolver for type %q returned a context that is not a child context", pt)
+				return ctx, terrors.Errorf("resolver for type %q returned a context that is not a child context", pt)
 			}
 
 			// this is the context resolver binding, we need to process it

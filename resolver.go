@@ -4,6 +4,7 @@ import (
 	"reflect"
 
 	"github.com/go-faster/errors"
+	"github.com/walteh/terrors"
 )
 
 var (
@@ -123,7 +124,7 @@ func getTypedResolver[M Method](inter M) (*simpleResolver[M], error) {
 	}
 
 	if !method.IsValid() {
-		return nil, errors.Errorf("missing Run method on %q", value.Type())
+		return nil, terrors.Errorf("missing Run method on %q", value.Type())
 	}
 
 	return &simpleResolver[M]{

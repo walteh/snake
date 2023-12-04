@@ -699,7 +699,7 @@ func TestExpectInvalidContextResolver(t *testing.T) {
 
 	err = assm.ExecuteContext(context.TODO())
 
-	assert.ErrorIs(t, err, ErrInvalidResolver)
+	assert.Equal(t, err.Error(), errors.New("resolver for type \"context.Context\" returned a context that is not a child context").Error())
 }
 
 func TestZeroLogProblemSimple(t *testing.T) {

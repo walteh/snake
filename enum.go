@@ -5,16 +5,16 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/go-faster/errors"
+	"github.com/walteh/terrors"
 )
 
 func ResolveEnum[T ~string](name string, options []T, resolver EnumResolverFunc) (T, error) {
 	if resolver == nil {
-		return "", errors.Errorf("no enum resolver for %q", reflect.TypeOf((*T)(nil)).Elem().String())
+		return "", terrors.Errorf("no enum resolver for %q", reflect.TypeOf((*T)(nil)).Elem().String())
 	}
 
 	if len(options) == 0 {
-		return "", errors.Errorf("no options for %q", reflect.TypeOf((*T)(nil)).Elem().String())
+		return "", terrors.Errorf("no options for %q", reflect.TypeOf((*T)(nil)).Elem().String())
 	}
 
 	check := T(name)
@@ -36,7 +36,7 @@ func ResolveEnum[T ~string](name string, options []T, resolver EnumResolverFunc)
 	}
 
 	if !slices.Contains(options, check) {
-		return "", errors.Errorf("invalid value %q, expected one of [\"%s\"]", check, strings.Join(strs, "\", \""))
+		return "", terrors.Errorf("invalid value %q, expected one of [\"%s\"]", check, strings.Join(strs, "\", \""))
 	}
 
 	return T(name), nil
@@ -117,7 +117,7 @@ func (me *rawEnum[T]) SetValue(v any) error {
 	if x, ok := v.(string); ok {
 		return me.SetCurrent(x)
 	}
-	return errors.Errorf("unable to set value %v to %T", v, me.Val)
+	return terrors.Errorf("unable to set value %v to %T", v, me.Val)
 }
 
 func (me *rawEnum[T]) ApplyResolver(resolver EnumResolverFunc) error {
@@ -159,7 +159,7 @@ func (e *rawEnum[I]) SetCurrent(vt string) error {
 		*e.Val = I(vt)
 		return nil
 	}
-	return errors.Errorf("invalid value %q, expected one of [\"%s\"]", vt, strings.Join(e.OptionsWithSelect(), "\", \""))
+	return terrors.Errorf("invalid value %q, expected one of [\"%s\"]", vt, strings.Join(e.OptionsWithSelect(), "\", \""))
 }
 
 func (e *rawEnum[I]) CurrentPtr() *string {
@@ -169,7 +169,7 @@ func (e *rawEnum[I]) CurrentPtr() *string {
 func (me *rawEnum[T]) Run() (T, error) {
 	if me.Val == nil || reflect.ValueOf(me.Val).IsNil() || *me.Val == "select" {
 		if me.enumResolver == nil {
-			return "", errors.Errorf("no enum resolver for %q", me.rawTypeName)
+			return "", terrors.Errorf("no enum resolver for %q", me.rawTypeName)
 		}
 
 		resolve, err := me.enumResolver(me.rawTypeName, me.Options())
