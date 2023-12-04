@@ -189,7 +189,7 @@ func StructFields(me Resolver) []reflect.StructField {
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
 	}
-	if typ.Kind() != reflect.Func {
+	if typ.Kind() != reflect.Struct {
 		return []reflect.StructField{}
 	}
 	vis := reflect.VisibleFields(typ)
