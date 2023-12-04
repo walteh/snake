@@ -51,6 +51,8 @@ func WrapWithMiddleware(base MiddlewareFunc, middlewares ...Middleware) Middlewa
 	return base
 }
 
+type Chan chan any
+
 func RunResolvingArguments(outputHandler OutputHandler, fmap FMap, str string, binder *Binder, middlewares ...Middleware) error {
 	// always resolve context.Context first
 	_, err := findArgumentsRaw("context.Context", fmap, binder)
@@ -59,8 +61,16 @@ func RunResolvingArguments(outputHandler OutputHandler, fmap FMap, str string, b
 	}
 
 	base := func(ctx context.Context) error {
+
+		cd := make(Chan)
+
+		defer close(cd)
+
+		SetBinding[Chan](binder, cd)
+
 		defer func() {
 			delete(binder.bindings, str)
+			delete(binder.bindings, "snake.Chan")
 		}()
 
 		binder, err := findArgumentsRaw(str, fmap, binder)
@@ -77,7 +87,7 @@ func RunResolvingArguments(outputHandler OutputHandler, fmap FMap, str string, b
 		result := binder.bindings[str].Interface()
 
 		if out, ok := result.(Output); ok {
-			return HandleOutput(ctx, outputHandler, out)
+			return HandleOutput(ctx, outputHandler, out, cd)
 		}
 
 		return nil

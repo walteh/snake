@@ -8,13 +8,29 @@ import (
 	"github.com/walteh/terrors"
 )
 
+type Stdin interface {
+	io.Reader
+}
+
+type Stdout interface {
+	io.Writer
+}
+
+type Stderr interface {
+	io.Writer
+}
+
 type OutputHandler interface {
-	HandleLongRunningOutput(ctx context.Context, out *LongRunningOutput) error
-	HandleRawTextOutput(ctx context.Context, out *RawTextOutput) error
-	HandleTableOutput(ctx context.Context, out *TableOutput) error
-	HandleJSONOutput(ctx context.Context, out *JSONOutput) error
-	HandleNilOutput(ctx context.Context, out *NilOutput) error
-	HandleFileOutput(ctx context.Context, out *FileOutput) error
+	Stdout() io.Writer
+	Stderr() io.Writer
+	Stdin() io.Reader
+
+	HandleLongRunningOutput(ctx context.Context, cd Chan, out *LongRunningOutput) error
+	HandleRawTextOutput(ctx context.Context, cd Chan, out *RawTextOutput) error
+	HandleTableOutput(ctx context.Context, cd Chan, out *TableOutput) error
+	HandleJSONOutput(ctx context.Context, cd Chan, out *JSONOutput) error
+	HandleNilOutput(ctx context.Context, cd Chan, out *NilOutput) error
+	HandleFileOutput(ctx context.Context, cd Chan, out *FileOutput) error
 }
 
 func (*LongRunningOutput) IsOutput() {}
@@ -55,15 +71,15 @@ type JSONOutput struct {
 
 type NilOutput struct{}
 
-func HandleOutput(ctx context.Context, handler OutputHandler, out Output) error {
+func HandleOutput(ctx context.Context, handler OutputHandler, out Output, cd Chan) error {
 	if handler == nil {
 		return terrors.Errorf("trying to handle output with no handler provided - %T", out)
 	}
 	switch t := out.(type) {
 	case *LongRunningOutput:
-		return handler.HandleLongRunningOutput(ctx, t)
+		return handler.HandleLongRunningOutput(ctx, cd, t)
 	case *RawTextOutput:
-		return handler.HandleRawTextOutput(ctx, t)
+		return handler.HandleRawTextOutput(ctx, cd, t)
 	case *TableOutput:
 		clength := len(t.ColumnNames)
 		if len(t.RowValueData) != len(t.RowValueColors) {
@@ -79,13 +95,13 @@ func HandleOutput(ctx context.Context, handler OutputHandler, out Output) error 
 				return terrors.Errorf("table output column names (%d) do not match data (%d)", clength, len(row))
 			}
 		}
-		return handler.HandleTableOutput(ctx, t)
+		return handler.HandleTableOutput(ctx, cd, t)
 	case *JSONOutput:
-		return handler.HandleJSONOutput(ctx, t)
+		return handler.HandleJSONOutput(ctx, cd, t)
 	case *NilOutput:
-		return handler.HandleNilOutput(ctx, t)
+		return handler.HandleNilOutput(ctx, cd, t)
 	case *FileOutput:
-		return handler.HandleFileOutput(ctx, t)
+		return handler.HandleFileOutput(ctx, cd, t)
 	default:
 		return terrors.Errorf("unknown output type %T", t)
 	}

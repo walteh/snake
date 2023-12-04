@@ -17,6 +17,18 @@ import (
 
 var _ snake.OutputHandler = (*OutputHandler)(nil)
 
+func (me *OutputHandler) Stderr() io.Writer {
+	return me.stdio
+}
+
+func (me *OutputHandler) Stdout() io.Writer {
+	return me.stdio
+}
+
+func (me *OutputHandler) Stdin() io.Reader {
+	return os.Stdin
+}
+
 type OutputHandler struct {
 	output *WailsHTMLResponse
 	stdio  io.Writer
@@ -28,7 +40,7 @@ func NewOutputHandler(cmd io.Writer) *OutputHandler {
 	}
 }
 
-func (me *OutputHandler) HandleJSONOutput(ctx context.Context, out *snake.JSONOutput) error {
+func (me *OutputHandler) HandleJSONOutput(ctx context.Context, _ snake.Chan, out *snake.JSONOutput) error {
 
 	// Convert the output data to JSON format
 	jsonData, err := json.MarshalIndent(out.Data, "", "\t")
@@ -55,12 +67,12 @@ func (me *OutputHandler) HandleJSONOutput(ctx context.Context, out *snake.JSONOu
 }
 
 // HandleLongRunningOutput implements sbind.OutputHandler.
-func (*OutputHandler) HandleLongRunningOutput(ctx context.Context, out *snake.LongRunningOutput) error {
+func (*OutputHandler) HandleLongRunningOutput(ctx context.Context, _ snake.Chan, out *snake.LongRunningOutput) error {
 	return out.Start(ctx)
 }
 
 // HandleRawTextOutput implements sbind.OutputHandler.
-func (me *OutputHandler) HandleRawTextOutput(ctx context.Context, out *snake.RawTextOutput) error {
+func (me *OutputHandler) HandleRawTextOutput(ctx context.Context, _ snake.Chan, out *snake.RawTextOutput) error {
 
 	me.output = &WailsHTMLResponse{
 		Text:    out.Data,
@@ -71,7 +83,7 @@ func (me *OutputHandler) HandleRawTextOutput(ctx context.Context, out *snake.Raw
 }
 
 // HandleTableOutput implements sbind.OutputHandler.
-func (me *OutputHandler) HandleTableOutput(ctx context.Context, out *snake.TableOutput) error {
+func (me *OutputHandler) HandleTableOutput(ctx context.Context, _ snake.Chan, out *snake.TableOutput) error {
 
 	jsond := make([]map[string]any, len(out.RowValueData))
 
@@ -115,7 +127,7 @@ func (me *OutputHandler) HandleTableOutput(ctx context.Context, out *snake.Table
 }
 
 // HandleNilOutput implements sbind.OutputHandler.
-func (me *OutputHandler) HandleNilOutput(ctx context.Context, out *snake.NilOutput) error {
+func (me *OutputHandler) HandleNilOutput(ctx context.Context, _ snake.Chan, out *snake.NilOutput) error {
 	me.output = &WailsHTMLResponse{
 		Text: "no output",
 	}
@@ -123,7 +135,7 @@ func (me *OutputHandler) HandleNilOutput(ctx context.Context, out *snake.NilOutp
 }
 
 // HandleFileOutput implements sbind.OutputHandler.
-func (me *OutputHandler) HandleFileOutput(ctx context.Context, out *snake.FileOutput) error {
+func (me *OutputHandler) HandleFileOutput(ctx context.Context, _ snake.Chan, out *snake.FileOutput) error {
 	dir := out.Dir
 
 	if dir == "" {

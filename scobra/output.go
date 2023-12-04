@@ -21,6 +21,19 @@ import (
 
 var _ snake.OutputHandler = (*OutputHandler)(nil)
 
+func (me *OutputHandler) Stderr() io.Writer {
+	return me.cmd.ErrOrStderr()
+}
+
+func (me *OutputHandler) Stdout() io.Writer {
+	return me.cmd.OutOrStdout()
+
+}
+
+func (me *OutputHandler) Stdin() io.Reader {
+	return os.Stdin
+}
+
 type OutputHandler struct {
 	cmd *cobra.Command
 }
@@ -31,7 +44,7 @@ func NewOutputHandler(cmd *cobra.Command) *OutputHandler {
 	}
 }
 
-func (me *OutputHandler) HandleJSONOutput(ctx context.Context, out *snake.JSONOutput) error {
+func (me *OutputHandler) HandleJSONOutput(ctx context.Context, cd snake.Chan, out *snake.JSONOutput) error {
 	// Convert the output data to JSON format
 	jsonData, err := json.MarshalIndent(out.Data, "", "\t")
 	if err != nil {
@@ -45,12 +58,12 @@ func (me *OutputHandler) HandleJSONOutput(ctx context.Context, out *snake.JSONOu
 }
 
 // HandleLongRunningOutput implements sbind.OutputHandler.
-func (*OutputHandler) HandleLongRunningOutput(ctx context.Context, out *snake.LongRunningOutput) error {
+func (*OutputHandler) HandleLongRunningOutput(ctx context.Context, cd snake.Chan, out *snake.LongRunningOutput) error {
 	return out.Start(ctx)
 }
 
 // HandleRawTextOutput implements sbind.OutputHandler.
-func (me *OutputHandler) HandleRawTextOutput(ctx context.Context, out *snake.RawTextOutput) error {
+func (me *OutputHandler) HandleRawTextOutput(ctx context.Context, cd snake.Chan, out *snake.RawTextOutput) error {
 	me.cmd.Println("")
 
 	me.cmd.Println(out.Data)
@@ -60,7 +73,7 @@ func (me *OutputHandler) HandleRawTextOutput(ctx context.Context, out *snake.Raw
 }
 
 // HandleTableOutput implements sbind.OutputHandler.
-func (me *OutputHandler) HandleTableOutput(ctx context.Context, out *snake.TableOutput) error {
+func (me *OutputHandler) HandleTableOutput(ctx context.Context, cd snake.Chan, out *snake.TableOutput) error {
 	table := tablewriter.NewWriter(me.cmd.OutOrStdout())
 
 	table.SetHeader(out.ColumnNames)
@@ -92,13 +105,13 @@ func (me *OutputHandler) HandleTableOutput(ctx context.Context, out *snake.Table
 }
 
 // HandleNilOutput implements sbind.OutputHandler.
-func (me *OutputHandler) HandleNilOutput(ctx context.Context, out *snake.NilOutput) error {
+func (me *OutputHandler) HandleNilOutput(ctx context.Context, cd snake.Chan, out *snake.NilOutput) error {
 	me.cmd.Println("nil output")
 	return nil
 }
 
 // HandleFileOutput implements sbind.OutputHandler.
-func (me *OutputHandler) HandleFileOutput(ctx context.Context, out *snake.FileOutput) error {
+func (me *OutputHandler) HandleFileOutput(ctx context.Context, cd snake.Chan, out *snake.FileOutput) error {
 	dir := out.Dir
 
 	if dir == "" {
