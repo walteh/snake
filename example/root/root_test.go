@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra/doc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/walteh/snake/example/root/sample"
+	"github.com/walteh/snake/example/resolvers"
 )
 
 func TestNewCommand(t *testing.T) {
@@ -63,7 +63,7 @@ func TestNewCommand(t *testing.T) {
 
 			args := hndl.Args()
 
-			assert.Equal(t, sample.SampleEnumY, args.Enum)
+			assert.Equal(t, resolvers.SampleEnumY, args.Enum)
 		})
 	}
 

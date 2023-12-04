@@ -7,6 +7,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/go-faster/errors"
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/walteh/snake"
@@ -23,7 +24,6 @@ type CobraSnake struct {
 type SCobra interface {
 	Command() *cobra.Command
 	Name() string
-	// sbind.NamedMethod
 }
 
 func NewCommandResolver(s SCobra) snake.TypedResolver[SCobra] {
@@ -148,6 +148,32 @@ func (me *CobraSnake) OnSnakeInit(ctx context.Context, snk snake.Snake) error {
 	}
 
 	return nil
+}
+
+var _ snake.EnumResolverFunc = (*CobraSnake)(nil).ResolveEnum
+
+func (me *CobraSnake) ResolveEnum(typ string, opts []string) (string, error) {
+	prompt := promptui.Select{
+		Label: "Select " + typ,
+		Items: opts,
+	}
+
+	_, result, err := prompt.Run()
+
+	if err != nil {
+		return "", err
+	}
+
+	if result == "" {
+		return "", errors.Errorf("invalid %q", typ)
+	}
+
+	return result, nil
+
+}
+
+func (me *CobraSnake) ProvideContextResolver() snake.Resolver {
+	return snake.MustGetResolverFor[context.Context](&ContextResolver{})
 }
 
 func NewCobraSnake(ctx context.Context, root *cobra.Command) *CobraSnake {

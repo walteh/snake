@@ -1,4 +1,4 @@
-package sample
+package resolvers
 
 type SampleEnum string
 

@@ -66,7 +66,7 @@ func TestFindBrothers(t *testing.T) {
 					return r
 				}
 				return nil
-			})
+			}, snake.ListOfArgs)
 			require.NoError(t, err)
 			require.NotNil(t, got)
 			tt.expectMap = append(tt.expectMap, []string{}...)
