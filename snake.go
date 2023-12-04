@@ -99,7 +99,6 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 				continue
 			}
 			snk.resolvers[reflectTypeString(r)] = runner
-
 		}
 
 		// enum options are also resolvers so they are passed here

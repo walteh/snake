@@ -37,8 +37,8 @@ type simpleResolver[M Method] struct {
 
 func newSimpleResolver[M Method](strc M) TypedResolver[M] {
 	return &simpleResolver[M]{
-		runfunc: reflect.ValueOf(func() reflect.Value {
-			return reflect.ValueOf(strc)
+		runfunc: reflect.ValueOf(func() (M, error) {
+			return strc, nil
 		}),
 		strc: strc,
 	}
