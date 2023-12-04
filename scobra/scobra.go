@@ -72,17 +72,22 @@ func (me *CobraSnake) Decorate(ctx context.Context, self SCobra, snk snake.Snake
 		flgs := cmd.Flags()
 
 		if v.Shared() {
-			flgs = me.RootCommand.PersistentFlags()
-		} else {
-			if cmd.Flags().Lookup(v.Name()) != nil {
-				// if this is the same object, then the user is trying to override the flag, so we let them
-				continue
-			}
+			flgs = cmd.PersistentFlags()
+		}
+		if flgs.Lookup(v.Name()) != nil {
+			// if this is the same object, then the user is trying to override the flag, so we let them
+			// or (more likely) this is a shared flag, so we are setting it over and over again
+			continue
 		}
 
 		err := applyInputToFlags(v, flgs)
 		if err != nil {
 			return err
+		}
+
+		if v.Shared() {
+			cmd.PersistentFlags().Lookup(v.Name()).Shorthand = ""
+			continue
 		}
 	}
 

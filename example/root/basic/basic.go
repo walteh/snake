@@ -3,6 +3,7 @@ package basic
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
 	"github.com/walteh/snake"
 	"github.com/walteh/snake/example/resolvers"
 )
@@ -25,6 +26,12 @@ func (*Handler) Image() string {
 
 func (*Handler) Emoji() string {
 	return "🚀"
+}
+
+func (*Handler) Command() *cobra.Command {
+	return &cobra.Command{
+		Use: "basic",
+	}
 }
 
 func (me *Handler) Run(dat resolvers.DependantResolverString) (snake.Output, error) {

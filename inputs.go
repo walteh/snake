@@ -125,7 +125,15 @@ func InputsFor(m Resolver, enum ...Enum) ([]Input, error) {
 		case reflect.Bool:
 			resp = append(resp, NewSimpleValueInput[bool](f, m))
 		case reflect.Array, reflect.Slice:
-			resp = append(resp, NewSimpleValueInput[[]string](f, m))
+			if f.Type.Elem().Kind() == reflect.String {
+				resp = append(resp, NewSimpleValueInput[[]string](f, m))
+				continue
+			} else if f.Type.Elem().Kind() == reflect.Int {
+				resp = append(resp, NewSimpleValueInput[[]int](f, m))
+				continue
+			}
+			return nil, terrors.Errorf("field %q in %v is unexpected reflect.Kind %s", f.Name, m, f.Type.Kind().String())
+			// resp = append(resp, NewSimpleValueInput[[]string](f, m))
 		case reflect.Int64:
 			switch fld.Interface().(type) {
 			case time.Duration:

@@ -2,7 +2,6 @@ package snake
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"reflect"
 
@@ -174,7 +173,7 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 				snk.dependants[methd] = make([]string, 0)
 			}
 
-			fmt.Println("adding dependant", name, "to", methd)
+			// fmt.Println("adding dependant", name, "to", methd)
 			snk.dependants[methd] = append(snk.dependants[methd], name)
 		}
 	}
