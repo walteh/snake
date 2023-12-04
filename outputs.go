@@ -24,7 +24,6 @@ type OutputHandler interface {
 	Stdout() io.Writer
 	Stderr() io.Writer
 	Stdin() io.Reader
-
 	HandleLongRunningOutput(ctx context.Context, cd Chan, out *LongRunningOutput) error
 	HandleRawTextOutput(ctx context.Context, cd Chan, out *RawTextOutput) error
 	HandleTableOutput(ctx context.Context, cd Chan, out *TableOutput) error

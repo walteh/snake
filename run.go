@@ -3,6 +3,7 @@ package snake
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/walteh/terrors"
 )
@@ -66,11 +67,22 @@ func RunResolvingArguments(outputHandler OutputHandler, fmap FMap, str string, b
 
 		defer close(cd)
 
-		SetBinding[Chan](binder, cd)
+		closers := make([]func(), 0)
+
+		stdout := outputHandler.Stdout()
+		stdin := outputHandler.Stdin()
+		stderr := outputHandler.Stderr()
+
+		closers = append(closers, SetBindingIfNil[io.Writer](binder, stdout))
+		closers = append(closers, SetBindingIfNil[io.Reader](binder, stdin))
+		closers = append(closers, SetBindingIfNil[Stderr](binder, stderr))
+		closers = append(closers, SetBindingIfNil[Chan](binder, cd))
 
 		defer func() {
 			delete(binder.bindings, str)
-			delete(binder.bindings, "snake.Chan")
+			for _, v := range closers {
+				v()
+			}
 		}()
 
 		binder, err := findArgumentsRaw(str, fmap, binder)

@@ -28,12 +28,34 @@ func NewBinder() *Binder {
 	}
 }
 
-func SetBinding[T any](con *Binder, val T) {
+func SetBinding[T any](con *Binder, val T) func() {
 	con.runlock.Lock()
 	defer con.runlock.Unlock()
 	ptr := reflect.ValueOf(val)
 	typ := reflect.TypeOf((*T)(nil)).Elem()
 	con.bindings[typ.String()] = &ptr
+	return func() {
+		con.runlock.Lock()
+		delete(con.bindings, typ.String())
+		con.runlock.Unlock()
+	}
+}
+
+func SetBindingIfNil[T any](con *Binder, val T) func() {
+	con.runlock.Lock()
+	defer con.runlock.Unlock()
+	ptr := reflect.ValueOf(val)
+	typ := reflect.TypeOf((*T)(nil)).Elem()
+	if _, ok := con.bindings[typ.String()]; !ok {
+		con.bindings[typ.String()] = &ptr
+		return func() {
+		}
+	}
+	return func() {
+		con.runlock.Lock()
+		delete(con.bindings, typ.String())
+		con.runlock.Unlock()
+	}
 }
 
 func SetBindingWithLock[T any](con *Binder, val T) func() {
