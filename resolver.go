@@ -34,6 +34,15 @@ type simpleResolver[M Method] struct {
 	middlewares []Middleware
 }
 
+func newSimpleResolver[M Method](strc M) TypedResolver[M] {
+	return &simpleResolver[M]{
+		runfunc: reflect.ValueOf(func() reflect.Value {
+			return reflect.ValueOf(strc)
+		}),
+		strc: strc,
+	}
+}
+
 func (me *simpleResolver[M]) RunFunc() reflect.Value {
 	return me.runfunc
 }

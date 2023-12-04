@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	_ snake.SnakeImplementation[SCobra] = &CobraSnake{}
+	_ snake.SnakeImplementationTyped[SCobra] = &CobraSnake{}
 )
 
 type CobraSnake struct {
@@ -24,6 +24,7 @@ type CobraSnake struct {
 type SCobra interface {
 	Command() *cobra.Command
 	Name() string
+	Description() string
 }
 
 func NewCommandResolver(s SCobra) snake.TypedResolver[SCobra] {
@@ -169,7 +170,6 @@ func (me *CobraSnake) ResolveEnum(typ string, opts []string) (string, error) {
 	}
 
 	return result, nil
-
 }
 
 func (me *CobraSnake) ProvideContextResolver() snake.Resolver {

@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	_ snake.SnakeImplementation[SWails] = &WailsSnake{}
+	_ snake.SnakeImplementationTyped[SWails] = &WailsSnake{}
 )
 
 type WailsEmitter func(ctx context.Context, eventName string, optionalData ...interface{})

@@ -38,21 +38,25 @@ func (me *defaultSnake) Resolve(name string) Resolver {
 	return me.resolvers[name]
 }
 
-type SnakeImplementation[X any] interface {
+type SnakeImplementationTyped[X any] interface {
 	Decorate(context.Context, X, Snake, []Input, []Middleware) error
+	SnakeImplementation
+}
+
+type SnakeImplementation interface {
 	ManagedResolvers(context.Context) []Resolver
 	OnSnakeInit(context.Context, Snake) error
 	ResolveEnum(string, []string) (string, error)
 	ProvideContextResolver() Resolver
 }
 
-func NewSnake[M NamedMethod](ctx context.Context, impl SnakeImplementation[M], res ...Resolver) (Snake, error) {
+func NewSnake[M NamedMethod](ctx context.Context, impl SnakeImplementationTyped[M], res ...Resolver) (Snake, error) {
 	return NewSnakeWithOpts(ctx, impl, &NewSnakeOpts{
 		Resolvers: res,
 	})
 }
 
-func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementation[M], opts *NewSnakeOpts) (Snake, error) {
+func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementationTyped[M], opts *NewSnakeOpts) (Snake, error) {
 	var err error
 
 	snk := &defaultSnake{
@@ -69,6 +73,9 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 	if opts.Resolvers != nil {
 		inputResolvers = append(inputResolvers, opts.Resolvers...)
 	}
+
+	inputResolvers = append(inputResolvers, newSimpleResolver[SnakeImplementation](impl))
+	inputResolvers = append(inputResolvers, newSimpleResolver[EnumResolverFunc](impl.ResolveEnum))
 
 	con := impl.ProvideContextResolver()
 	if con != nil {

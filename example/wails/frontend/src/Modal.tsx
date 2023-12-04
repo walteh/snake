@@ -2,7 +2,6 @@ import { useEffect, useMemo } from "react";
 import { Fragment, useState } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { swails } from "../wailsjs/go/models";
-import { CopyBlock } from "react-code-blocks";
 import clsx from "clsx";
 import ReactJson from "@microlink/react-json-view";
 

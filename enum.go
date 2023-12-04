@@ -8,12 +8,46 @@ import (
 	"github.com/go-faster/errors"
 )
 
+func ResolveEnum[T ~string](name string, options []T, resolver EnumResolverFunc) (T, error) {
+	if resolver == nil {
+		return "", errors.Errorf("no enum resolver for %q", reflect.TypeOf((*T)(nil)).Elem().String())
+	}
+
+	if len(options) == 0 {
+		return "", errors.Errorf("no options for %q", reflect.TypeOf((*T)(nil)).Elem().String())
+	}
+
+	check := T(name)
+
+	strs := make([]string, len(options))
+	for i, v := range options {
+		strs[i] = string(v)
+	}
+
+	if name == "select" {
+
+		resp, err := resolver(reflect.TypeOf((*T)(nil)).Elem().String(), strs)
+		if err != nil {
+			return "", err
+		}
+
+		check = T(resp)
+
+	}
+
+	if !slices.Contains(options, check) {
+		return "", errors.Errorf("invalid value %q, expected one of [\"%s\"]", check, strings.Join(strs, "\", \""))
+	}
+
+	return T(name), nil
+}
+
 // REFRESHABLE RESOLVER
 var (
 	_ Resolver = (*rawEnum[string])(nil)
 )
 
-type EnumResolverFunc func(string, []string) (string, error)
+type EnumResolverFunc func(typeName string, options []string) (string, error)
 
 type Enum interface {
 	Resolver
@@ -69,15 +103,10 @@ func (me *rawEnum[T]) RunFunc() reflect.Value {
 
 func NewEnumOptionWithResolver[T ~string](name string, description string, input ...T) Enum {
 	sel := new(T)
-	// if resolver != nil {
-	// 	// this sets the default to "select" and not nil
-	// 	*sel = T("select")
-	// }
 
 	return &rawEnum[T]{
 		rawTypeName: reflect.TypeOf((*T)(nil)).Elem().String(),
 		options:     input,
-		// enumResolver: resolver,
 		name:        name,
 		description: description,
 		Val:         sel,
