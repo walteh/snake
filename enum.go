@@ -39,7 +39,7 @@ func ResolveEnum[T ~string](name string, options []T, resolver EnumResolverFunc)
 		return "", terrors.Errorf("invalid value %q, expected one of [\"%s\"]", check, strings.Join(strs, "\", \""))
 	}
 
-	return T(name), nil
+	return T(check), nil
 }
 
 // REFRESHABLE RESOLVER
