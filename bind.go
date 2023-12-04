@@ -47,6 +47,7 @@ func SetBindingIfNil[T any](con *Binder, val T) func() {
 	ptr := reflect.ValueOf(val)
 	typ := reflect.TypeOf((*T)(nil)).Elem()
 	if _, ok := con.bindings[typ.String()]; !ok {
+		// check if it is the snake.NewNoopMethod
 		con.bindings[typ.String()] = &ptr
 		return func() {
 		}

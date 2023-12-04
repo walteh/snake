@@ -3,6 +3,7 @@ package snake
 import (
 	"context"
 	"fmt"
+	"io"
 	"reflect"
 
 	"github.com/go-faster/errors"
@@ -56,6 +57,17 @@ func NewSnake[M NamedMethod](ctx context.Context, impl SnakeImplementationTyped[
 	})
 }
 
+func snakeManagedResolvers() []Resolver {
+	return []Resolver{
+		NewNoopMethod[Chan](),
+		NewNoopMethod[io.Writer](),
+		NewNoopMethod[io.Reader](),
+		NewNoopMethod[Stdin](),
+		NewNoopMethod[Stdout](),
+		NewNoopMethod[Stderr](),
+	}
+}
+
 func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementationTyped[M], opts *NewSnakeOpts) (Snake, error) {
 	var err error
 
@@ -83,6 +95,8 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 	}
 
 	inputResolvers = append(inputResolvers, impl.ManagedResolvers(ctx)...)
+
+	inputResolvers = append(inputResolvers, snakeManagedResolvers()...)
 
 	for _, runner := range inputResolvers {
 
