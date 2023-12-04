@@ -15,7 +15,7 @@ type WailsEmitter func(ctx context.Context, eventName string, optionalData ...in
 type WailsSnake struct {
 	snake   snake.Snake
 	binder  *snake.Binder
-	inputs  map[string]snake.Input
+	inputs  map[string]map[string]snake.Input
 	emitter WailsEmitter
 }
 
@@ -50,12 +50,24 @@ func (me *WailsSnake) OnSnakeInit(ctx context.Context, snk snake.Snake) error {
 		if err != nil {
 			return err
 		}
+		for _, input := range snki {
 
-		if typ, ok := cmd.(snake.TypedResolver[SWails]); ok {
-			for _, input := range snki {
-				me.inputs[inputName(typ.TypedRef(), input)] = input
+			if input.Shared() {
+				if _, ok := me.inputs["shared"]; !ok {
+					me.inputs["shared"] = make(map[string]snake.Input)
+				}
+				me.inputs["shared"][input.Name()] = input
+			} else {
+				if typ, ok := cmd.(snake.TypedResolver[SWails]); ok {
+					if _, ok := me.inputs[typ.TypedRef().Name()]; !ok {
+						me.inputs[typ.TypedRef().Name()] = make(map[string]snake.Input)
+					}
+					me.inputs[typ.TypedRef().Name()][input.Name()] = input
+				}
+
 			}
 		}
+
 	}
 
 	return nil
@@ -80,7 +92,7 @@ func NewWailsSnake(ctx context.Context, emitter WailsEmitter) *WailsSnake {
 
 	me := &WailsSnake{
 		binder:  snake.NewBinder(),
-		inputs:  make(map[string]snake.Input),
+		inputs:  make(map[string]map[string]snake.Input),
 		emitter: emitter,
 	}
 

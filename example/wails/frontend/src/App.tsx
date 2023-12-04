@@ -1,25 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-// import "./App.css";
-import {
-	InputsFor,
-	Run,
-	Commands,
-	Inputs,
-	UpdateInput,
-} from "../wailsjs/go/swails/WailsSnake";
+import { Commands, Inputs } from "../wailsjs/go/swails/WailsSnake";
 import { swails } from "../wailsjs/go/models";
 import Input from "./Input";
 import Cards from "./Cards";
 
 function App() {
-	const [resultText, setResultText] = useState<swails.WailsHTMLResponse>(
-		new swails.WailsHTMLResponse()
-	);
-	const [name, setName] = useState("");
-	const updateName = (e: any) => setName(e.target.value);
-	const updateResultText = (result: swails.WailsHTMLResponse) =>
-		setResultText(result);
-
 	const [allCommands, setAllCommands] = useState<swails.WailsCommand[]>([]);
 
 	const [allInputs, setAllInputs] = useState<swails.WailsInput[]>([]);
@@ -32,7 +17,7 @@ function App() {
 	return (
 		<div id="App">
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-1 p-20">
-				{allInputs.map(
+				{allInputs?.map(
 					(person) =>
 						person.shared && (
 							<div

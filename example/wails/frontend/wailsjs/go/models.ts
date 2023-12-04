@@ -44,6 +44,7 @@ export namespace swails {
 	    type: string;
 	    value: any;
 	    shared: boolean;
+	    command: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new WailsInput(source);
@@ -55,6 +56,7 @@ export namespace swails {
 	        this.type = source["type"];
 	        this.value = source["value"];
 	        this.shared = source["shared"];
+	        this.command = source["command"];
 	    }
 	}
 

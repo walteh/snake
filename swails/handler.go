@@ -28,24 +28,24 @@ func (me *WailsSnake) Run(name *WailsCommand) (*WailsHTMLResponse, error) {
 }
 
 type WailsInput struct {
-	Name   string          `json:"name"`
-	Type   snake.InputType `json:"type"`
-	Value  any             `json:"value"`
-	Shared bool            `json:"shared"`
+	Name    string          `json:"name"`
+	Type    snake.InputType `json:"type"`
+	Value   any             `json:"value"`
+	Shared  bool            `json:"shared"`
+	Command string          `json:"command"`
 }
 
 func (me *WailsSnake) Inputs() ([]*WailsInput, error) {
 
 	var inputs []*WailsInput
-	for _, input := range me.inputs {
-		if input.Shared() {
-			inputs = append(inputs, &WailsInput{
-				Name:   input.Name(),
-				Type:   input.Type(),
-				Value:  input.Ptr(),
-				Shared: input.Shared(),
-			})
-		}
+	for _, input := range me.inputs["shared"] {
+		inputs = append(inputs, &WailsInput{
+			Name:    input.Name(),
+			Type:    input.Type(),
+			Value:   input.Ptr(),
+			Shared:  input.Shared(),
+			Command: "shared",
+		})
 	}
 
 	return inputs, nil
@@ -99,19 +99,20 @@ func (me *WailsSnake) OptionsForEnum(input *WailsInput) ([]string, error) {
 
 func (me *WailsSnake) CurrentInput(cmd SWails, input snake.Input) (*WailsInput, error) {
 
-	curr := me.inputs[inputName(cmd, input)]
+	curr := me.inputs[cmd.Name()][input.Name()]
 
 	return &WailsInput{
-		Name:   inputName(cmd, input),
-		Type:   curr.Type(),
-		Value:  curr.Ptr(),
-		Shared: curr.Shared(),
+		Name:    input.Name(),
+		Type:    curr.Type(),
+		Value:   curr.Ptr(),
+		Shared:  curr.Shared(),
+		Command: cmd.Name(),
 	}, nil
 }
 
 func (me *WailsSnake) UpdateInput(input *WailsInput) (*WailsInput, error) {
 
-	curr := me.inputs[input.Name]
+	curr := me.inputs[input.Command][input.Name]
 
 	err := curr.SetValue(input.Value)
 	if err != nil {
@@ -123,13 +124,14 @@ func (me *WailsSnake) UpdateInput(input *WailsInput) (*WailsInput, error) {
 		return nil, errors.Errorf("unable to update input %q: %w", input.Name, err)
 	}
 
-	inp := me.inputs[input.Name]
+	inp := me.inputs[input.Command][input.Name]
 
 	return &WailsInput{
-		Name:   input.Name,
-		Type:   inp.Type(),
-		Value:  inp.Ptr(),
-		Shared: inp.Shared(),
+		Name:    input.Name,
+		Type:    inp.Type(),
+		Value:   inp.Ptr(),
+		Shared:  inp.Shared(),
+		Command: input.Command,
 	}, nil
 }
 

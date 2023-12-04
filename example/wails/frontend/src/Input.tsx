@@ -14,11 +14,8 @@ const BoolInput = ({ arg }: { arg: swails.WailsInput }) => {
 
 	const setEnabled = useCallback(
 		(next: boolean) => {
-			const newInput = new swails.WailsInput();
+			const newInput = value;
 			newInput.value = next;
-			newInput.name = value.name;
-			newInput.type = value.type;
-			console.log({ newInput });
 			UpdateInput(newInput).then((result) => {
 				console.log({ result });
 				setValue(result);
@@ -165,11 +162,8 @@ const StringInput = ({ arg }: { arg: swails.WailsInput }) => {
 				name={value.name}
 				value={value.value}
 				onChange={(next) => {
-					const newInput = new swails.WailsInput();
+					const newInput = value;
 					newInput.value = next.target.value;
-					newInput.name = value.name;
-					newInput.type = value.type;
-					console.log({ newInput });
 					UpdateInput(newInput).then((result) => {
 						console.log({ result });
 						setValue(result);
@@ -207,11 +201,8 @@ const EnumInput = ({ arg }: { arg: swails.WailsInput }) => {
 				className="mt-2 block rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 w-full"
 				defaultValue="Canada"
 				onChange={(next) => {
-					const newInput = new swails.WailsInput();
+					const newInput = value;
 					newInput.value = next.target.value;
-					newInput.name = value.name;
-					newInput.type = value.type;
-					console.log({ newInput });
 					UpdateInput(newInput).then((result) => {
 						console.log({ result });
 						setValue(result);
