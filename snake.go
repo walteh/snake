@@ -86,7 +86,6 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 		inputResolvers = append(inputResolvers, opts.Resolvers...)
 	}
 
-	inputResolvers = append(inputResolvers, newSimpleResolver[SnakeImplementation](impl))
 	inputResolvers = append(inputResolvers, newSimpleResolver[EnumResolverFunc](impl.ResolveEnum))
 
 	con := impl.ProvideContextResolver()
