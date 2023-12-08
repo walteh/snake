@@ -18,6 +18,10 @@ export function InputsFor(arg1:swails.WailsCommand):Promise<Array<swails.WailsIn
 
 export function ManagedResolvers(arg1:context.Context):Promise<Array<snake.Resolver>>;
 
+export function NewEventEmitter(arg1:string):Promise<swails.WailsWriter>;
+
+export function NoopWailsEmitEvent():Promise<swails.WailsEmitEvent>;
+
 export function OnSnakeInit(arg1:context.Context,arg2:snake.Snake):Promise<void>;
 
 export function OptionsForEnum(arg1:swails.WailsInput):Promise<Array<string>>;
@@ -27,5 +31,9 @@ export function ProvideContextResolver():Promise<snake.Resolver>;
 export function ResolveEnum(arg1:string,arg2:Array<string>):Promise<string>;
 
 export function Run(arg1:swails.WailsCommand):Promise<swails.WailsHTMLResponse>;
+
+export function RunWithWriter(arg1:string,arg2:swails.WailsCommand):Promise<swails.WailsWriter>;
+
+export function SetLifecycleContext(arg1:context.Context):Promise<void>;
 
 export function UpdateInput(arg1:swails.WailsInput):Promise<swails.WailsInput>;

@@ -30,6 +30,14 @@ export function ManagedResolvers(arg1) {
   return window['go']['swails']['WailsSnake']['ManagedResolvers'](arg1);
 }
 
+export function NewEventEmitter(arg1) {
+  return window['go']['swails']['WailsSnake']['NewEventEmitter'](arg1);
+}
+
+export function NoopWailsEmitEvent() {
+  return window['go']['swails']['WailsSnake']['NoopWailsEmitEvent']();
+}
+
 export function OnSnakeInit(arg1, arg2) {
   return window['go']['swails']['WailsSnake']['OnSnakeInit'](arg1, arg2);
 }
@@ -48,6 +56,14 @@ export function ResolveEnum(arg1, arg2) {
 
 export function Run(arg1) {
   return window['go']['swails']['WailsSnake']['Run'](arg1);
+}
+
+export function RunWithWriter(arg1, arg2) {
+  return window['go']['swails']['WailsSnake']['RunWithWriter'](arg1, arg2);
+}
+
+export function SetLifecycleContext(arg1) {
+  return window['go']['swails']['WailsSnake']['SetLifecycleContext'](arg1);
 }
 
 export function UpdateInput(arg1) {

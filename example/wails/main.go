@@ -47,8 +47,10 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
+		OnDomReady: func(ctx context.Context) {
+			swail.SetLifecycleContext(ctx)
+		},
 		OnStartup: func(ctx context.Context) {
 			_, err := snake.NewSnakeWithOpts(ctx, swail, &snake.NewSnakeOpts{
 				Resolvers: append(commands, resolvers...),
