@@ -2,9 +2,11 @@ module github.com/walteh/snake
 
 go 1.21.4
 
+replace github.com/walteh/terrors => ../../terror
+
 require (
 	github.com/fatih/color v1.16.0
-	github.com/go-faster/errors v0.7.0
+	github.com/go-faster/errors v0.7.1
 	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88
 	github.com/k0kubun/pp/v3 v3.2.0
 	github.com/manifoldco/promptui v0.9.0
@@ -13,7 +15,7 @@ require (
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
-	github.com/walteh/terrors v0.6.0
+	github.com/walteh/terrors v0.7.0-pr1
 )
 
 require (

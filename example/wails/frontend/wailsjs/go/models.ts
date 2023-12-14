@@ -18,20 +18,6 @@ export namespace swails {
 	        this.emoji = source["emoji"];
 	    }
 	}
-	export class WailsEmitEvent {
-	    name: string;
-	    data: any;
-	
-	    static createFrom(source: any = {}) {
-	        return new WailsEmitEvent(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.name = source["name"];
-	        this.data = source["data"];
-	    }
-	}
 	
 	export class WailsHTMLResponse {
 	    default: string;
