@@ -1,6 +1,7 @@
 package swails
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/walteh/snake"
@@ -30,6 +31,8 @@ func (me *WailsSnake) Run(name *WailsCommand) (*WailsHTMLResponse, error) {
 func (me *WailsSnake) RunWithWriter(id string, name *WailsCommand) (*WailsWriter, error) {
 
 	wrt := me.newEventEmitter(id)
+
+	fmt.Printf("Running command %q with writer %q\n", name.Name, id)
 
 	outhand := NewOutputHandler(wrt)
 

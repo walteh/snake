@@ -2,6 +2,7 @@ package swails
 
 import (
 	"context"
+	"fmt"
 )
 
 // WailsEmitter is the function type as provided
@@ -40,7 +41,7 @@ func (w *WailsWriter) Write(p []byte) (n int, err error) {
 
 	// data = string(dato)
 
-	// fmt.Printf("Writing data to %q: %q\n", w.Name, data)
+	fmt.Printf("Writing data to %q: %v\n", w.Name, dat)
 
 	// Emit the data using the WailsEmitter function
 	w.emitter(w.context, w.Name, dat)

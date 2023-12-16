@@ -28,12 +28,17 @@ export function Card({ command }: { command: swails.WailsCommand }) {
 		wrt.name = random;
 		setWriter(wrt);
 		console.log("writer: ", wrt);
-		RunWithWriter(random, cmd).then((result) => {
-			// console.log(result);
-			// setWriter(result);
+		RunWithWriter(random, cmd)
+			.then((result) => {
+				// console.log(result);
+				// setWriter(result);
 
-			console.log("result: ", result);
-		});
+				console.log("result: ", result);
+			})
+			.catch((err) => {
+				console.log("AHHHHH");
+				console.error(err);
+			});
 	}, []);
 
 	return (
