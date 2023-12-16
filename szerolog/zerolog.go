@@ -11,7 +11,6 @@ import (
 
 	"github.com/k0kubun/pp/v3"
 	"github.com/rs/zerolog"
-	"github.com/walteh/terrors"
 )
 
 func Ctx(ctx context.Context) *zerolog.Logger {
@@ -58,7 +57,7 @@ func NewVerboseConsoleLogger(out io.Writer) *zerolog.Logger {
 
 		switch t := i.(type) {
 		case error:
-			return terrors.FormatErrorCaller(t, false)
+			return t.Error()
 		case []byte:
 			var g any
 			err := json.Unmarshal(t, &g)

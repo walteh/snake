@@ -699,7 +699,7 @@ func TestExpectInvalidContextResolver(t *testing.T) {
 
 	err = assm.ExecuteContext(context.TODO())
 
-	assert.Equal(t, errors.New("ERROR[resolver for type \"context.Context\" returned a context that is not a child context, walteh/snake/slegacy, snake.go:441]").Error(), err.Error())
+	assert.Equal(t, errors.New("❌ ERROR[msg=resolver for type \"context.Context\" returned a context that is not a child context][pkg=walteh/snake/slegacy][file=snake.go:441]").Error(), err.Error())
 }
 
 func TestZeroLogProblemSimple(t *testing.T) {

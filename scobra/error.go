@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/fatih/color"
-	"github.com/go-faster/errors"
 	"github.com/spf13/cobra"
 	"github.com/walteh/terrors"
 )
@@ -14,7 +13,7 @@ type ErrHandledByPrintingToConsole struct {
 }
 
 func IsHandledByPrintingToConsole(err error) bool {
-	_, ok := errors.Into[*ErrHandledByPrintingToConsole](err)
+	_, ok := terrors.Into[*ErrHandledByPrintingToConsole](err)
 	return ok
 }
 
@@ -42,9 +41,12 @@ func FormatCommandError(cmd *cobra.Command, err error) string {
 			name = cmd.Name() + " " + name
 		}
 	})
+	// dets := terrors.ExtractErrorDetail(err)
 
 	// TODO: get details from error, don't just print it.
-	caller := terrors.FormatErrorCaller(err, true)
+	caller := terrors.FormatErrorCaller(err, name, true)
 
-	return fmt.Sprintf("%s - %s - %s", color.New(color.FgRed, color.Bold).Sprint("ERROR"), name, caller)
+	// fmt.Println("DETAILS:", dets)
+
+	return fmt.Sprintf("%s - %s", color.New(color.FgRed, color.Bold).Sprint("ERROR"), caller)
 }
