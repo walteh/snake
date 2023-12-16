@@ -3,7 +3,6 @@ package snake
 import (
 	"reflect"
 
-	"github.com/go-faster/errors"
 	"github.com/walteh/terrors"
 )
 
@@ -98,7 +97,7 @@ func mustGetResolverForRaw(inter any, args ...any) Resolver {
 	for _, arg := range args {
 		argptr := reflect.TypeOf(arg).Elem()
 		if yes, ok := resvf[argptr.String()]; !ok || !yes {
-			panic(errors.Errorf("%q is not a resolver for %q", reflect.TypeOf(inter).String(), argptr.String()))
+			panic(terrors.Errorf("%q is not a resolver for %q", reflect.TypeOf(inter).String(), argptr.String()))
 		}
 	}
 

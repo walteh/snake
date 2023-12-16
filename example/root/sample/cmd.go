@@ -2,6 +2,7 @@ package sample
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/spf13/cobra"
@@ -69,7 +70,7 @@ func (me *Handler) Run(
 	read io.Reader,
 	write io.Writer,
 	en resolvers.SampleEnum,
-	br io.ByteReader, bw io.ByteWriter, bs io.ByteScanner,
+	br io.ByteReader, bw io.ByteWriter, bs io.ByteScanner, out snake.Stdout,
 ) (snake.Output, error) {
 	me.args.Context = ctx
 	me.args.Read = read
@@ -78,6 +79,8 @@ func (me *Handler) Run(
 	me.args.Br = br
 	me.args.Bw = bw
 	me.args.Bs = bs
+
+	fmt.Fprintf(out, "value: %s\n", me.Value)
 
 	me.curr += 1
 	return &snake.TableOutput{

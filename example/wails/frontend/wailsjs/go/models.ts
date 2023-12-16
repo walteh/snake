@@ -59,6 +59,18 @@ export namespace swails {
 	        this.command = source["command"];
 	    }
 	}
+	export class WailsWriter {
+	    name: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new WailsWriter(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	    }
+	}
 
 }
 

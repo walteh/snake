@@ -5,7 +5,7 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/go-faster/errors"
+	"github.com/walteh/terrors"
 )
 
 type NewSnakeOpts struct {
@@ -163,7 +163,7 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 
 		deps, err := DependanciesOf(name, snk.Resolve)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to find dependancies of %q", name)
+			return nil, terrors.Wrapf(err, "failed to find dependancies of %q", name)
 		}
 
 		for _, dep := range deps {

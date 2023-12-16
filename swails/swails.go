@@ -10,13 +10,12 @@ var (
 	_ snake.SnakeImplementationTyped[SWails] = &WailsSnake{}
 )
 
-type WailsEmitter func(ctx context.Context, eventName string, optionalData ...interface{})
-
 type WailsSnake struct {
-	snake   snake.Snake
-	binder  *snake.Binder
-	inputs  map[string]map[string]snake.Input
-	emitter WailsEmitter
+	snake            snake.Snake
+	binder           *snake.Binder
+	inputs           map[string]map[string]snake.Input
+	emitter          WailsEmitter
+	lifecycleContext context.Context
 }
 
 type SWails interface {
@@ -97,6 +96,10 @@ func NewWailsSnake(ctx context.Context, emitter WailsEmitter) *WailsSnake {
 	}
 
 	return me
+}
+
+func (me *WailsSnake) SetLifecycleContext(ctx context.Context) {
+	me.lifecycleContext = ctx
 }
 
 func ExecuteHandlingError(ctx context.Context, cmd *WailsSnake) {

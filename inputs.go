@@ -6,7 +6,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/go-faster/errors"
 	"github.com/walteh/terrors"
 )
 
@@ -304,6 +303,6 @@ func (me *simpleValueInput[T]) Default() T {
 		}
 		return any(durt).(T)
 	default:
-		panic(errors.Errorf("unknown type %T", me.val))
+		panic(terrors.Errorf("unknown type %T", me.val))
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/walteh/snake/scobra"
 	"github.com/walteh/terrors"
@@ -437,7 +438,9 @@ func ResolveBindingsFromProvider(ctx context.Context, rf reflect.Value) (context
 
 			// check if the context resolver returned a child context
 			if _, ok := crb.Value(contextResolverKey).(bool); !ok {
-				return ctx, terrors.Errorf("resolver for type %q returned a context that is not a child context", pt)
+				return ctx, terrors.Errorf("resolver for type %q returned a context that is not a child context", pt).Event(func(e *zerolog.Event) *zerolog.Event {
+					return e.Str("type", pt.String())
+				})
 			}
 
 			// this is the context resolver binding, we need to process it

@@ -4,7 +4,6 @@ go 1.21.4
 
 require (
 	github.com/fatih/color v1.16.0
-	github.com/go-faster/errors v0.7.0
 	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88
 	github.com/k0kubun/pp/v3 v3.2.0
 	github.com/manifoldco/promptui v0.9.0
@@ -13,13 +12,14 @@ require (
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
-	github.com/walteh/terrors v0.6.0
+	github.com/walteh/terrors v0.8.0
 )
 
 require (
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/go-faster/errors v0.7.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import { EllipsisHorizontalIcon } from "@heroicons/react/20/solid";
 import { swails } from "../wailsjs/go/models";
-import { InputsFor, Run } from "../wailsjs/go/swails/WailsSnake";
+import { InputsFor, Run, RunWithWriter } from "../wailsjs/go/swails/WailsSnake";
 import Input from "./Input";
 import Modal from "./Modal";
 
@@ -20,14 +20,26 @@ export function Card({ command }: { command: swails.WailsCommand }) {
 		});
 	}, [command]);
 
-	const [resultText, setResultText] = useState<swails.WailsHTMLResponse>();
+	const [writer, setWriter] = useState<swails.WailsWriter>();
 
-	function execute(cmd: swails.WailsCommand) {
-		Run(cmd).then((result) => {
-			console.log(result);
-			setResultText(result);
-		});
-	}
+	const caller = useCallback(function execute(cmd: swails.WailsCommand) {
+		const random = Math.random().toString(36).substring(7);
+		const wrt = new swails.WailsWriter();
+		wrt.name = random;
+		setWriter(wrt);
+		console.log("writer: ", wrt);
+		RunWithWriter(random, cmd)
+			.then((result) => {
+				// console.log(result);
+				// setWriter(result);
+
+				console.log("result: ", result);
+			})
+			.catch((err) => {
+				console.log("AHHHHH");
+				console.error(err);
+			});
+	}, []);
 
 	return (
 		<li
@@ -41,7 +53,7 @@ export function Card({ command }: { command: swails.WailsCommand }) {
 					</div>
 					<button
 						type="button"
-						onClick={() => execute(command)}
+						onClick={() => caller(command)}
 						className="rounded-md bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-600 shadow-sm hover:bg-indigo-100"
 					>
 						execute
@@ -64,7 +76,7 @@ export function Card({ command }: { command: swails.WailsCommand }) {
 				))}
 			</dl>
 
-			<Modal result={resultText} />
+			<Modal result={writer} />
 		</li>
 	);
 }

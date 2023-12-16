@@ -7,13 +7,10 @@ import (
 	"io"
 	"os"
 	"reflect"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/k0kubun/pp/v3"
 	"github.com/rs/zerolog"
-	"github.com/walteh/terrors"
 )
 
 func Ctx(ctx context.Context) *zerolog.Logger {
@@ -60,7 +57,7 @@ func NewVerboseConsoleLogger(out io.Writer) *zerolog.Logger {
 
 		switch t := i.(type) {
 		case error:
-			return terrors.FormatErrorCaller(t)
+			return t.Error()
 		case []byte:
 			var g any
 			err := json.Unmarshal(t, &g)
@@ -101,23 +98,23 @@ func NewVerboseConsoleLogger(out io.Writer) *zerolog.Logger {
 		return time.Now().Format("[15:04:05.000000]")
 	}
 
-	consoleOutput.FormatCaller = func(i any) string {
-		if i == nil {
-			return ""
-		}
-		s := fmt.Sprintf("%s", i)
-		tot := strings.Split(s, ":")
-		if len(tot) != 2 {
-			return terrors.FormatCaller(tot[0], 0)
-		}
+	// consoleOutput.FormatCaller = func(i any) string {
+	// 	if i == nil {
+	// 		return ""
+	// 	}
+	// 	s := fmt.Sprintf("%s", i)
+	// 	tot := strings.Split(s, ":")
+	// 	if len(tot) != 2 {
+	// 		return terrors.FormatCaller(tot[0], 0)
+	// 	}
 
-		in, err := strconv.Atoi(tot[1])
-		if err != nil {
-			return terrors.FormatCaller(tot[0], 0)
-		}
+	// 	in, err := strconv.Atoi(tot[1])
+	// 	if err != nil {
+	// 		return terrors.FormatCaller(tot[0], 0)
+	// 	}
 
-		return terrors.FormatCaller(tot[0], in)
-	}
+	// 	return terrors.FormatCaller(tot[0], in)
+	// }
 
 	consoleOutput.PartsOrder = []string{"level", "time", "caller", "message"}
 

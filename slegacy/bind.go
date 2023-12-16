@@ -4,6 +4,7 @@ import (
 	"context"
 	"reflect"
 
+	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/walteh/terrors"
@@ -170,7 +171,9 @@ func callRunMethod(cmd *cobra.Command, f reflect.Value, t reflect.Type) error {
 
 			bv, ok := b[pt.String()]
 			if !ok {
-				return terrors.Wrapf(ErrMissingBinding, "no snake binding for type %q", pt)
+				return terrors.Wrapf(ErrMissingBinding, "no snake binding for type %q", pt).Event(func(e *zerolog.Event) *zerolog.Event {
+					return e.Str("type", pt.String())
+				})
 			}
 
 			v, err := bv()

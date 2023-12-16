@@ -50,6 +50,14 @@ export function Run(arg1) {
   return window['go']['swails']['WailsSnake']['Run'](arg1);
 }
 
+export function RunWithWriter(arg1, arg2) {
+  return window['go']['swails']['WailsSnake']['RunWithWriter'](arg1, arg2);
+}
+
+export function SetLifecycleContext(arg1) {
+  return window['go']['swails']['WailsSnake']['SetLifecycleContext'](arg1);
+}
+
 export function UpdateInput(arg1) {
   return window['go']['swails']['WailsSnake']['UpdateInput'](arg1);
 }

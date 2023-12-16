@@ -3,12 +3,12 @@ import { Fragment, useState } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { swails } from "../wailsjs/go/models";
 import clsx from "clsx";
-import ReactJson from "@microlink/react-json-view";
+import XTermWindow from "./XTerm";
 
 export default function Modal({
 	result,
 }: {
-	result: swails.WailsHTMLResponse | undefined;
+	result: swails.WailsWriter | undefined;
 }) {
 	const [open, setOpen] = useState(true);
 
@@ -95,7 +95,7 @@ export default function Modal({
 							>
 								<div>
 									<div className={clsx()}>
-										{result && <Tabs arg={result} />}
+										{result && <Tabs writer={result} />}
 									</div>
 								</div>
 							</Dialog.Panel>
@@ -154,43 +154,52 @@ function Table({ data }: { data: string[][] }) {
 	);
 }
 
-const Tabs = ({ arg }: { arg: swails.WailsHTMLResponse }) => {
+const Tabs = ({
+	// arg,
+	writer,
+}: {
+	// arg: swails.WailsHTMLResponse;
+	writer: swails.WailsWriter;
+}) => {
 	const [current, setCurrent] = useState(0);
 
 	const tabs = useMemo(() => {
 		let tabs: { name: string; content: JSX.Element }[] = [];
+		tabs.push({
+			name: "OUTPUT",
+			content: <XTermWindow writer={writer} />,
+		});
+		// if (arg.json) {
+		// 	tabs.push({
+		// 		name: "JSON",
+		// 		content: (
+		// 			<ReactJson
+		// 				src={arg.json}
+		// 				theme={"google"}
+		// 				style={{
+		// 					padding: "1rem",
+		// 					borderRadius: "0.5rem",
+		// 				}}
+		// 			/>
+		// 		),
+		// 	});
+		// }
 
-		if (arg.json) {
-			tabs.push({
-				name: "JSON",
-				content: (
-					<ReactJson
-						src={arg.json}
-						theme={"google"}
-						style={{
-							padding: "1rem",
-							borderRadius: "0.5rem",
-						}}
-					/>
-				),
-			});
-		}
+		// if (arg.table) {
+		// 	tabs.push({ name: "Table", content: <Table data={arg.table} /> });
+		// }
 
-		if (arg.table) {
-			tabs.push({ name: "Table", content: <Table data={arg.table} /> });
-		}
-
-		if (arg.text) {
-			tabs.push({
-				name: "Text",
-				content: (
-					<code className="whitespace-pre-wrap">{arg.text}</code>
-				),
-			});
-		}
+		// if (arg.text) {
+		// 	tabs.push({
+		// 		name: "Text",
+		// 		content: (
+		// 			<code className="whitespace-pre-wrap">{arg.text}</code>
+		// 		),
+		// 	});
+		// }
 
 		return tabs;
-	}, [arg]);
+	}, [writer]);
 
 	return (
 		<div>
@@ -241,7 +250,8 @@ const Tabs = ({ arg }: { arg: swails.WailsHTMLResponse }) => {
 					"overflow-y-auto"
 				)}
 			>
-				{tabs[current].content}
+				{/* {tabs[current].content} */}
+				<XTermWindow writer={writer} />
 			</div>
 		</div>
 	);

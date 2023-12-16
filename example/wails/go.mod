@@ -1,6 +1,6 @@
 module github.com/walteh/snake/example/wails
 
-go 1.21.4
+go 1.21.5
 
 replace github.com/walteh/snake => ../..
 
@@ -13,7 +13,6 @@ require (
 	github.com/bep/debounce v1.2.1 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/fatih/color v1.16.0 // indirect
-	github.com/go-faster/errors v0.7.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -42,10 +41,10 @@ require (
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/wailsapp/go-webview2 v1.0.1 // indirect
 	github.com/wailsapp/mimetype v1.4.1 // indirect
-	github.com/walteh/terrors v0.3.0 // indirect
-	golang.org/x/crypto v0.14.0 // indirect
+	github.com/walteh/terrors v0.8.0 // indirect
+	golang.org/x/crypto v0.16.0 // indirect
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
-	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 )
