@@ -27,7 +27,7 @@ type middlewareResolver struct {
 
 func (*middlewareResolver) IsResolver() {}
 
-func NewMiddlewareResolver(mw Middleware) Resolver {
+func NewMiddlewareResolver(mw Middleware) UntypedResolver {
 	return &middlewareResolver{
 		mw: mw,
 	}

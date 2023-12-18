@@ -29,8 +29,8 @@ func NewCommandResolver(s SWails) snake.TypedResolver[SWails] {
 	return snake.MustGetTypedResolver(s)
 }
 
-func (me *WailsSnake) ManagedResolvers(_ context.Context) []snake.Resolver {
-	return []snake.Resolver{}
+func (me *WailsSnake) ManagedResolvers(_ context.Context) []snake.UntypedResolver {
+	return []snake.UntypedResolver{}
 }
 
 func (me *WailsSnake) Decorate(ctx context.Context, self snake.TypedResolver[SWails], snk snake.Snake, inputs []snake.Input, mw []snake.Middleware) error {
@@ -83,7 +83,7 @@ func (me *WailsSnake) ResolveEnum(typ string, opts []string) (string, error) {
 	return "", nil
 }
 
-func (me *WailsSnake) ProvideContextResolver() snake.Resolver {
+func (me *WailsSnake) ProvideContextResolver() snake.UntypedResolver {
 	return snake.MustGetResolverFor[context.Context](&ContextResolver{})
 }
 

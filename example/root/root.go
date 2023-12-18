@@ -2,6 +2,7 @@ package root
 
 import (
 	"context"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/walteh/snake/example/root/sample"
 	"github.com/walteh/snake/scobra"
 	"github.com/walteh/snake/smiddleware"
+	"github.com/walteh/terrors"
 )
 
 func NewCommand(ctx context.Context) (snake.Snake, *scobra.CobraSnake, *sample.Handler, error) {
@@ -23,21 +25,32 @@ func NewCommand(ctx context.Context) (snake.Snake, *scobra.CobraSnake, *sample.H
 
 	handler := &sample.Handler{}
 
-	commands := []snake.Resolver{
-		scobra.NewTypedResolver(&cobra.Command{}).
-			WithRunner(basic.Runner).
-			WithName("basicd").
-			WithDescription("the basic command"),
+	sobps := snake.Opts(
+		snake.Commands(
+			snake.Command(basic.Runner, impl, &cobra.Command{}),
+			snake.Command(handler.Runner, impl, handler.Command()).WithMiddleware(smiddleware.NewIntervalMiddlewareWithDefault(time.Second)),
+		),
+		snake.Resolvers(
+			resolvers.CustomRunner(),
+			resolvers.TripleRunner(),
+			resolvers.DoubleRunner(),
+			resolvers.DependantRunner(),
+			snake.NewEnumOptionWithResolver(
+				"sample-enum", "the sample of an enum",
+				resolvers.SampleEnumX,
+				resolvers.SampleEnumY,
+				resolvers.SampleEnumZ,
+			),
+		))
 
-		scobra.NewCommandResolver(handler).WithMiddleware(smiddleware.NewIntervalMiddleware()),
+	sobps.OverrideEnumResolver = func(name string, values []string) (string, error) {
+		if name == "resolvers.SampleEnum" {
+			return "y", nil
+		}
+		return "", terrors.Errorf("unknown enum %s", name)
 	}
 
-	snk, err := snake.NewSnakeWithOpts(ctx, impl, &snake.NewSnakeOpts{
-		Resolvers: append(commands, resolvers.LoadResolvers()...),
-		OverrideEnumResolver: func(typ string, opts []string) (string, error) {
-			return "y", nil
-		},
-	})
+	snk, err := snake.NewSnakeWithOpts(ctx, impl, sobps)
 	if err != nil {
 		return nil, nil, nil, err
 	}

@@ -14,24 +14,19 @@ import (
 )
 
 var (
-	_ snake.SnakeImplementationTyped[SCobra] = &CobraSnake{}
+	_ snake.SnakeImplementationTyped[*cobra.Command] = &CobraSnake{}
 )
 
 type CobraSnake struct {
 	RootCommand *cobra.Command
 }
 
-type SCobra interface {
-	// snake.NamedMethod
-	Command() *cobra.Command
-}
-
-func NewCommandResolver(s SCobra) snake.TypedResolver[SCobra] {
+func NewCommandResolver(s *cobra.Command) snake.TypedResolver[*cobra.Command] {
 	return snake.MustGetTypedResolver(s)
 }
 
-func (me *CobraSnake) ManagedResolvers(_ context.Context) []snake.Resolver {
-	return []snake.Resolver{
+func (me *CobraSnake) ManagedResolvers(_ context.Context) []snake.UntypedResolver {
+	return []snake.UntypedResolver{
 		snake.NewNoopMethod[*cobra.Command](),
 		snake.NewNoopMethod[[]string](),
 	}
@@ -59,9 +54,9 @@ func applyInputToFlags(input snake.Input, flgs *pflag.FlagSet) error {
 	return nil
 }
 
-func (me *CobraSnake) Decorate(ctx context.Context, self snake.TypedResolver[SCobra], snk snake.Snake, inputs []snake.Input, mw []snake.Middleware) error {
+func (me *CobraSnake) Decorate(ctx context.Context, self snake.TypedResolver[*cobra.Command], snk snake.Snake, inputs []snake.Input, mw []snake.Middleware) error {
 
-	cmd := self.TypedRef().Command()
+	cmd := self.TypedRef()
 
 	if cmd.Use == "" {
 		cmd.Use = self.Name()
@@ -184,7 +179,7 @@ func (me *CobraSnake) ResolveEnum(typ string, opts []string) (string, error) {
 	return result, nil
 }
 
-func (me *CobraSnake) ProvideContextResolver() snake.Resolver {
+func (me *CobraSnake) ProvideContextResolver() snake.UntypedResolver {
 	return snake.MustGetResolverFor[context.Context](&ContextResolver{})
 }
 
@@ -234,9 +229,6 @@ func (me *inlineResolver) Run() error {
 	panic("not implemented")
 }
 
-func NewTypedResolver(root *cobra.Command) snake.TypedResolver[SCobra] {
-	x := &inlineResolver{
-		command: root,
-	}
-	return snake.MustGetTypedResolver[SCobra](x)
+func (me *CobraSnake) NewCommand(f snake.Runner, ref *cobra.Command) snake.TypedResolver[*cobra.Command] {
+	return snake.NewInlineRunner(ref, f)
 }

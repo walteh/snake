@@ -13,7 +13,7 @@ type Input interface {
 	Name() string
 	Shared() bool
 	Ptr() any
-	Parent() Resolver
+	Parent() UntypedResolver
 	SetValue(any) error
 	Type() InputType
 }
@@ -22,7 +22,7 @@ type InputWithOptions interface {
 	Options() []string
 }
 
-func MethodName(m Resolver) string {
+func MethodName(m UntypedResolver) string {
 	return reflect.ValueOf(m.Ref()).Type().String()
 }
 
@@ -64,7 +64,7 @@ func DependancyInputs(str string, m FMap, enum ...Enum) ([]Input, error) {
 	return resp, nil
 }
 
-func InputsFor(m Resolver, enum ...Enum) ([]Input, error) {
+func InputsFor(m UntypedResolver, enum ...Enum) ([]Input, error) {
 	resp := make([]Input, 0)
 	for _, f := range StructFields(m) {
 
@@ -123,7 +123,7 @@ func InputsFor(m Resolver, enum ...Enum) ([]Input, error) {
 
 type genericInput struct {
 	field  reflect.StructField
-	parent Resolver
+	parent UntypedResolver
 }
 
 type simpleValueInput[T any] struct {
@@ -165,7 +165,7 @@ func getEnumOptionsFrom(mytype reflect.Type, enum ...Enum) (Enum, error) {
 
 }
 
-func NewGenericEnumInput(f reflect.StructField, m Resolver, enum ...Enum) (*enumInput, error) {
+func NewGenericEnumInput(f reflect.StructField, m UntypedResolver, enum ...Enum) (*enumInput, error) {
 
 	mytype := FieldByName(m, f.Name).Type()
 
@@ -181,7 +181,7 @@ func NewGenericEnumInput(f reflect.StructField, m Resolver, enum ...Enum) (*enum
 	return EnumAsInput(opts, NewGenericInput(f, m)), nil
 }
 
-func NewSimpleValueInput[T any](f reflect.StructField, m Resolver) *simpleValueInput[T] {
+func NewSimpleValueInput[T any](f reflect.StructField, m UntypedResolver) *simpleValueInput[T] {
 	v := FieldByName(m, f.Name)
 
 	inp := &simpleValueInput[T]{
@@ -192,7 +192,7 @@ func NewSimpleValueInput[T any](f reflect.StructField, m Resolver) *simpleValueI
 	return inp
 }
 
-func NewGenericInput(f reflect.StructField, m Resolver) *genericInput {
+func NewGenericInput(f reflect.StructField, m UntypedResolver) *genericInput {
 	return &genericInput{
 		field:  f,
 		parent: m,
@@ -219,7 +219,7 @@ func (me *genericInput) Shared() bool {
 	return MenthodIsShared(me.parent)
 }
 
-func (me *genericInput) Parent() Resolver {
+func (me *genericInput) Parent() UntypedResolver {
 	return me.parent
 }
 

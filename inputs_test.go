@@ -80,7 +80,7 @@ func TestDependancyInputs(t *testing.T) {
 	r3 := snake.NewEnumOptionWithResolver("best-enum-ever", "the description", MockEnumA, MockEnumB, MockEnumC)
 	vr3 := snake.MustGetTypedResolver(r3)
 
-	m := func(str string) snake.Resolver {
+	m := func(str string) snake.UntypedResolver {
 		switch str {
 		case "bool":
 			return vr1d

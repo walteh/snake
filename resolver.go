@@ -7,23 +7,24 @@ import (
 )
 
 var (
-	_ Resolver              = (*simpleResolver[Method])(nil)
+	_ UntypedResolver       = (*simpleResolver[Method])(nil)
 	_ TypedResolver[Method] = (*simpleResolver[Method])(nil)
 	_ MiddlewareProvider    = (*simpleResolver[Method])(nil)
 )
 
 type TypedResolver[M Method] interface {
-	Resolver
+	UntypedResolver
 	TypedRef() M
 	WithRunner(func() Runner) TypedResolver[M]
 	WithMiddleware(...Middleware) TypedResolver[M]
 	WithName(string) TypedResolver[M]
 	WithDescription(string) TypedResolver[M]
+	WithTypedRef(M) TypedResolver[M]
 	Name() string
 	Description() string
 }
 
-type Resolver interface {
+type UntypedResolver interface {
 	RunFunc() reflect.Value
 	Ref() Method
 	IsResolver()
@@ -84,6 +85,11 @@ func (me *simpleResolver[M]) WithMiddleware(mw ...Middleware) TypedResolver[M] {
 	return me
 }
 
+func (me *simpleResolver[M]) WithTypedRef(m M) TypedResolver[M] {
+	me.typedRef = m
+	return me
+}
+
 func (me *simpleResolver[M]) WithName(name string) TypedResolver[M] {
 	me.name = name
 	return me
@@ -109,19 +115,19 @@ func MustGetTypedResolver[M Method](inter M) TypedResolver[M] {
 	return m
 }
 
-func MustGetResolverFor[M any](inter Method) Resolver {
+func MustGetResolverFor[M any](inter Method) UntypedResolver {
 	return mustGetResolverForRaw(inter, (*M)(nil))
 }
 
-func MustGetResolverFor2[M1, M2 any](inter Method) Resolver {
+func MustGetResolverFor2[M1, M2 any](inter Method) UntypedResolver {
 	return mustGetResolverForRaw(inter, (*M1)(nil), (*M2)(nil))
 }
 
-func MustGetResolverFor3[M1, M2, M3 any](inter Method) Resolver {
+func MustGetResolverFor3[M1, M2, M3 any](inter Method) UntypedResolver {
 	return mustGetResolverForRaw(inter, (*M1)(nil), (*M2)(nil), (*M3)(nil))
 }
 
-func mustGetResolverForRaw(inter any, args ...any) Resolver {
+func mustGetResolverForRaw(inter any, args ...any) UntypedResolver {
 	run, err := getTypedResolver(inter)
 	if err != nil {
 		panic(err)
@@ -180,7 +186,7 @@ func getTypedResolver[M Method](inter M) (TypedResolver[M], error) {
 	return sr, nil
 }
 
-func ListOfArgs(m Resolver) []reflect.Type {
+func ListOfArgs(m UntypedResolver) []reflect.Type {
 	var args []reflect.Type
 	typ := m.RunFunc().Type()
 	for i := 0; i < typ.NumIn(); i++ {
@@ -190,7 +196,7 @@ func ListOfArgs(m Resolver) []reflect.Type {
 	return args
 }
 
-func ListOfReturns(m Resolver) []reflect.Type {
+func ListOfReturns(m UntypedResolver) []reflect.Type {
 	var args []reflect.Type
 	typ := m.RunFunc().Type()
 	for i := 0; i < typ.NumOut(); i++ {
@@ -199,7 +205,7 @@ func ListOfReturns(m Resolver) []reflect.Type {
 	return args
 }
 
-func MenthodIsShared(run Resolver) bool {
+func MenthodIsShared(run UntypedResolver) bool {
 	rets := ListOfReturns(run)
 	// right now this logic relys on the fact that commands only return one value (the error)
 	// and shared methods return two or more (the error and the values)
@@ -212,7 +218,7 @@ func MenthodIsShared(run Resolver) bool {
 	}
 }
 
-func IsResolverFor(m Resolver) map[string]bool {
+func IsResolverFor(m UntypedResolver) map[string]bool {
 	resp := make(map[string]bool, 0)
 	for _, f := range ListOfReturns(m) {
 		if f.String() == "error" {
@@ -223,15 +229,15 @@ func IsResolverFor(m Resolver) map[string]bool {
 	return resp
 }
 
-func FieldByName(me Resolver, name string) reflect.Value {
+func FieldByName(me UntypedResolver, name string) reflect.Value {
 	return reflect.Indirect(reflect.ValueOf(me.Ref()).Elem()).FieldByName(name)
 }
 
-func CallMethod(me Resolver, args []reflect.Value) []reflect.Value {
+func CallMethod(me UntypedResolver, args []reflect.Value) []reflect.Value {
 	return me.RunFunc().Call(args)
 }
 
-func StructFields(me Resolver) []reflect.StructField {
+func StructFields(me UntypedResolver) []reflect.StructField {
 	typ := reflect.TypeOf(me.Ref())
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()

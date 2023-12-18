@@ -2,70 +2,70 @@
 package snake
 
 type genRunCommand_In00_Out01 interface { NamedMethod; Run () error }
-func GenRunCommand_In00_Out01[L genRunCommand_In00_Out01](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In00_Out01[L genRunCommand_In00_Out01](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In00_Out02 interface { NamedMethod; Run () (Output, error) }
-func GenRunCommand_In00_Out02[L genRunCommand_In00_Out02](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In00_Out02[L genRunCommand_In00_Out02](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In01_Out01[X1 any] interface { NamedMethod; Run (X1) error }
-func GenRunCommand_In01_Out01[X1 any, L genRunCommand_In01_Out01[X1]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In01_Out01[X1 any, L genRunCommand_In01_Out01[X1]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In01_Out02[X1 any] interface { NamedMethod; Run (X1) (Output, error) }
-func GenRunCommand_In01_Out02[X1 any, L genRunCommand_In01_Out02[X1]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In01_Out02[X1 any, L genRunCommand_In01_Out02[X1]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In02_Out01[X1 any, X2 any] interface { NamedMethod; Run (X1, X2) error }
-func GenRunCommand_In02_Out01[X1 any, X2 any, L genRunCommand_In02_Out01[X1, X2]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In02_Out01[X1 any, X2 any, L genRunCommand_In02_Out01[X1, X2]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In02_Out02[X1 any, X2 any] interface { NamedMethod; Run (X1, X2) (Output, error) }
-func GenRunCommand_In02_Out02[X1 any, X2 any, L genRunCommand_In02_Out02[X1, X2]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In02_Out02[X1 any, X2 any, L genRunCommand_In02_Out02[X1, X2]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In03_Out01[X1 any, X2 any, X3 any] interface { NamedMethod; Run (X1, X2, X3) error }
-func GenRunCommand_In03_Out01[X1 any, X2 any, X3 any, L genRunCommand_In03_Out01[X1, X2, X3]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In03_Out01[X1 any, X2 any, X3 any, L genRunCommand_In03_Out01[X1, X2, X3]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In03_Out02[X1 any, X2 any, X3 any] interface { NamedMethod; Run (X1, X2, X3) (Output, error) }
-func GenRunCommand_In03_Out02[X1 any, X2 any, X3 any, L genRunCommand_In03_Out02[X1, X2, X3]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In03_Out02[X1 any, X2 any, X3 any, L genRunCommand_In03_Out02[X1, X2, X3]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In04_Out01[X1 any, X2 any, X3 any, X4 any] interface { NamedMethod; Run (X1, X2, X3, X4) error }
-func GenRunCommand_In04_Out01[X1 any, X2 any, X3 any, X4 any, L genRunCommand_In04_Out01[X1, X2, X3, X4]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In04_Out01[X1 any, X2 any, X3 any, X4 any, L genRunCommand_In04_Out01[X1, X2, X3, X4]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In04_Out02[X1 any, X2 any, X3 any, X4 any] interface { NamedMethod; Run (X1, X2, X3, X4) (Output, error) }
-func GenRunCommand_In04_Out02[X1 any, X2 any, X3 any, X4 any, L genRunCommand_In04_Out02[X1, X2, X3, X4]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In04_Out02[X1 any, X2 any, X3 any, X4 any, L genRunCommand_In04_Out02[X1, X2, X3, X4]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In05_Out01[X1 any, X2 any, X3 any, X4 any, X5 any] interface { NamedMethod; Run (X1, X2, X3, X4, X5) error }
-func GenRunCommand_In05_Out01[X1 any, X2 any, X3 any, X4 any, X5 any, L genRunCommand_In05_Out01[X1, X2, X3, X4, X5]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In05_Out01[X1 any, X2 any, X3 any, X4 any, X5 any, L genRunCommand_In05_Out01[X1, X2, X3, X4, X5]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In05_Out02[X1 any, X2 any, X3 any, X4 any, X5 any] interface { NamedMethod; Run (X1, X2, X3, X4, X5) (Output, error) }
-func GenRunCommand_In05_Out02[X1 any, X2 any, X3 any, X4 any, X5 any, L genRunCommand_In05_Out02[X1, X2, X3, X4, X5]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In05_Out02[X1 any, X2 any, X3 any, X4 any, X5 any, L genRunCommand_In05_Out02[X1, X2, X3, X4, X5]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In06_Out01[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any] interface { NamedMethod; Run (X1, X2, X3, X4, X5, X6) error }
-func GenRunCommand_In06_Out01[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, L genRunCommand_In06_Out01[X1, X2, X3, X4, X5, X6]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In06_Out01[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, L genRunCommand_In06_Out01[X1, X2, X3, X4, X5, X6]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In06_Out02[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any] interface { NamedMethod; Run (X1, X2, X3, X4, X5, X6) (Output, error) }
-func GenRunCommand_In06_Out02[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, L genRunCommand_In06_Out02[X1, X2, X3, X4, X5, X6]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In06_Out02[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, L genRunCommand_In06_Out02[X1, X2, X3, X4, X5, X6]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In07_Out01[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any] interface { NamedMethod; Run (X1, X2, X3, X4, X5, X6, X7) error }
-func GenRunCommand_In07_Out01[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, L genRunCommand_In07_Out01[X1, X2, X3, X4, X5, X6, X7]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In07_Out01[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, L genRunCommand_In07_Out01[X1, X2, X3, X4, X5, X6, X7]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In07_Out02[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any] interface { NamedMethod; Run (X1, X2, X3, X4, X5, X6, X7) (Output, error) }
-func GenRunCommand_In07_Out02[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, L genRunCommand_In07_Out02[X1, X2, X3, X4, X5, X6, X7]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In07_Out02[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, L genRunCommand_In07_Out02[X1, X2, X3, X4, X5, X6, X7]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In08_Out01[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, X8 any] interface { NamedMethod; Run (X1, X2, X3, X4, X5, X6, X7, X8) error }
-func GenRunCommand_In08_Out01[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, X8 any, L genRunCommand_In08_Out01[X1, X2, X3, X4, X5, X6, X7, X8]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In08_Out01[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, X8 any, L genRunCommand_In08_Out01[X1, X2, X3, X4, X5, X6, X7, X8]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In08_Out02[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, X8 any] interface { NamedMethod; Run (X1, X2, X3, X4, X5, X6, X7, X8) (Output, error) }
-func GenRunCommand_In08_Out02[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, X8 any, L genRunCommand_In08_Out02[X1, X2, X3, X4, X5, X6, X7, X8]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In08_Out02[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, X8 any, L genRunCommand_In08_Out02[X1, X2, X3, X4, X5, X6, X7, X8]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In09_Out01[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, X8 any, X9 any] interface { NamedMethod; Run (X1, X2, X3, X4, X5, X6, X7, X8, X9) error }
-func GenRunCommand_In09_Out01[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, X8 any, X9 any, L genRunCommand_In09_Out01[X1, X2, X3, X4, X5, X6, X7, X8, X9]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In09_Out01[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, X8 any, X9 any, L genRunCommand_In09_Out01[X1, X2, X3, X4, X5, X6, X7, X8, X9]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In09_Out02[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, X8 any, X9 any] interface { NamedMethod; Run (X1, X2, X3, X4, X5, X6, X7, X8, X9) (Output, error) }
-func GenRunCommand_In09_Out02[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, X8 any, X9 any, L genRunCommand_In09_Out02[X1, X2, X3, X4, X5, X6, X7, X8, X9]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In09_Out02[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, X8 any, X9 any, L genRunCommand_In09_Out02[X1, X2, X3, X4, X5, X6, X7, X8, X9]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In10_Out01[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, X8 any, X9 any, X10 any] interface { NamedMethod; Run (X1, X2, X3, X4, X5, X6, X7, X8, X9, X10) error }
-func GenRunCommand_In10_Out01[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, X8 any, X9 any, X10 any, L genRunCommand_In10_Out01[X1, X2, X3, X4, X5, X6, X7, X8, X9, X10]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In10_Out01[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, X8 any, X9 any, X10 any, L genRunCommand_In10_Out01[X1, X2, X3, X4, X5, X6, X7, X8, X9, X10]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunCommand_In10_Out02[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, X8 any, X9 any, X10 any] interface { NamedMethod; Run (X1, X2, X3, X4, X5, X6, X7, X8, X9, X10) (Output, error) }
-func GenRunCommand_In10_Out02[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, X8 any, X9 any, X10 any, L genRunCommand_In10_Out02[X1, X2, X3, X4, X5, X6, X7, X8, X9, X10]](l L) TypedRunner[L] { return &rund[L]{l} }
+func GenRunCommand_In10_Out02[X1 any, X2 any, X3 any, X4 any, X5 any, X6 any, X7 any, X8 any, X9 any, X10 any, L genRunCommand_In10_Out02[X1, X2, X3, X4, X5, X6, X7, X8, X9, X10]](l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }
 
 type genRunResolver_In00_Out01 interface { Run () (error) }
 func GenRunResolver_In00_Out01[L genRunResolver_In00_Out01](l L) TypedRunner[L] { return &rund[L]{l} }

@@ -14,7 +14,7 @@ type NamedMethod interface {
 	Description() string
 }
 
-type FMap func(string) Resolver
+type FMap func(string) UntypedResolver
 
 func DependanciesOf(str string, m FMap) ([]string, error) {
 	if ok := m(str); !reflect.ValueOf(ok).IsValid() || reflect.ValueOf(ok).IsNil() {
@@ -47,7 +47,7 @@ func EndOfChainPtr() *reflect.Value {
 	return &v
 }
 
-type ListFunc func(Resolver) []reflect.Type
+type ListFunc func(UntypedResolver) []reflect.Type
 
 func FindBrothers(str string, me FMap, listFunc ListFunc) ([]string, error) {
 	raw, err := findBrothersRaw(str, me, nil, listFunc)

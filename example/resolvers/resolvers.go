@@ -4,8 +4,8 @@ import (
 	"github.com/walteh/snake"
 )
 
-func LoadResolvers() []snake.Resolver {
-	return []snake.Resolver{
+func LoadResolvers() []snake.UntypedResolver {
+	return []snake.UntypedResolver{
 		DependantRunner(),
 		DoubleRunner(),
 		CustomRunner(),

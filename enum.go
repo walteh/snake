@@ -44,13 +44,13 @@ func ResolveEnum[T ~string](name string, options []T, resolver EnumResolverFunc)
 
 // REFRESHABLE RESOLVER
 var (
-	_ Resolver = (*rawEnum[string])(nil)
+	_ UntypedResolver = (*rawEnum[string])(nil)
 )
 
 type EnumResolverFunc func(typeName string, options []string) (string, error)
 
 type Enum interface {
-	Resolver
+	UntypedResolver
 	Input
 	SetCurrent(string) error
 	CurrentPtr() *string
@@ -78,7 +78,7 @@ func (me *rawEnum[T]) Name() string {
 }
 
 // Parent implements Enum.
-func (m *rawEnum[T]) Parent() Resolver {
+func (m *rawEnum[T]) Parent() UntypedResolver {
 	return m
 }
 

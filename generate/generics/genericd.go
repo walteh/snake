@@ -84,7 +84,7 @@ func genCommandRunGen(file *os.File, n int) {
 
 	fmt.Fprintf(file, "func Gen%s", work)
 	xy(file, n, 0, true, true, fmt.Sprintf("gen%s", work))
-	fmt.Fprintf(file, "(l L) TypedRunner[L] { return &rund[L]{l} }\n\n")
+	fmt.Fprintf(file, "(l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }\n\n")
 	// xy(file, n, 0, false, true)
 	// fmt.Fprintf(file, ") bool { return true }\n\n")
 }
@@ -100,7 +100,7 @@ func genCommandRunWithOutputGen(file *os.File, n int) {
 	fmt.Fprintf(file, "func Gen%s", work)
 	xy(file, n, 0, true, true, fmt.Sprintf("gen%s", work))
 	// fmt.Fprintf(file, "(gen%s", work)
-	fmt.Fprintf(file, "(l L) TypedRunner[L] { return &rund[L]{l} }\n\n")
+	fmt.Fprintf(file, "(l L) TypedNamedRunner[L] { return &namedrund[L]{&rund[L]{l}} }\n\n")
 
 	// xy(file, n, 0, false, true)
 	// fmt.Fprintf(file, ") bool { return true }\n\n")
