@@ -4,12 +4,16 @@
 
 Snake is a Go library designed to help build tools faster. It combines the high-level binding logic of the Kong CLI library with the Cobra CLI library, providing a powerful and efficient way to create command-line interfaces.
 
+It is designed to be built on top of existing frameworks. Right now, it only supports Cobra.
+
+From a Cobra perspective, think of it like this: Cobra is a library that helps you build a CLI. Snake is a library that helps you manage interdependencies between commands to make it easier to build a CLI.
+
 ## Installation
 
 To install the Snake library, use the `go get` command:
 
 ```bash
-go get github.com/yourusername/snake
+go get github.com/walteh/snake
 ```
 
 ## Building Resolvers
@@ -69,7 +73,6 @@ func (me *Handler) Run(dat custom.CustomInterface) (snake.Output, error) {
 ## Building a CLI
 
 ```go
-
 package main
 
 import (
@@ -98,6 +101,7 @@ func main() {
     scobra.ExecuteHandlingError(ctx, scmd)
 
 }
+
 func NewCommand(ctx context.Context) (*cobra.Command, *scobra.CobraSnake, error) {
 
 	cmd := &cobra.Command{
@@ -106,12 +110,16 @@ func NewCommand(ctx context.Context) (*cobra.Command, *scobra.CobraSnake, error)
 
 	impl := scobra.NewCobraSnake(ctx, cmd)
 
-	_, err := snake.NewSnakeWithOpts(ctx, impl, &snake.NewSnakeOpts{
-		Resolvers: []snake.Resolver{ 
-            custom.Runner(),
+	opts := snake.Opts(
+		snake.Commands(
+			snake.Command(basic.Runner, impl, &cobra.Command{}),
+		),
+		snake.Resolvers(
+			snake.Resolver(custom.Runner),
+		),
+	)
 
-		    scobra.NewTypedResolver(&cobra.Command{}).WithRunner(basic.Runner),
-	})
+	_, err := snake.NewSnakeWithOpts(ctx, impl, opts)
 	if err != nil {
 		return err
 	}
