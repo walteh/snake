@@ -8,10 +8,15 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/walteh/snake"
 	"github.com/walteh/snake/example/resolvers"
-	"github.com/walteh/snake/scobra"
 )
 
-var _ scobra.SCobra = (*Handler)(nil)
+func (me *Handler) Runner() snake.TypedRunner[*Handler] {
+	return snake.GenRunCommand_In08_Out02(me)
+}
+
+func (me *Handler) TypedRef() *cobra.Command {
+	return me.Command()
+}
 
 type Handler struct {
 	Value string `default:"default"`
@@ -30,14 +35,6 @@ type args struct {
 	Br      io.ByteReader
 	Bw      io.ByteWriter
 	Bs      io.ByteScanner
-}
-
-func (*Handler) Image() string {
-	return "https://tailwindui.com/img/logos/48x48/savvycal.svg"
-}
-
-func (*Handler) Emoji() string {
-	return "🤠"
 }
 
 func (me *Handler) Args() *args {
@@ -81,6 +78,8 @@ func (me *Handler) Run(
 	me.args.Bs = bs
 
 	fmt.Fprintf(out, "value: %s\n", me.Value)
+
+	fmt.Println("cool: ", me.Cool)
 
 	me.curr += 1
 	return &snake.TableOutput{

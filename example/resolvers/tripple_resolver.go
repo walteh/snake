@@ -3,9 +3,15 @@ package resolvers
 import (
 	"io"
 	"strings"
+
+	"github.com/walteh/snake"
 )
 
 // var _ scobra.Flagged = (*ContextResolver)(nil)
+
+func TripleRunner() snake.Runner {
+	return snake.GenRunResolver_In00_Out04(&TripleResolver{})
+}
 
 type TripleResolver struct {
 }

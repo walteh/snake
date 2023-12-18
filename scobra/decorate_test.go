@@ -54,10 +54,10 @@ var templateTestHeadings = []templateTest{
 }
 
 var templateTests = []templateTest{
-	{`{{rpad .Name .NamePadding}}`, `{{rpad (CommandStyle .Name) (sum .NamePadding 12)}}`},
-	{`{{ rpad .Name .NamePadding }}`, `{{rpad (CommandStyle .Name) (sum .NamePadding 12)}}`},
-	{`{{rpad .CommandPath .CommandPathPadding}}`, `{{rpad (CommandStyle .CommandPath) (sum .CommandPathPadding 12)}}`},
-	{`{{   rpad .CommandPath .CommandPathPadding   }}`, `{{rpad (CommandStyle .CommandPath) (sum .CommandPathPadding 12)}}`},
+	{`{{rpad .Name .NamePadding}}`, `{{rpad (CommandStyle .Name) (sum .NamePadding 20)}}`},
+	{`{{ rpad .Name .NamePadding }}`, `{{rpad (CommandStyle .Name) (sum .NamePadding 20)}}`},
+	{`{{rpad .CommandPath .CommandPathPadding}}`, `{{rpad (CommandStyle .CommandPath) (sum .CommandPathPadding 20)}}`},
+	{`{{   rpad .CommandPath .CommandPathPadding   }}`, `{{rpad (CommandStyle .CommandPath) (sum .CommandPathPadding 20)}}`},
 	{`{{range .Commands}}{{.Short}}`, `{{range .Commands}}{{CmdShortStyle .Short}}`},
 	{`{{range .Commands}}{{	.Short  }}`, `{{range .Commands}}{{CmdShortStyle .Short}}`},
 	{`{{.CommandPath}}`, `{{ExecStyle .CommandPath}}`},

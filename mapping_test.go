@@ -9,7 +9,7 @@ import (
 	"github.com/walteh/snake"
 )
 
-func NewMockIsRunnable(fn any) snake.Resolver {
+func NewMockIsRunnable(fn any) snake.UntypedResolver {
 	return &MockIsRunnable{
 		fn: reflect.ValueOf(fn),
 	}
@@ -38,7 +38,7 @@ func (m MockIsRunnable) HandleResponse(x []reflect.Value) ([]*reflect.Value, err
 }
 
 func TestFindBrothers(t *testing.T) {
-	fmap := map[string]snake.Resolver{
+	fmap := map[string]snake.UntypedResolver{
 		"int":                       NewMockIsRunnable(func() {}),
 		"uint64":                    NewMockIsRunnable(func(int) {}),
 		"string":                    NewMockIsRunnable(func(uint64) {}),
@@ -61,7 +61,7 @@ func TestFindBrothers(t *testing.T) {
 
 	for _, tt := range tableTests {
 		t.Run(tt.str, func(t *testing.T) {
-			got, err := snake.FindBrothers(tt.str, func(s string) snake.Resolver {
+			got, err := snake.FindBrothers(tt.str, func(s string) snake.UntypedResolver {
 				if r, ok := fmap[s]; ok {
 					return r
 				}
@@ -78,7 +78,7 @@ func TestFindBrothers(t *testing.T) {
 func TestFindArguments(t *testing.T) {
 
 	type args struct {
-		fmap   map[string]snake.Resolver
+		fmap   map[string]snake.UntypedResolver
 		target string
 	}
 
@@ -91,7 +91,7 @@ func TestFindArguments(t *testing.T) {
 			name: "test1",
 			args: args{
 				target: "key1",
-				fmap: map[string]snake.Resolver{
+				fmap: map[string]snake.UntypedResolver{
 					"uint32": &MockIsRunnable{
 						fn: reflect.ValueOf(func() (uint32, error) {
 							return 2, nil
@@ -125,7 +125,7 @@ func TestFindArguments(t *testing.T) {
 
 	for _, tt := range tableTests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := snake.FindArguments(tt.args.target, func(s string) snake.Resolver {
+			got, err := snake.FindArguments(tt.args.target, func(s string) snake.UntypedResolver {
 				if r, ok := tt.args.fmap[s]; ok {
 					return r
 				}

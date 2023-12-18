@@ -8,21 +8,29 @@ import (
 	"github.com/walteh/terrors"
 )
 
-type NewSnakeOpts struct {
-	Resolvers            []Resolver
+type NewSnakeOpts[M any] struct {
+	Commands             []TypedResolver[M]
+	Resolvers            []UntypedResolver
 	OverrideEnumResolver EnumResolverFunc
+}
+
+func Opts[M any](commands []TypedResolver[M], resolvers []UntypedResolver) *NewSnakeOpts[M] {
+	return &NewSnakeOpts[M]{
+		Commands:  commands,
+		Resolvers: resolvers,
+	}
 }
 
 type Snake interface {
 	ResolverNames() []string
-	Resolve(string) Resolver
+	Resolve(string) UntypedResolver
 	Enums() []Enum
-	Resolvers() []Resolver
+	Resolvers() []UntypedResolver
 	DependantsOf(string) []string
 }
 
 type defaultSnake struct {
-	resolvers  map[string]Resolver
+	resolvers  map[string]UntypedResolver
 	dependants map[string][]string
 }
 
@@ -34,30 +42,30 @@ func (me *defaultSnake) ResolverNames() []string {
 	return names
 }
 
-func (me *defaultSnake) Resolve(name string) Resolver {
+func (me *defaultSnake) Resolve(name string) UntypedResolver {
 	return me.resolvers[name]
 }
 
 type SnakeImplementationTyped[X any] interface {
-	Decorate(context.Context, X, Snake, []Input, []Middleware) error
+	Decorate(context.Context, TypedResolver[X], Snake, []Input, []Middleware) error
 	SnakeImplementation
 }
 
 type SnakeImplementation interface {
-	ManagedResolvers(context.Context) []Resolver
+	ManagedResolvers(context.Context) []UntypedResolver
 	OnSnakeInit(context.Context, Snake) error
 	ResolveEnum(string, []string) (string, error)
-	ProvideContextResolver() Resolver
+	ProvideContextResolver() UntypedResolver
 }
 
-func NewSnake[M NamedMethod](ctx context.Context, impl SnakeImplementationTyped[M], res ...Resolver) (Snake, error) {
-	return NewSnakeWithOpts(ctx, impl, &NewSnakeOpts{
+func NewSnake[M NamedMethod](ctx context.Context, impl SnakeImplementationTyped[M], res ...UntypedResolver) (Snake, error) {
+	return NewSnakeWithOpts(ctx, impl, &NewSnakeOpts[M]{
 		Resolvers: res,
 	})
 }
 
-func snakeManagedResolvers() []Resolver {
-	return []Resolver{
+func snakeManagedResolvers() []UntypedResolver {
+	return []UntypedResolver{
 		NewNoopMethod[Chan](),
 		NewNoopMethod[io.Writer](),
 		NewNoopMethod[io.Reader](),
@@ -67,11 +75,11 @@ func snakeManagedResolvers() []Resolver {
 	}
 }
 
-func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementationTyped[M], opts *NewSnakeOpts) (Snake, error) {
+func NewSnakeWithOpts[M Method](ctx context.Context, impl SnakeImplementationTyped[M], opts *NewSnakeOpts[M]) (Snake, error) {
 	var err error
 
 	snk := &defaultSnake{
-		resolvers:  make(map[string]Resolver),
+		resolvers:  make(map[string]UntypedResolver),
 		dependants: make(map[string][]string),
 	}
 
@@ -79,13 +87,13 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 
 	named := make(map[string]TypedResolver[M])
 
-	inputResolvers := make([]Resolver, 0)
+	inputResolvers := make([]UntypedResolver, 0)
 
 	if opts.Resolvers != nil {
 		inputResolvers = append(inputResolvers, opts.Resolvers...)
 	}
 
-	inputResolvers = append(inputResolvers, newSimpleResolver[EnumResolverFunc](impl.ResolveEnum))
+	inputResolvers = append(inputResolvers, NewResolvedResolver[EnumResolverFunc](impl.ResolveEnum))
 
 	con := impl.ProvideContextResolver()
 	if con != nil {
@@ -96,10 +104,14 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 
 	inputResolvers = append(inputResolvers, snakeManagedResolvers()...)
 
+	for _, runner := range opts.Commands {
+		named[runner.Name()] = runner
+	}
+
 	for _, runner := range inputResolvers {
 
 		if nmd, ok := runner.(TypedResolver[M]); ok {
-			named[nmd.TypedRef().Name()] = nmd
+			named[nmd.Name()] = nmd
 			continue
 		}
 
@@ -152,7 +164,7 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 			}
 		}
 
-		err = impl.Decorate(ctx, runner.TypedRef(), snk, inpts, mw)
+		err = impl.Decorate(ctx, runner, snk, inpts, mw)
 		if err != nil {
 			return nil, err
 		}
@@ -201,8 +213,8 @@ func (me *defaultSnake) Enums() []Enum {
 	return enums
 }
 
-func (me *defaultSnake) Resolvers() []Resolver {
-	abc := make([]Resolver, 0)
+func (me *defaultSnake) Resolvers() []UntypedResolver {
+	abc := make([]UntypedResolver, 0)
 	for _, name := range me.resolvers {
 		abc = append(abc, name)
 	}
@@ -211,4 +223,23 @@ func (me *defaultSnake) Resolvers() []Resolver {
 
 func (me *defaultSnake) DependantsOf(name string) []string {
 	return me.dependants[name]
+}
+
+// func (me *rund[X]) WithImplementation(impl SnakeImplementation) Resolver {
+// 	return &rund[X]{
+// }
+
+func Commands[M any](cmds ...TypedResolver[M]) []TypedResolver[M] {
+	return cmds
+}
+
+func Command[I SnakeImplementationTyped[M], M Method, Rnr Runner](runner func() Rnr, impl I, cmd M) TypedResolver[M] {
+	return NewInlineRunner(cmd, runner())
+}
+
+func Resolvers(args ...UntypedResolver) []UntypedResolver {
+	return args
+}
+func Resolver(runner func() Runner) UntypedResolver {
+	return runner()
 }

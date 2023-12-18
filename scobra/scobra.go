@@ -14,25 +14,19 @@ import (
 )
 
 var (
-	_ snake.SnakeImplementationTyped[SCobra] = &CobraSnake{}
+	_ snake.SnakeImplementationTyped[*cobra.Command] = &CobraSnake{}
 )
 
 type CobraSnake struct {
 	RootCommand *cobra.Command
 }
 
-type SCobra interface {
-	Command() *cobra.Command
-	Name() string
-	Description() string
-}
-
-func NewCommandResolver(s SCobra) snake.TypedResolver[SCobra] {
+func NewCommandResolver(s *cobra.Command) snake.TypedResolver[*cobra.Command] {
 	return snake.MustGetTypedResolver(s)
 }
 
-func (me *CobraSnake) ManagedResolvers(_ context.Context) []snake.Resolver {
-	return []snake.Resolver{
+func (me *CobraSnake) ManagedResolvers(_ context.Context) []snake.UntypedResolver {
+	return []snake.UntypedResolver{
 		snake.NewNoopMethod[*cobra.Command](),
 		snake.NewNoopMethod[[]string](),
 	}
@@ -60,9 +54,17 @@ func applyInputToFlags(input snake.Input, flgs *pflag.FlagSet) error {
 	return nil
 }
 
-func (me *CobraSnake) Decorate(ctx context.Context, self SCobra, snk snake.Snake, inputs []snake.Input, mw []snake.Middleware) error {
+func (me *CobraSnake) Decorate(ctx context.Context, self snake.TypedResolver[*cobra.Command], snk snake.Snake, inputs []snake.Input, mw []snake.Middleware) error {
 
-	cmd := self.Command()
+	cmd := self.TypedRef()
+
+	if cmd.Use == "" {
+		cmd.Use = self.Name()
+	}
+
+	if cmd.Short == "" {
+		cmd.Short = self.Description()
+	}
 
 	name := cmd.Name()
 
@@ -177,7 +179,7 @@ func (me *CobraSnake) ResolveEnum(typ string, opts []string) (string, error) {
 	return result, nil
 }
 
-func (me *CobraSnake) ProvideContextResolver() snake.Resolver {
+func (me *CobraSnake) ProvideContextResolver() snake.UntypedResolver {
 	return snake.MustGetResolverFor[context.Context](&ContextResolver{})
 }
 
@@ -190,9 +192,11 @@ func NewCobraSnake(ctx context.Context, root *cobra.Command) *CobraSnake {
 	me := &CobraSnake{root}
 
 	str, err := DecorateTemplate(ctx, root, &DecorateOptions{
-		Headings: color.New(color.FgCyan, color.Bold),
-		ExecName: color.New(color.FgHiGreen, color.Bold),
-		Commands: color.New(color.FgHiRed, color.Faint),
+		Headings:      color.New(color.FgHiCyan, color.Bold),
+		ExecName:      color.New(color.FgHiGreen, color.Bold),
+		Commands:      color.New(color.Bold, color.FgGreen),
+		FlagsDataType: color.New(color.Faint),
+		Flags:         color.New(color.Bold),
 	})
 	if err != nil {
 		panic(err)
@@ -211,4 +215,20 @@ func ExecuteHandlingError(ctx context.Context, cmd *CobraSnake) {
 		os.Exit(1)
 	}
 	os.Exit(0)
+}
+
+type inlineResolver struct {
+	command *cobra.Command
+}
+
+func (me *inlineResolver) Command() *cobra.Command {
+	return me.command
+}
+
+func (me *inlineResolver) Run() error {
+	panic("not implemented")
+}
+
+func (me *CobraSnake) NewCommand(f snake.Runner, ref *cobra.Command) snake.TypedResolver[*cobra.Command] {
+	return snake.NewInlineRunner(ref, f)
 }

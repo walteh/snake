@@ -1,21 +1,17 @@
 package resolvers
 
-import (
-	"github.com/spf13/pflag"
-)
+import "github.com/walteh/snake"
 
-type CustomInterface interface {
+func CustomRunner() snake.Runner {
+	return snake.GenRunResolver_In00_Out02(&CustomResolver{})
 }
 
-type CustomInterfaceStruct struct {
+type CustomInterface interface {
 }
 
 type CustomResolver struct {
 }
 
-func (me *CustomResolver) Flags(flgs *pflag.FlagSet) {
-}
-
 func (me *CustomResolver) Run() (CustomInterface, error) {
-	return &CustomInterfaceStruct{}, nil
+	return struct{}{}, nil
 }

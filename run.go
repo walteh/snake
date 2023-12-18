@@ -27,7 +27,7 @@ func ResolveAllShared(ctx context.Context, names []string, fmap FMap, binder *Bi
 
 	for _, v := range names {
 		var err error
-		var resolver Resolver
+		var resolver UntypedResolver
 		if resolver = fmap(v); resolver == nil {
 			return nil, terrors.Errorf("missing resolver for %q", v)
 		}
