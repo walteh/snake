@@ -33,7 +33,7 @@ func (me *WailsSnake) ManagedResolvers(_ context.Context) []snake.Resolver {
 	return []snake.Resolver{}
 }
 
-func (me *WailsSnake) Decorate(ctx context.Context, self SWails, snk snake.Snake, inputs []snake.Input, mw []snake.Middleware) error {
+func (me *WailsSnake) Decorate(ctx context.Context, self snake.TypedResolver[SWails], snk snake.Snake, inputs []snake.Input, mw []snake.Middleware) error {
 
 	return nil
 }

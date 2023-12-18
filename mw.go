@@ -13,6 +13,7 @@ type Refreshable interface {
 type MiddlewareFunc func(ctx context.Context) error
 
 type Middleware interface {
+	Method
 	Wrap(MiddlewareFunc) MiddlewareFunc
 }
 
@@ -30,6 +31,14 @@ func NewMiddlewareResolver(mw Middleware) Resolver {
 	return &middlewareResolver{
 		mw: mw,
 	}
+}
+
+func (me *middlewareResolver) Name() string {
+	return "middleware"
+}
+
+func (me *middlewareResolver) Description() string {
+	return "middleware"
 }
 
 func (me *middlewareResolver) Ref() Method {

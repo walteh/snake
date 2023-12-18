@@ -3,9 +3,13 @@ package resolvers
 import (
 	"fmt"
 	"strings"
+
+	"github.com/walteh/snake"
 )
 
-// var _ scobra.Flagged = (*ContextResolver)(nil)
+func DependantRunner() snake.Runner {
+	return snake.GenRunResolver_In01_Out02(&DependantResolver{})
+}
 
 type DependantResolver struct {
 	count int

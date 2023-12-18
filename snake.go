@@ -39,7 +39,7 @@ func (me *defaultSnake) Resolve(name string) Resolver {
 }
 
 type SnakeImplementationTyped[X any] interface {
-	Decorate(context.Context, X, Snake, []Input, []Middleware) error
+	Decorate(context.Context, TypedResolver[X], Snake, []Input, []Middleware) error
 	SnakeImplementation
 }
 
@@ -67,7 +67,7 @@ func snakeManagedResolvers() []Resolver {
 	}
 }
 
-func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementationTyped[M], opts *NewSnakeOpts) (Snake, error) {
+func NewSnakeWithOpts[M Method](ctx context.Context, impl SnakeImplementationTyped[M], opts *NewSnakeOpts) (Snake, error) {
 	var err error
 
 	snk := &defaultSnake{
@@ -85,7 +85,7 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 		inputResolvers = append(inputResolvers, opts.Resolvers...)
 	}
 
-	inputResolvers = append(inputResolvers, newSimpleResolver[EnumResolverFunc](impl.ResolveEnum))
+	inputResolvers = append(inputResolvers, NewResolvedResolver[EnumResolverFunc](impl.ResolveEnum))
 
 	con := impl.ProvideContextResolver()
 	if con != nil {
@@ -99,7 +99,7 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 	for _, runner := range inputResolvers {
 
 		if nmd, ok := runner.(TypedResolver[M]); ok {
-			named[nmd.TypedRef().Name()] = nmd
+			named[nmd.Name()] = nmd
 			continue
 		}
 
@@ -152,7 +152,7 @@ func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementati
 			}
 		}
 
-		err = impl.Decorate(ctx, runner.TypedRef(), snk, inpts, mw)
+		err = impl.Decorate(ctx, runner, snk, inpts, mw)
 		if err != nil {
 			return nil, err
 		}

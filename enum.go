@@ -91,6 +91,9 @@ func (me *rawEnum[T]) Usage() string {
 	return me.description
 }
 
+// because we know the run method is correct
+func (me *rawEnum[T]) isRund() {}
+
 // Ref implements ValidatedRunMethod.
 func (me *rawEnum[T]) Ref() Method {
 	return me

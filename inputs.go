@@ -26,35 +26,6 @@ func MethodName(m Resolver) string {
 	return reflect.ValueOf(m.Ref()).Type().String()
 }
 
-// func DependantsOfInput(input Input, fmap FMap) []string {
-
-// 	return
-
-// 	// any resolver who depends on the outputs of the parent
-// 	rets := DependantsOfResolver(input.Parent(), fmap)
-// 	return DependantsOfResolver(input.Parent(), fmap)
-// }
-
-// func DependantsOfResolver(res Resolver, m FMap) []Resolver {
-// 	resv := make([]Resolver, 0)
-// 	rets := IsResolverFor(res)
-// 	fmt.Println("rets", rets)
-// 	for v := range rets {
-// 		if z := m(v); z != nil {
-// 			resf, err := DependanciesOf(v, m)
-// 			if err != nil {
-// 				panic(err)
-// 			}
-// 			for _, v := range resf {
-// 				if g := m(v); g != nil {
-// 					resv = append(resv, g)
-// 				}
-// 			}
-// 		}
-// 	}
-// 	return resv
-// }
-
 func DependancyInputs(str string, m FMap, enum ...Enum) ([]Input, error) {
 	deps, err := DependanciesOf(str, m)
 	if err != nil {

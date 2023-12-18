@@ -24,7 +24,11 @@ func NewCommand(ctx context.Context) (snake.Snake, *scobra.CobraSnake, *sample.H
 	handler := &sample.Handler{}
 
 	commands := []snake.Resolver{
-		scobra.NewCommandResolver(&basic.Handler{}).WithMiddleware(smiddleware.NewIntervalMiddleware()),
+		scobra.NewTypedResolver(&cobra.Command{}).
+			WithRunner(basic.Runner).
+			WithName("basicd").
+			WithDescription("the basic command"),
+
 		scobra.NewCommandResolver(handler).WithMiddleware(smiddleware.NewIntervalMiddleware()),
 	}
 

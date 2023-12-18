@@ -15,7 +15,12 @@ var (
 type TypedResolver[M Method] interface {
 	Resolver
 	TypedRef() M
+	WithRunner(func() Runner) TypedResolver[M]
 	WithMiddleware(...Middleware) TypedResolver[M]
+	WithName(string) TypedResolver[M]
+	WithDescription(string) TypedResolver[M]
+	Name() string
+	Description() string
 }
 
 type Resolver interface {
@@ -30,17 +35,28 @@ type MethodProvider interface {
 
 type simpleResolver[M Method] struct {
 	runfunc     reflect.Value
-	strc        M
+	ref         Method
+	typedRef    M
 	middlewares []Middleware
+	name        string
+	description string
 }
 
-func newSimpleResolver[M Method](strc M) TypedResolver[M] {
+func NewResolvedResolver[M Method](strc M) TypedResolver[M] {
 	return &simpleResolver[M]{
 		runfunc: reflect.ValueOf(func() (M, error) {
 			return strc, nil
 		}),
-		strc: strc,
+		ref:      strc,
+		typedRef: strc,
 	}
+}
+
+func (me *simpleResolver[M]) WithRunner(m func() Runner) TypedResolver[M] {
+	rnr := m()
+	me.ref = rnr.Ref()
+	me.runfunc = rnr.RunFunc()
+	return me
 }
 
 func (me *simpleResolver[M]) RunFunc() reflect.Value {
@@ -48,15 +64,33 @@ func (me *simpleResolver[M]) RunFunc() reflect.Value {
 }
 
 func (me *simpleResolver[M]) Ref() Method {
-	return me.strc
+	return me.ref
 }
 
 func (me *simpleResolver[M]) TypedRef() M {
-	return me.strc
+	return me.typedRef
+}
+
+func (me *simpleResolver[M]) Name() string {
+	return me.name
+}
+
+func (me *simpleResolver[M]) Description() string {
+	return me.description
 }
 
 func (me *simpleResolver[M]) WithMiddleware(mw ...Middleware) TypedResolver[M] {
 	me.middlewares = append(me.middlewares, mw...)
+	return me
+}
+
+func (me *simpleResolver[M]) WithName(name string) TypedResolver[M] {
+	me.name = name
+	return me
+}
+
+func (me *simpleResolver[M]) WithDescription(desc string) TypedResolver[M] {
+	me.description = desc
 	return me
 }
 
@@ -67,6 +101,7 @@ func (me *simpleResolver[M]) Middlewares() []Middleware {
 func (me *simpleResolver[M]) IsResolver() {}
 
 func MustGetTypedResolver[M Method](inter M) TypedResolver[M] {
+
 	m, err := getTypedResolver(inter)
 	if err != nil {
 		panic(err)
@@ -103,13 +138,18 @@ func mustGetResolverForRaw(inter any, args ...any) Resolver {
 
 	return run
 }
-func getTypedResolver[M Method](inter M) (*simpleResolver[M], error) {
+func getTypedResolver[M Method](inter M) (TypedResolver[M], error) {
+
+	if m, ok := any(inter).(Runner); ok {
+		return m.(TypedResolver[M]), nil
+	}
 
 	prov, ok := any(inter).(MethodProvider)
 	if ok {
 		return &simpleResolver[M]{
-			runfunc: prov.Method(),
-			strc:    inter,
+			runfunc:  prov.Method(),
+			ref:      inter,
+			typedRef: inter,
 		}, nil
 	}
 
@@ -126,10 +166,18 @@ func getTypedResolver[M Method](inter M) (*simpleResolver[M], error) {
 		return nil, terrors.Errorf("missing Run method on %q", value.Type())
 	}
 
-	return &simpleResolver[M]{
-		runfunc: method,
-		strc:    inter,
-	}, nil
+	sr := &simpleResolver[M]{
+		runfunc:  method,
+		ref:      inter,
+		typedRef: inter,
+	}
+
+	if name, ok := any(inter).(NamedMethod); ok {
+		sr.name = name.Name()
+		sr.description = name.Description()
+	}
+
+	return sr, nil
 }
 
 func ListOfArgs(m Resolver) []reflect.Type {

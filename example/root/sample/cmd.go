@@ -32,14 +32,6 @@ type args struct {
 	Bs      io.ByteScanner
 }
 
-func (*Handler) Image() string {
-	return "https://tailwindui.com/img/logos/48x48/savvycal.svg"
-}
-
-func (*Handler) Emoji() string {
-	return "🤠"
-}
-
 func (me *Handler) Args() *args {
 	return &me.args
 }

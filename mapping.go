@@ -11,6 +11,7 @@ type Method interface {
 
 type NamedMethod interface {
 	Name() string
+	Description() string
 }
 
 type FMap func(string) Resolver
