@@ -1,8 +1,11 @@
-# Snake
+# snake 🐍
+
+> [!CAUTION]
+> This is a personal project I use to simplify my own tool development. It is not intended for public use. It is not well tested. It is not well documented. It is not well maintained. It is not well anything. Use at your own risk.<<
 
 ## Description
 
-Snake is a Go library designed to help build tools faster. It combines the high-level binding logic of the Kong CLI library with the Cobra CLI library, providing a powerful and efficient way to create command-line interfaces.
+Snake is a Go library designed to help build tools faster. It combines the high-level binding logic of the Kong CLI library with the Cobra CLI library, providing a powerful and efficient way to create custom golang tools.
 
 It is designed to be built on top of existing frameworks. Right now, it only supports Cobra.
 
