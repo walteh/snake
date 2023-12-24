@@ -19,8 +19,10 @@ func (me *Handler) TypedRef() *cobra.Command {
 }
 
 type Handler struct {
-	Value string `default:"default"`
-	Cool  bool   `default:"false"`
+	Value      string   `default:"default"`
+	Cool       bool     `default:"false"`
+	CoolArray  []string `default:"a,b,c"`
+	CoolIntArr []int    `default:"1,2,3"`
 
 	curr int
 
