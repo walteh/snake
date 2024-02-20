@@ -230,14 +230,27 @@ func Commands[M any](cmds ...TypedResolver[M]) []TypedResolver[M] {
 }
 
 type backwardsResolver struct {
-	NamedRunner
+	LegacyNamedRunner
+}
+
+type LegacyNamedRunner interface {
+	Runner
+	Named
 }
 
 func (me *backwardsResolver) RegisterRunFunc() RunFunc {
-	return me.NamedRunner
+	return me.LegacyNamedRunner
 }
 
-func Command[I SnakeImplementationTyped[M], M Method, Rnr NamedRunner](runner func() Rnr, impl I, cmd M) TypedResolver[M] {
+func (me *backwardsResolver) Name() string {
+	return me.LegacyNamedRunner.Name()
+}
+
+func (me *backwardsResolver) Description() string {
+	return me.LegacyNamedRunner.Description()
+}
+
+func Command[I SnakeImplementationTyped[M], M Method, Rnr LegacyNamedRunner](runner func() Rnr, impl I, cmd M) TypedResolver[M] {
 	return NewInlineRunner(cmd, &backwardsResolver{runner()})
 }
 
