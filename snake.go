@@ -260,3 +260,7 @@ func Resolvers(args ...UntypedResolver) []UntypedResolver {
 func Resolver(runner func() Runner) UntypedResolver {
 	return runner()
 }
+
+func ResolverV2(runner RegisterableRunFunc) UntypedResolver {
+	return runner.RegisterRunFunc()
+}
