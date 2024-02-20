@@ -225,16 +225,20 @@ func (me *defaultSnake) DependantsOf(name string) []string {
 	return me.dependants[name]
 }
 
-// func (me *rund[X]) WithImplementation(impl SnakeImplementation) Resolver {
-// 	return &rund[X]{
-// }
-
 func Commands[M any](cmds ...TypedResolver[M]) []TypedResolver[M] {
 	return cmds
 }
 
+type backwardsResolver struct {
+	Runner
+}
+
+func (me *backwardsResolver) RegisterRunFunc() RunFunc {
+	return me.Runner
+}
+
 func Command[I SnakeImplementationTyped[M], M Method, Rnr Runner](runner func() Rnr, impl I, cmd M) TypedResolver[M] {
-	return NewInlineRunner(cmd, runner())
+	return NewInlineRunner(cmd, &backwardsResolver{runner()})
 }
 
 func Resolvers(args ...UntypedResolver) []UntypedResolver {

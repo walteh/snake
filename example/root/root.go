@@ -27,8 +27,8 @@ func NewCommand(ctx context.Context) (snake.Snake, *scobra.CobraSnake, *sample.H
 
 	sobps := snake.Opts(
 		snake.Commands(
-			snake.Command(basic.Runner, impl, &cobra.Command{}),
-			snake.Command(handler.Runner, impl, handler.Command()).WithMiddleware(smiddleware.NewIntervalMiddlewareWithDefault(time.Second)),
+			scobra.NewCommand(&basic.Handler{}),
+			scobra.NewCommand(handler).WithMiddleware(smiddleware.NewIntervalMiddlewareWithDefault(time.Second)),
 		),
 		snake.Resolvers(
 			resolvers.CustomRunner(),

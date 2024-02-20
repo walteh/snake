@@ -10,12 +10,8 @@ import (
 	"github.com/walteh/snake/example/resolvers"
 )
 
-func (me *Handler) Runner() snake.TypedRunner[*Handler] {
+func (me *Handler) RegisterRunFunc() snake.RunFunc {
 	return snake.GenRunCommand_In08_Out02(me)
-}
-
-func (me *Handler) TypedRef() *cobra.Command {
-	return me.Command()
 }
 
 type Handler struct {
@@ -43,17 +39,10 @@ func (me *Handler) Args() *args {
 	return &me.args
 }
 
-func (*Handler) Name() string {
-	return "sample"
-}
-
-func (*Handler) Description() string {
-	return "sample description"
-}
-
-func (me *Handler) Command() *cobra.Command {
+func (me *Handler) CobraCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use: me.Name(),
+		Use:   "sample",
+		Short: "sample command",
 	}
 
 	cmd.Args = cobra.ExactArgs(0)
